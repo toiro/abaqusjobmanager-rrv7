@@ -8,16 +8,26 @@
     "dev": "bunx --bun vite --host",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "bun ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "test": "bun test",
+    "typecheck": "react-router typegen && tsc",
+    "db:init": "bun run scripts/init-db.ts",
+    "db:reset": "rm -f sqlite/*.db* && bun run db:init",
+    "db:reset:test": "rm -f sqlite/test.db* && BUN_ENV=test bun run db:init"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
     "@react-router/fs-routes": "^7.3.0",
     "@react-router/node": "^7.3.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "isbot": "^5.1.23",
+    "lucide-react": "^0.517.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.3.0",
-    "react-router-hono-server": "*"
+    "react-router-hono-server": "*",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@react-router/dev": "^7.3.0",

@@ -1,20 +1,69 @@
 /**
- * 英語UIメッセージ定数
- * フロントエンドで使用するユーザー向けメッセージ
+ * English message constants for the Abaqus Job Manager
+ * Centralized message management for consistent UI text
  */
 
-// ページタイトル・ナビゲーション
-export const PAGE_TITLES = {
-  HOME: 'Abaqus Job Manager',
-  NEW_JOB: 'Create New Job',
-  JOB_DETAILS: 'Job Details',
-  SETTINGS: 'Settings',
-  NODES: 'Node Management'
+// System Messages
+export const SYSTEM_MESSAGES = {
+  // General
+  LOADING: "Loading...",
+  SAVING: "Saving...",
+  SAVED: "Saved successfully",
+  UPDATED: "Updated successfully",
+  DELETED: "Deleted successfully",
+  CANCELLED: "Cancelled",
+  CONFIRM: "Confirm",
+  YES: "Yes",
+  NO: "No",
+  OK: "OK",
+  CANCEL: "Cancel",
+  CLOSE: "Close",
+  EDIT: "Edit",
+  DELETE: "Delete",
+  CREATE: "Create",
+  ADD: "Add",
+  UPDATE: "Update",
+  SAVE: "Save",
+  RESET: "Reset",
+  REFRESH: "Refresh",
+  
+  // Status
+  SUCCESS: "Success",
+  ERROR: "Error",
+  WARNING: "Warning",
+  INFO: "Information",
+  
+  // Navigation
+  DASHBOARD: "Dashboard",
+  JOBS: "Jobs",
+  NODES: "Nodes",
+  FILES: "Files",
+  USERS: "Users",
+  SETTINGS: "Settings",
+  ADMIN: "Administration",
+  USER: "User",
 } as const;
 
-// ボタン・アクション
+// Page Titles
+export const PAGE_TITLES = {
+  HOME: 'Abaqus Job Manager',
+  DASHBOARD: 'Dashboard',
+  NEW_JOB: 'Create New Job',
+  JOB_DETAILS: 'Job Details',
+  JOBS: 'Job Management',
+  SETTINGS: 'Settings',
+  NODES: 'Node Management',
+  FILES: 'File Management',
+  USERS: 'User Management',
+  ADMIN: 'Administration'
+} as const;
+
+// Buttons & Actions
 export const BUTTONS = {
   CREATE_JOB: 'Create Job',
+  SUBMIT_JOB: 'Submit Job',
+  CANCEL_JOB: 'Cancel Job',
+  DELETE_JOB: 'Delete Job',
   CANCEL: 'Cancel',
   SAVE: 'Save',
   DELETE: 'Delete',
@@ -22,7 +71,15 @@ export const BUTTONS = {
   NEW_JOB: 'New Job',
   UPLOAD: 'Upload',
   DOWNLOAD: 'Download',
-  RETRY: 'Retry'
+  RETRY: 'Retry',
+  VIEW_DETAILS: 'View Details',
+  EDIT: 'Edit',
+  ADD: 'Add',
+  REMOVE: 'Remove',
+  ACTIVATE: 'Activate',
+  DEACTIVATE: 'Deactivate',
+  TEST_CONNECTION: 'Test Connection',
+  RESET: 'Reset'
 } as const;
 
 // フォームラベル
@@ -137,3 +194,166 @@ export const PRIORITY_LEVELS = {
   HIGH: 'High',
   URGENT: 'Urgent'
 } as const;
+
+// Node Related Messages
+export const NODE_MESSAGES = {
+  // Actions
+  ADD_NODE: "Add Node",
+  EDIT_NODE: "Edit Node",
+  DELETE_NODE: "Delete Node",
+  ACTIVATE_NODE: "Activate Node",
+  DEACTIVATE_NODE: "Deactivate Node",
+  TEST_CONNECTION: "Test Connection",
+  
+  // Fields
+  NODE_NAME: "Node Name",
+  HOSTNAME: "Hostname",
+  SSH_PORT: "SSH Port",
+  MAX_CPU_CORES: "Max CPU Cores",
+  CURRENT_CPU_USAGE: "Current CPU Usage",
+  CURRENT_LICENSE_USAGE: "Current License Usage",
+  IS_ACTIVE: "Active",
+  
+  // Validation
+  NAME_REQUIRED: "Node name is required",
+  HOSTNAME_REQUIRED: "Hostname is required",
+  HOSTNAME_INVALID: "Invalid hostname format",
+  SSH_PORT_INVALID: "SSH port must be between 1 and 65535",
+  MAX_CPU_CORES_REQUIRED: "Max CPU cores must be specified",
+  MAX_CPU_CORES_MIN: "At least 1 CPU core is required",
+  
+  // Messages
+  NODE_ADDED: "Node added successfully",
+  NODE_UPDATED: "Node updated successfully",
+  NODE_DELETED: "Node deleted successfully",
+  NODE_ACTIVATED: "Node activated",
+  NODE_DEACTIVATED: "Node deactivated",
+  CONNECTION_SUCCESS: "Connection test successful",
+  CONNECTION_FAILED: "Connection test failed",
+} as const;
+
+// File Related Messages
+export const FILE_MESSAGES = {
+  // Actions
+  UPLOAD_FILE: "Upload File",
+  DOWNLOAD_FILE: "Download File",
+  DELETE_FILE: "Delete File",
+  SELECT_FILE: "Select File",
+  DRAG_DROP: "Drag & drop files here, or click to select",
+  
+  // Fields
+  ORIGINAL_NAME: "Original Name",
+  FILE_SIZE: "File Size",
+  UPLOAD_DATE: "Upload Date",
+  UPLOADED_BY: "Uploaded By",
+  
+  // Validation
+  FILE_REQUIRED: "Please select a file",
+  FILE_TYPE_INVALID: "Only .inp files are allowed",
+  FILE_SIZE_EXCEEDED: "File size exceeds maximum limit",
+  FILE_SIZE_EMPTY: "File cannot be empty",
+  
+  // Messages
+  FILE_UPLOADED: "File uploaded successfully",
+  FILE_DELETED: "File deleted successfully",
+  UPLOAD_IN_PROGRESS: "Uploading...",
+  UPLOAD_FAILED: "Upload failed",
+  
+  // File size formats
+  BYTES: "bytes",
+  KB: "KB",
+  MB: "MB",
+  GB: "GB",
+} as const;
+
+// User Related Messages
+export const USER_MESSAGES = {
+  // Actions
+  ADD_USER: "Add User",
+  EDIT_USER: "Edit User",
+  DELETE_USER: "Delete User",
+  ACTIVATE_USER: "Activate User",
+  DEACTIVATE_USER: "Deactivate User",
+  
+  // Fields
+  DISPLAY_NAME: "Display Name",
+  MAX_CONCURRENT_JOBS: "Max Concurrent Jobs",
+  CURRENT_JOBS: "Current Jobs",
+  IS_ACTIVE: "Active",
+  
+  // Validation
+  DISPLAY_NAME_REQUIRED: "Display name is required",
+  DISPLAY_NAME_TOO_SHORT: "Display name must be at least 2 characters",
+  DISPLAY_NAME_INVALID: "Display name can only contain alphanumeric characters, underscores, and hyphens",
+  MAX_CONCURRENT_JOBS_REQUIRED: "Max concurrent jobs must be specified",
+  MAX_CONCURRENT_JOBS_MIN: "At least 1 concurrent job must be allowed",
+  
+  // Messages
+  USER_CREATED: "User created successfully",
+  USER_UPDATED: "User updated successfully",
+  USER_DELETED: "User deleted successfully",
+  USER_ACTIVATED: "User activated",
+  USER_DEACTIVATED: "User deactivated",
+  MAX_JOBS_REACHED: "Maximum concurrent jobs reached",
+} as const;
+
+// Confirmation Messages
+export const CONFIRMATION_MESSAGES = {
+  DELETE_JOB: "Are you sure you want to delete this job?",
+  CANCEL_JOB: "Are you sure you want to cancel this job?",
+  DELETE_NODE: "Are you sure you want to delete this node?",
+  DELETE_FILE: "Are you sure you want to delete this file?",
+  DELETE_USER: "Are you sure you want to delete this user?",
+  DEACTIVATE_USER: "Are you sure you want to deactivate this user?",
+  RESET_SETTINGS: "Are you sure you want to reset all settings?",
+  UNSAVED_CHANGES: "You have unsaved changes. Are you sure you want to leave?",
+} as const;
+
+// Time Formats
+export const TIME_FORMATS = {
+  SECONDS: "seconds",
+  MINUTES: "minutes",
+  HOURS: "hours",
+  DAYS: "days",
+  AGO: "ago",
+  JUST_NOW: "just now",
+} as const;
+
+// Placeholders
+export const PLACEHOLDERS = {
+  SELECT_USER: "Select user",
+  SELECT_NODE: "Select node", 
+  SELECT_FILE: "Select file",
+  ENTER_JOB_NAME: "Enter job name",
+  ENTER_HOSTNAME: "Enter hostname",
+  ENTER_NODE_NAME: "Enter node name",
+  ENTER_DISPLAY_NAME: "Enter display name",
+} as const;
+
+// Export all message categories
+export const MESSAGES = {
+  SYSTEM: SYSTEM_MESSAGES,
+  PAGE: PAGE_TITLES,
+  BUTTON: BUTTONS,
+  JOB: {
+    STATUS: JOB_STATUS,
+    ERROR: ERROR_MESSAGES,
+    SUCCESS: SUCCESS_MESSAGES,
+    INFO: INFO_MESSAGES,
+  },
+  NODE: {
+    STATUS: NODE_STATUS,
+    MESSAGE: NODE_MESSAGES,
+  },
+  FILE: FILE_MESSAGES,
+  USER: USER_MESSAGES,
+  FORM: FORM_LABELS,
+  TABLE: TABLE_HEADERS,
+  RESOURCE: RESOURCE_LABELS,
+  PRIORITY: PRIORITY_LEVELS,
+  CONFIRMATION: CONFIRMATION_MESSAGES,
+  TIME: TIME_FORMATS,
+  CPU: CPU_OPTIONS,
+} as const;
+
+export default MESSAGES;

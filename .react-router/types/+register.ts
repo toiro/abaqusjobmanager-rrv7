@@ -8,5 +8,6 @@ declare module "react-router" {
 
 type Params = {
   "/": {};
+  "/test-ui": {};
   "/defer": {};
 };

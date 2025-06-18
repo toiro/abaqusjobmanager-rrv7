@@ -3,32 +3,18 @@
  */
 
 /**
- * CPU数からAbaqusライセンストークン数を計算する関数
- * Abaqusの実際のライセンス消費パターンに基づく非線形関数
- * 
- * @param cpuCount CPU数 (2, 4, 8)
- * @returns 必要なライセンストークン数
+ * 1コアで実行する時に使用する計算トークン数
  */
-export function calculateLicenseTokens(cpuCount: number): number {
-    // TODO: 実際のAbaqusライセンス消費関数に置き換える
-    // 現在は例として非線形の関数を使用
-    
-    switch (cpuCount) {
-        case 1:
-            return 1;
-        case 2:
-            return 2;
-        case 4:
-            return 5;  // 非線形: 4CPUで5トークン
-        case 8:
-            return 12; // 非線形: 8CPUで12トークン
-        default:
-            // より多いCPU数の場合の計算式（要調整）
-            if (cpuCount > 8) {
-                return Math.ceil(cpuCount * 1.5 + 2);
-            }
-            throw new Error(`Unsupported CPU count: ${cpuCount}`);
-    }
+const NONE = 5
+
+/**
+ * CPU数に対する使用計算トークン数
+ * トークン数 = Int(None×Ncore^0.422)
+ * @param { Number } none 1コアで実行する時に使用する計算トークン数
+ * @param { Number } ncore コア数、または（CPU+GPU）数
+ */
+function calculateLicenseTokens(ncore: number,none: number = NONE) {
+  return Math.floor(none * ncore ** 0.422);
 }
 
 /**

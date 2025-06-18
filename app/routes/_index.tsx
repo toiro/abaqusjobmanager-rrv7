@@ -1,60 +1,71 @@
-import { useState } from "react";
-import { useRevalidator } from "react-router";
-import { Input } from "~/components/input";
-import { getPublic } from "~/utils/.client/public";
-import { getCommon } from "~/utils/.common/common";
-import { getSecret } from "~/utils/.server/secret";
-import { getEnv } from "~/utils/env.server";
-import dbLogo from "/images/database.svg";
+import { MainLayout } from "~/components/layout/MainLayout";
+import { Button } from "~/components/ui/button";
+import { JobTable } from "~/components/jobs/JobTable";
+import { jobOps, userOps } from "~/lib/dbOperations";
+import { PAGE_TITLES, BUTTONS } from "~/lib/messages";
 import type { Route } from "./+types/_index";
 
 export function loader() {
-  console.log(getSecret(), getCommon());
+  const jobs = jobOps.findAll();
+  const users = userOps.findActive();
   return {
-    env: getEnv(),
+    jobs,
+    users,
   };
 }
 
-export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
-  console.log(getPublic(), getCommon());
-  return {
-    ...(await serverLoader()),
+export default function Index({ loaderData: { jobs, users } }: Route.ComponentProps) {
+  const handleJobAction = (jobId: number, action: 'view' | 'edit' | 'delete' | 'cancel') => {
+    switch (action) {
+      case 'view':
+        console.log("View details for job:", jobId);
+        break;
+      case 'edit':
+        console.log("Edit job:", jobId);
+        break;
+      case 'delete':
+        console.log("Delete job:", jobId);
+        break;
+      case 'cancel':
+        console.log("Cancel job:", jobId);
+        break;
+    }
   };
-}
 
-clientLoader.hydrate = true;
+  const handleCreateJob = () => {
+    console.log("Create new job");
+  };
 
-export default function Index({ loaderData: data }: Route.ComponentProps) {
-  const [value, setValue] = useState("");
-  console.log("dbLogo", dbLogo);
-  console.log("value", value);
-  const { revalidate } = useRevalidator();
+  const createJobButton = (
+    <Button onClick={handleCreateJob} className="flex items-center gap-2">
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 4v16m8-8H4"
+        />
+      </svg>
+      {BUTTONS.NEW_JOB}
+    </Button>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-      <button type="button" onClick={revalidate} className="flex items-center gap-2">
-        <img src={dbLogo} alt="Database" />
-        Revalidate
-      </button>
-      <input />
-      <Input value={value} onChange={(e) => setValue(e.target.value)} />
-      <div className="mt-8 w-full max-w-4xl overflow-x-auto">
-        <table className="w-full border-collapse bg-gray-100 shadow-md rounded-lg">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Key</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Value</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Object.entries(data.env).map(([key, value]) => (
-              <tr key={key} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{key}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{value ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <MainLayout 
+      title={PAGE_TITLES.JOBS}
+      description="Manage and monitor your Abaqus job execution"
+      actions={createJobButton}
+      users={users}
+    >
+      <JobTable
+        jobs={jobs}
+        onJobAction={handleJobAction}
+      />
+    </MainLayout>
   );
 }

@@ -9,6 +9,9 @@
       "Bash(find:*)",
       "Bash(grep:*)"
     ],
-    "deny": []
+    "deny": [
+      "Bash(bun dev)",
+      "Bash(bun run dev)"
+    ]
   }
 }
