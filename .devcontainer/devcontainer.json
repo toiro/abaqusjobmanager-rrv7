@@ -1,0 +1,21 @@
+{
+  "name": "ajm-rrv7",
+  "dockerComposeFile": [
+    "compose.yaml"
+  ],
+  "service": "app",
+  "workspaceFolder": "/app",
+  "remoteUser": "bun",
+  "features": {
+    // コンテナでNode.jsをインストールしていない場合は、併せてインストールする
+    // "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+  "customizations": {
+      "vscode": {
+          "extensions": [
+            "biomejs.biome"
+          ]
+      }
+  }
+}

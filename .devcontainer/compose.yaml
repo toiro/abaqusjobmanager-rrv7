@@ -1,0 +1,13 @@
+services:
+  app:
+    container_name: ajm-rrv7
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/app:cached
+    working_dir: /app
+    tty: true
+    environment:
+      - TZ=Asia/Tokyo
+    command: /bin/bash
