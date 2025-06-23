@@ -11,6 +11,7 @@ import {
 import { JobStatusBadge } from "./JobStatusBadge";
 import { TABLE_HEADERS, BUTTONS, INFO_MESSAGES } from "~/lib/messages";
 import type { Job } from "~/lib/dbOperations";
+import { calculateLicenseTokens } from "~/lib/licenseCalculator";
 
 interface JobTableProps {
   jobs: Job[];
@@ -132,7 +133,7 @@ export function JobTable({ jobs, onJobAction, loading }: JobTableProps) {
                       d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                     />
                   </svg>
-                  <span className="text-sm">{job.license_tokens}</span>
+                  <span className="text-sm">{calculateLicenseTokens(job.cpu_cores)}</span>
                 </div>
               </TableCell>
               <TableCell className="text-sm">

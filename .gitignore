@@ -3,6 +3,11 @@ node_modules
 /.cache
 /build
 .env
+.env.local
+.env.*.local
+
+# File uploads
+uploads/
 
 # SQLite databases
 sqlite/*.db*

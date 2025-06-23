@@ -1,5 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { TopNavigation } from "./TopNavigation";
+import { SystemStatusBar } from "~/components/ui/SystemStatusBar";
 import type { User } from "~/lib/dbOperations";
 
 interface MainLayoutProps {
@@ -8,9 +9,10 @@ interface MainLayoutProps {
   description?: string;
   actions?: ReactNode;
   users?: User[];
+  showSystemStatus?: boolean;
 }
 
-export function MainLayout({ children, title, description, actions, users }: MainLayoutProps) {
+export function MainLayout({ children, title, description, actions, users, showSystemStatus = false }: MainLayoutProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
 
   const handleUserChange = (userId: string) => {
@@ -38,6 +40,13 @@ export function MainLayout({ children, title, description, actions, users }: Mai
         onUserChange={handleUserChange}
         users={users}
       />
+      {showSystemStatus && (
+        <SystemStatusBar 
+          sseStatus="connected"
+          licenseUsed={8}
+          licenseTotal={12}
+        />
+      )}
       <main className="flex-1">
         {(title || description || actions) && (
           <header className="border-b bg-muted/10">

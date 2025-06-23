@@ -15,7 +15,6 @@ export interface Job {
   file_id: number;
   user_id: number;
   cpu_cores: number;
-  license_tokens: number;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   execution_order?: number;
   start_time?: string;
@@ -89,8 +88,8 @@ export class JobOperations {
 
   create(job: Omit<Job, 'id' | 'created_at' | 'updated_at'>): number {
     const stmt = this.db.prepare(`
-      INSERT INTO jobs (name, status, node_id, file_id, user_id, cpu_cores, license_tokens, priority, execution_order, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO jobs (name, status, node_id, file_id, user_id, cpu_cores, priority, execution_order, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const result = stmt.run(
@@ -100,7 +99,6 @@ export class JobOperations {
       job.file_id,
       job.user_id,
       job.cpu_cores,
-      job.license_tokens,
       job.priority || 'normal',
       job.execution_order || null,
       job.created_by || null
@@ -200,6 +198,11 @@ export class NodeOperations {
 
   findAll(): Node[] {
     const stmt = this.db.prepare("SELECT * FROM nodes ORDER BY name");
+    return stmt.all() as Node[];
+  }
+
+  findActive(): Node[] {
+    const stmt = this.db.prepare("SELECT * FROM nodes WHERE is_active = 1 ORDER BY name");
     return stmt.all() as Node[];
   }
 

@@ -13,7 +13,7 @@ const NONE = 5
  * @param { Number } none 1コアで実行する時に使用する計算トークン数
  * @param { Number } ncore コア数、または（CPU+GPU）数
  */
-function calculateLicenseTokens(ncore: number,none: number = NONE) {
+export function calculateLicenseTokens(ncore: number,none: number = NONE) {
   return Math.floor(none * ncore ** 0.422);
 }
 

@@ -34,11 +34,18 @@ app/
 │   ├── database.ts    # SQLite接続管理
 │   ├── dbOperations.ts# データベース操作
 │   ├── messages.ts    # 英語メッセージ定数
-│   └── utils.ts       # ユーティリティ関数
+│   ├── utils.ts       # ユーティリティ関数
+│   ├── sse.ts         # SSEイベント発信機能
+│   ├── sse-schemas.ts # SSEイベントのZodスキーマ定義
+│   └── __tests__/     # テストファイル
+│       └── sse-schemas.test.ts # SSEスキーマのテスト
+├── hooks/             # Reactカスタムフック
+│   └── useSSE.ts      # SSE接続管理フック
 ├── routes/            # ファイルベースルーティング
 │   ├── _index.tsx     # ジョブ一覧 (初期画面)
-│   ├── test-ui.tsx    # UIコンポーネントテスト
-│   └── defer.tsx      # 遅延読み込みの例
+│   ├── admin.*.tsx    # 管理画面系ルート
+│   ├── api.events.ts  # SSEエンドポイント
+│   └── test-ui.tsx    # UIコンポーネントテスト
 ├── styles/            # グローバルスタイル
 │   └── tailwind.css   # TailwindCSSインポート
 ├── entry.server.tsx   # サーバーエントリーポイント
@@ -92,6 +99,8 @@ bun run typecheck
 - **TypeScript**: 完全なTypeScriptサポート
 - **ビルドツール**: Vite
 - **ファイル管理**: INPファイルアップロード対応
+- **リアルタイム通信**: Server-Sent Events (SSE)
+- **型検証**: Zod (実行時型検証)
 
 ## 主な機能 (更新)
 

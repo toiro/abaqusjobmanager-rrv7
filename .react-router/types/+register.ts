@@ -8,6 +8,15 @@ declare module "react-router" {
 
 type Params = {
   "/": {};
+  "/api/events": {};
   "/test-ui": {};
-  "/defer": {};
+  "/admin": {};
+  "/admin/settings": {};
+  "/admin/files": {};
+  "/admin/login": {};
+  "/admin/nodes": {};
+  "/admin/users": {};
+  "/*": {
+    "*": string;
+  };
 };

@@ -82,7 +82,6 @@ describe("User Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 2,
-      license_tokens: 4
     });
 
     // Create waiting job (should not be counted)
@@ -92,7 +91,6 @@ describe("User Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 2,
-      license_tokens: 4
     });
 
     const currentJobCount = userOps.getCurrentJobCount(userId);
@@ -123,7 +121,6 @@ describe("User Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 2,
-      license_tokens: 4
     });
 
     // Should not be able to create another job
@@ -242,7 +239,7 @@ describe("Job Operations", () => {
     });
 
     // Create a node
-    const nodeId = nodeOps.create({
+    nodeOps.create({
       name: `job-test-node-${timestamp}`,
       hostname: "jobtest.local",
       max_cpu_cores: 8,
@@ -255,7 +252,6 @@ describe("Job Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 4,
-      license_tokens: 8,
       priority: "normal" as const
     };
 
@@ -267,7 +263,6 @@ describe("Job Operations", () => {
     expect(retrievedJob?.name).toBe(jobData.name);
     expect(retrievedJob?.status).toBe(jobData.status);
     expect(retrievedJob?.cpu_cores).toBe(jobData.cpu_cores);
-    expect(retrievedJob?.license_tokens).toBe(jobData.license_tokens);
     expect(retrievedJob?.user_id).toBe(userId);
   });
 
@@ -291,8 +286,7 @@ describe("Job Operations", () => {
       status: "waiting",
       file_id: fileId,
       user_id: userId,
-      cpu_cores: 2,
-      license_tokens: 5
+      cpu_cores: 2
     });
 
     // Create running job
@@ -302,7 +296,6 @@ describe("Job Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 4,
-      license_tokens: 8
     });
 
     const waitingJobs = jobOps.findByStatus("waiting");
@@ -334,7 +327,6 @@ describe("Job Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 2,
-      license_tokens: 5
     });
 
     jobOps.updateStatus(jobId, "running");
@@ -370,7 +362,6 @@ describe("Job Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 4,
-      license_tokens: 8
     });
 
     jobOps.assignToNode(jobId, nodeId);
@@ -402,7 +393,6 @@ describe("Job Log Operations", () => {
       file_id: fileId,
       user_id: userId,
       cpu_cores: 2,
-      license_tokens: 5
     });
 
     const logData = {

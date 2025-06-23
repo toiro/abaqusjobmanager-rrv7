@@ -47,6 +47,7 @@ function getDatabasePath(): string {
 export function getDatabase(): Database {
   if (!db) {
     const dbPath = getDatabasePath();
+    
     db = new Database(dbPath);
     
     // Enable WAL mode for better concurrent access

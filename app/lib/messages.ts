@@ -152,7 +152,9 @@ export const SUCCESS_MESSAGES = {
   JOB_CREATED: 'Job created successfully',
   JOB_DELETED: 'Job deleted successfully',
   FILE_UPLOADED: 'File uploaded successfully',
-  SETTINGS_SAVED: 'Settings saved successfully'
+  SETTINGS_SAVED: 'Settings saved successfully',
+  NODE_UPDATED: 'Node updated successfully',
+  USER_UPDATED: 'User updated successfully'
 } as const;
 
 // 情報メッセージ
