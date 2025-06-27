@@ -12,13 +12,13 @@ export const SSEEventSchema = z.object({
   channel: SSEChannelSchema.optional()
 });
 
-// File event data schemas
+// File event data schemas - aligned with database schema
 export const FileEventDataSchema = z.object({
-  fileId: z.number().optional(),
-  fileName: z.string().optional(),
-  fileSize: z.number().optional(),
-  mimeType: z.string().optional(),
-  uploadedBy: z.string().optional()
+  fileId: z.number().optional(), // maps to id
+  fileName: z.string().optional(), // maps to original_name
+  fileSize: z.number().optional(), // maps to file_size
+  mimeType: z.string().optional(), // maps to mime_type
+  uploadedBy: z.string().optional() // maps to uploaded_by
 });
 
 export const FileEventSchema = SSEEventSchema.extend({
@@ -26,15 +26,15 @@ export const FileEventSchema = SSEEventSchema.extend({
   data: FileEventDataSchema.optional()
 });
 
-// Job event data schemas
+// Job event data schemas - aligned with database schema
 export const JobEventDataSchema = z.object({
-  jobId: z.number().optional(),
-  jobName: z.string().optional(),
-  status: z.enum(['waiting', 'running', 'completed', 'failed', 'cancelled']).optional(),
-  nodeId: z.number().optional(),
-  userId: z.number().optional(),
-  cpuCores: z.number().optional(),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional()
+  jobId: z.number().optional(), // maps to id
+  jobName: z.string().optional(), // maps to name
+  status: z.enum(['waiting', 'starting', 'running', 'completed', 'failed', 'missing']).optional(), // matches database status enum
+  nodeId: z.number().optional(), // maps to node_id
+  userId: z.number().optional(), // maps to user_id
+  cpuCores: z.number().optional(), // maps to cpu_cores
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional() // matches database priority enum
 });
 
 export const JobEventSchema = SSEEventSchema.extend({
@@ -42,15 +42,14 @@ export const JobEventSchema = SSEEventSchema.extend({
   data: JobEventDataSchema.optional()
 });
 
-// Node event data schemas
+// Node event data schemas - aligned with database schema
 export const NodeEventDataSchema = z.object({
-  nodeId: z.number().optional(),
-  nodeName: z.string().optional(),
-  hostname: z.string().optional(),
-  ipAddress: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'maintenance']).optional(),
-  cpuCores: z.number().optional(),
-  memoryGb: z.number().optional()
+  nodeId: z.number().optional(), // maps to id
+  nodeName: z.string().optional(), // maps to name
+  hostname: z.string().optional(), // maps to hostname
+  sshPort: z.number().optional(), // maps to ssh_port
+  maxCpuCores: z.number().optional(), // maps to max_cpu_cores
+  isActive: z.boolean().optional() // maps to is_active
 });
 
 export const NodeEventSchema = SSEEventSchema.extend({
@@ -58,13 +57,12 @@ export const NodeEventSchema = SSEEventSchema.extend({
   data: NodeEventDataSchema.optional()
 });
 
-// User event data schemas
+// User event data schemas - aligned with database schema
 export const UserEventDataSchema = z.object({
-  userId: z.number().optional(),
-  userName: z.string().optional(),
-  email: z.string().optional(),
-  role: z.enum(['admin', 'user']).optional(),
-  status: z.enum(['active', 'inactive']).optional()
+  userId: z.number().optional(), // maps to id
+  userName: z.string().optional(), // maps to display_name
+  maxConcurrentJobs: z.number().optional(), // maps to max_concurrent_jobs
+  isActive: z.boolean().optional() // maps to is_active
 });
 
 export const UserEventSchema = SSEEventSchema.extend({
@@ -165,32 +163,138 @@ export function validateSSEEventUnion(event: unknown): SSEEventUnion | null {
   return validateSSEEvent(event, SSEEventUnionSchema);
 }
 
-// Channel-specific validators - 型安全なチャンネル
-export function validateEventForChannel<T extends SSEEventUnion>(
-  event: unknown,
-  channel: SSEChannel
-): T | null {
-  const validatedEvent = validateSSEEventUnion(event);
-  if (!validatedEvent) return null;
+// Enhanced channel-specific event validation with type mapping
+type ChannelEventMap = {
+  'jobs': JobEvent;
+  'files': FileEvent;
+  'nodes': NodeEvent;
+  'users': UserEvent;
+  'system': SystemEvent;
+};
 
+// Type-safe channel validation
+export function validateEventForChannel<TChannel extends SSEChannel>(
+  data: unknown,
+  channel: TChannel
+): ChannelEventMap[TChannel] | null {
+  if (!isValidChannel(channel)) {
+    return null;
+  }
+
+  const unionEvent = validateSSEEventUnion(data);
+  if (!unionEvent) {
+    return null;
+  }
+
+  // Channel-specific validation with proper type mapping
   switch (channel) {
-    case 'files':
-      return isFileEvent(validatedEvent) ? (validatedEvent as T) : null;
     case 'jobs':
-      return isJobEvent(validatedEvent) ? (validatedEvent as T) : null;
+      return isJobEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
+    case 'files':
+      return isFileEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
     case 'nodes':
-      return isNodeEvent(validatedEvent) ? (validatedEvent as T) : null;
+      return isNodeEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
     case 'users':
-      return isUserEvent(validatedEvent) ? (validatedEvent as T) : null;
+      return isUserEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
     case 'system':
-      return isSystemEvent(validatedEvent) ? (validatedEvent as T) : null;
+      return isSystemEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
     default:
-      // この分岐は到達不能（exhaustive check）
-      return ((value: never): null => null)(channel);
+      // Exhaustive check - TypeScript will catch unhandled cases
+      const _exhaustiveCheck: never = channel;
+      return null;
+  }
+}
+
+// Type-safe event channel mapping
+export function getChannelForEvent(event: SSEEventUnion): SSEChannel {
+  if (isJobEvent(event)) return 'jobs';
+  if (isFileEvent(event)) return 'files';
+  if (isNodeEvent(event)) return 'nodes';
+  if (isUserEvent(event)) return 'users';
+  if (isSystemEvent(event)) return 'system';
+  
+  // Exhaustive check - should never reach here
+  const _exhaustiveCheck: never = event;
+  throw new Error(`Unhandled event type: ${(_exhaustiveCheck as any).type}`);
+}
+
+// Type-safe event validation with result type
+export type EventValidationResult<T> = {
+  success: true;
+  data: T;
+} | {
+  success: false;
+  error: string;
+};
+
+export function validateSSEEventSafe<T extends SSEEventUnion = SSEEventUnion>(
+  data: unknown
+): EventValidationResult<T> {
+  try {
+    const result = validateSSEEventUnion(data);
+    if (result) {
+      return { success: true, data: result as T };
+    } else {
+      return { success: false, error: 'Event validation failed' };
+    }
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown validation error' 
+    };
   }
 }
 
 // チャンネル名の検証ヘルパー
 export function isValidChannel(channel: string): channel is SSEChannel {
   return SSEChannelSchema.safeParse(channel).success;
+}
+
+// Type-safe SSE event creation helpers
+export function createJobEvent(
+  type: JobEvent['type'],
+  data?: JobEventData
+): JobEvent {
+  return {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+    channel: 'jobs'
+  };
+}
+
+export function createFileEvent(
+  type: FileEvent['type'],
+  data?: FileEventData
+): FileEvent {
+  return {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+    channel: 'files'
+  };
+}
+
+export function createNodeEvent(
+  type: NodeEvent['type'],
+  data?: NodeEventData
+): NodeEvent {
+  return {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+    channel: 'nodes'
+  };
+}
+
+export function createSystemEvent(
+  type: SystemEvent['type'],
+  data?: SystemEvent['data']
+): SystemEvent {
+  return {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+    channel: 'system'
+  };
 }

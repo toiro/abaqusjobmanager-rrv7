@@ -1,26 +1,40 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { logger } from '~/lib/logger';
+import { logger } from '~/lib/logger/logger';
 import { 
   validateSSEEventUnion, 
   validateEventForChannel,
   isValidChannel,
   type SSEEventUnion,
-  type SSEChannel
+  type SSEChannel,
+  type FileEvent,
+  type JobEvent,
+  type NodeEvent,
+  type UserEvent,
+  type SystemEvent
 } from '~/lib/sse-schemas';
 
-interface UseSSEOptions<T extends SSEEventUnion = SSEEventUnion> {
-  channel: SSEChannel;
-  onEvent?: (event: T) => void;
+// Channel to event type mapping
+type ChannelEventTypeMap = {
+  'files': FileEvent;
+  'jobs': JobEvent;
+  'nodes': NodeEvent;
+  'users': UserEvent;
+  'system': SystemEvent;
+};
+
+interface UseSSEOptions<TChannel extends SSEChannel> {
+  channel: TChannel;
+  onEvent?: (event: ChannelEventTypeMap[TChannel]) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
   reconnectInterval?: number;
   enabled?: boolean;
-  validateEvents?: boolean; // Option to enable/disable validation
-  strictChannelValidation?: boolean; // Only accept events matching the channel
+  validateEvents?: boolean;
+  strictChannelValidation?: boolean;
 }
 
-export function useSSE<T extends SSEEventUnion = SSEEventUnion>({
+export function useSSE<TChannel extends SSEChannel>({
   channel,
   onEvent,
   onConnect,
@@ -30,7 +44,7 @@ export function useSSE<T extends SSEEventUnion = SSEEventUnion>({
   enabled = true,
   validateEvents = true,
   strictChannelValidation = false
-}: UseSSEOptions<T>) {
+}: UseSSEOptions<TChannel>) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isConnectedRef = useRef(false);
@@ -60,15 +74,15 @@ export function useSSE<T extends SSEEventUnion = SSEEventUnion>({
           logger.debug("SSE event received", `useSSE:${channel}`, { type: rawData.type });
           
           if (validateEvents) {
-            let validatedEvent: T | null = null;
+            let validatedEvent: ChannelEventTypeMap[TChannel] | null = null;
             
             if (strictChannelValidation && isValidChannel(channel)) {
               // Use channel-specific validation
-              validatedEvent = validateEventForChannel<T>(rawData, channel);
+              validatedEvent = validateEventForChannel(rawData, channel);
             } else {
-              // Use general union validation
+              // Use general union validation and cast
               const unionEvent = validateSSEEventUnion(rawData);
-              validatedEvent = unionEvent as T;
+              validatedEvent = unionEvent as ChannelEventTypeMap[TChannel] | null;
             }
             
             if (!validatedEvent) {
@@ -84,7 +98,7 @@ export function useSSE<T extends SSEEventUnion = SSEEventUnion>({
             onEvent?.(validatedEvent);
           } else {
             // Pass through without validation for backwards compatibility
-            onEvent?.(rawData as T);
+            onEvent?.(rawData as ChannelEventTypeMap[TChannel]);
           }
         } catch (error) {
           logger.error("Failed to parse SSE event data", `useSSE:${channel}`, error);

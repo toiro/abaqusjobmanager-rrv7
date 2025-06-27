@@ -1,5 +1,5 @@
 import { eventEmitter } from "~/routes/api.events";
-import { logger } from "~/lib/logger";
+import { logger } from "~/lib/logger/logger";
 import { 
   SSEEventUnionSchema,
   FileEventSchema,

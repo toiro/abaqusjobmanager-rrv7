@@ -23,7 +23,9 @@ export function JobTable({ jobs, onJobAction, loading }: JobTableProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     try {
-      return new Date(dateString).toLocaleString();
+      const date = new Date(dateString);
+      // Use consistent format that doesn't depend on locale
+      return date.toISOString().replace('T', ' ').substring(0, 19);
     } catch {
       return dateString;
     }
@@ -137,7 +139,7 @@ export function JobTable({ jobs, onJobAction, loading }: JobTableProps) {
                 </div>
               </TableCell>
               <TableCell className="text-sm">
-                {job.created_by || "-"}
+                {job.user_id || "-"}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {formatDate(job.created_at)}

@@ -8,6 +8,7 @@ import { FileUpload } from "~/components/ui/file-upload";
 import { FORM_LABELS, BUTTONS, PLACEHOLDERS, PRIORITY_LEVELS, ERROR_MESSAGES } from "~/lib/messages";
 import type { User, Node } from "~/lib/dbOperations";
 import { useState, useEffect } from "react";
+import * as React from "react";
 import { calculateLicenseTokens } from "~/lib/licenseCalculator";
 
 interface NewJobModalProps {
@@ -15,13 +16,15 @@ interface NewJobModalProps {
   onClose: () => void;
   users: User[];
   nodes: Node[];
-  actionData?: { success?: string; error?: string; jobId?: number } | null;
+  actionData?: any;
 }
 
 export function NewJobModal({ isOpen, onClose, users, nodes, actionData }: NewJobModalProps) {
   const navigation = useNavigation();
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedNodeId, setSelectedNodeId] = useState<string>("");
-  const [selectedCores, setSelectedCores] = useState<string>("1");
+  const [selectedCores, setSelectedCores] = useState<string>("2");
+  const [selectedPriority, setSelectedPriority] = useState<string>("normal");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [jobName, setJobName] = useState<string>("");
   const [formError, setFormError] = useState<string>("");
@@ -30,21 +33,21 @@ export function NewJobModal({ isOpen, onClose, users, nodes, actionData }: NewJo
   const isSubmitting = navigation.state === "submitting" && 
     navigation.formMethod === "POST" &&
     navigation.formData?.get("intent") === "create-job";
-  
-  
+
   // Update form error from action result
   useEffect(() => {
-    if (actionData?.error) {
-      setFormError(actionData.error);
+    if (actionData?.error || (actionData && !actionData.success)) {
+      setFormError(actionData?.error || actionData?.message || 'An error occurred');
     }
   }, [actionData]);
 
-  // Reset form when modal opens/closes
+  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      // Reset form state when modal closes
+      setSelectedUserId("");
       setSelectedNodeId("");
-      setSelectedCores("1");
+      setSelectedCores("2");
+      setSelectedPriority("normal");
       setSelectedFile(null);
       setJobName("");
       setFormError("");
@@ -63,108 +66,78 @@ export function NewJobModal({ isOpen, onClose, users, nodes, actionData }: NewJo
     }
   };
 
-
+  // Get selected node for core validation
   const selectedNode = nodes.find(node => node.id === parseInt(selectedNodeId));
   const maxCores = selectedNode?.max_cpu_cores || 1;
+  
+  const coresNumber = parseInt(selectedCores) || 2;
+  const licenseTokens = calculateLicenseTokens(coresNumber);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    // Validate file selection
-    if (!selectedFile) {
-      setFormError(ERROR_MESSAGES.FILE_REQUIRED);
-      event.preventDefault();
-      return;
-    }
-    
-    setFormError("");
-    // Form will be submitted normally
-  };
+  // Validation
+  const isValidCores = selectedNodeId && coresNumber >= 1 && coresNumber <= maxCores;
+  const isFormValid = jobName.trim().length >= 3 && 
+                     selectedUserId && 
+                     selectedNodeId && 
+                     selectedFile &&
+                     isValidCores;
 
   return (
-    <Dialog open={isOpen} onOpenChange={isSubmitting ? undefined : onClose}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Job</DialogTitle>
         </DialogHeader>
         
-        <div className="relative">
-          {isSubmitting && (
-            <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-              <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-lg border">
-                <svg 
-                  className="h-5 w-5 animate-spin text-blue-600" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
-                >
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4"
-                  />
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span className="text-sm font-medium text-gray-700">Creating job...</span>
-              </div>
-            </div>
-          )}
-          <Form method="post" onSubmit={handleSubmit} encType="multipart/form-data">
+        <Form 
+            method="post" 
+            action="?index"
+            className="space-y-4" 
+            id="new-job-form"
+            encType="multipart/form-data"
+          >
           <input type="hidden" name="intent" value="create-job" />
           
-          <div className="grid gap-4 py-4">
-            {/* INP File Upload - First */}
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">
-                {FORM_LABELS.INP_FILE}
-              </Label>
-              <div className="col-span-3">
-                <FileUpload
-                  name="inp_file"
-                  onFileSelect={handleFileSelect}
-                  acceptedTypes={['.inp']}
-                  maxSize={100 * 1024 * 1024} // 100MB
-                />
-              </div>
+          <div className="space-y-4">
+            {/* INP File Upload */}
+            <div className="space-y-2">
+              <Label>{FORM_LABELS.INP_FILE}</Label>
+              <FileUpload
+                name="inp_file"
+                onFileSelect={handleFileSelect}
+                acceptedTypes={['.inp']}
+                maxSize={100 * 1024 * 1024} // 100MB
+              />
             </div>
 
-            {/* Job Name - Auto-filled from file */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                {FORM_LABELS.JOB_NAME}
-              </Label>
+            {/* Job Name */}
+            <div className="space-y-2">
+              <Label htmlFor="job-name">{FORM_LABELS.JOB_NAME}</Label>
               <Input
-                id="name"
+                id="job-name"
                 name="name"
+                type="text"
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
-                placeholder={PLACEHOLDERS.ENTER_JOB_NAME}
-                className="col-span-3"
+                placeholder={PLACEHOLDERS.JOB_NAME}
                 required
                 minLength={3}
-                maxLength={50}
+                disabled={isSubmitting}
               />
             </div>
 
             {/* User Selection */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="user_id" className="text-right">
-                User
-              </Label>
-              <Select 
-                id="user_id"
-                name="user_id" 
-                className="col-span-3"
-                placeholder={PLACEHOLDERS.SELECT_USER}
-                required
+            <div className="space-y-2">
+              <Label htmlFor="user-select">{FORM_LABELS.USER}</Label>
+              <Select
+                id="user-select"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                name="user_id"
+                disabled={isSubmitting}
               >
-                {users.map(user => (
-                  <option key={user.id} value={user.id!.toString()}>
+                <option value="">{PLACEHOLDERS.SELECT_USER}</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
                     {user.display_name}
                   </option>
                 ))}
@@ -172,82 +145,82 @@ export function NewJobModal({ isOpen, onClose, users, nodes, actionData }: NewJo
             </div>
 
             {/* Node Selection */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="node_id" className="text-right">
-                {FORM_LABELS.EXECUTION_NODE}
-              </Label>
-              <Select 
-                id="node_id"
-                name="node_id" 
-                className="col-span-3"
-                placeholder={PLACEHOLDERS.SELECT_NODE}
+            <div className="space-y-2">
+              <Label htmlFor="node-select">{FORM_LABELS.NODE}</Label>
+              <Select
+                id="node-select"
                 value={selectedNodeId}
                 onChange={(e) => setSelectedNodeId(e.target.value)}
-                required
+                name="node_id"
+                disabled={isSubmitting}
               >
-                {nodes.filter(node => node.status === 'available').map(node => (
-                  <option key={node.id} value={node.id!.toString()}>
-                    {node.name} ({node.max_cpu_cores} cores)
+                <option value="">{PLACEHOLDERS.SELECT_NODE}</option>
+                {nodes.map((node) => (
+                  <option key={node.id} value={node.id}>
+                    {node.name} ({node.max_cpu_cores} cores max)
                   </option>
                 ))}
               </Select>
             </div>
 
             {/* CPU Cores */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cpu_cores" className="text-right">
-                {FORM_LABELS.CPU_CORES}
-              </Label>
-              <Select 
-                id="cpu_cores"
+            <div className="space-y-2">
+              <Label htmlFor="cpu-cores">{FORM_LABELS.CPU_CORES}</Label>
+              <Input
+                id="cpu-cores"
                 name="cpu_cores"
-                className="col-span-3"
+                type="number"
+                min="1"
+                max={maxCores}
                 value={selectedCores}
                 onChange={(e) => setSelectedCores(e.target.value)}
+                disabled={isSubmitting || !selectedNodeId}
                 required
+              />
+              {!selectedNodeId && (
+                <p className="text-sm text-muted-foreground">
+                  Please select a node first
+                </p>
+              )}
+              {selectedNode && (
+                <p className="text-sm text-muted-foreground">
+                  Max {maxCores} cores available on {selectedNode.name}
+                  {` • ${licenseTokens} license tokens required`}
+                </p>
+              )}
+              {!isValidCores && selectedCores && selectedNodeId && (
+                <p className="text-sm text-destructive">
+                  {ERROR_MESSAGES.INVALID_CPU_CORES.replace('{max}', maxCores.toString())}
+                </p>
+              )}
+            </div>
+
+            {/* Priority */}
+            <div className="space-y-2">
+              <Label htmlFor="priority-select">{FORM_LABELS.PRIORITY}</Label>
+              <Select
+                id="priority-select"
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                name="priority"
+                disabled={isSubmitting}
               >
-                {Array.from({ length: maxCores }, (_, i) => i + 1).map(cores => (
-                  <option key={cores} value={cores.toString()}>
-                    {cores} core{cores > 1 ? 's' : ''}
+                {Object.entries(PRIORITY_LEVELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
                   </option>
                 ))}
               </Select>
             </div>
-
-            {/* License Tokens (Display only) */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                License Tokens
-              </Label>
-              <div className="col-span-3 px-3 py-2 bg-muted rounded-md text-sm">
-                {calculateLicenseTokens(parseInt(selectedCores) || 1)} token{calculateLicenseTokens(parseInt(selectedCores) || 1) > 1 ? 's' : ''} (auto-calculated)
-              </div>
-            </div>
-
-            {/* Priority */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="priority" className="text-right">
-                {FORM_LABELS.PRIORITY}
-              </Label>
-              <Select 
-                id="priority"
-                name="priority" 
-                className="col-span-3"
-                defaultValue="normal"
-              >
-                <option value="low">{PRIORITY_LEVELS.LOW}</option>
-                <option value="normal">{PRIORITY_LEVELS.NORMAL}</option>
-                <option value="high">{PRIORITY_LEVELS.HIGH}</option>
-                <option value="urgent">{PRIORITY_LEVELS.URGENT}</option>
-              </Select>
-            </div>
           </div>
 
+          {/* Error Display */}
           {formError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{formError}</p>
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+              {formError}
             </div>
           )}
+
 
           <DialogFooter>
             <Button 
@@ -260,36 +233,12 @@ export function NewJobModal({ isOpen, onClose, users, nodes, actionData }: NewJo
             </Button>
             <Button 
               type="submit" 
-              disabled={!selectedFile || isSubmitting}
-              className="flex items-center gap-2"
+              disabled={!isFormValid || isSubmitting}
             >
-              {isSubmitting && (
-                <svg 
-                  className="h-4 w-4 animate-spin" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
-                >
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4"
-                  />
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              )}
-              {isSubmitting ? "Creating..." : BUTTONS.CREATE_JOB}
+              {isSubmitting ? BUTTONS.SAVING : BUTTONS.CREATE_JOB}
             </Button>
           </DialogFooter>
         </Form>
-        </div>
       </DialogContent>
     </Dialog>
   );

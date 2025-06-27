@@ -11,7 +11,10 @@
     ],
     "deny": [
       "Bash(bun dev)",
-      "Bash(bun run dev)"
+      "Bash(bun run dev:*)",
+      "Bash(bun run dev)",
+      "Bash(*bun run dev*)",
+      "Bash(*dev*)"
     ]
   }
 }

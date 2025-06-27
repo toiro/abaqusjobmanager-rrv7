@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.events";
-import { logger } from "~/lib/logger";
+import { logger } from "~/lib/logger/logger";
 import { emitSystemEvent } from "~/lib/sse";
 import { isValidChannel, type SSEChannel } from "~/lib/sse-schemas";
 

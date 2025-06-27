@@ -12,9 +12,9 @@ type Params = {
   "/test-ui": {};
   "/admin": {};
   "/admin/settings": {};
+  "/admin/nodes": {};
   "/admin/files": {};
   "/admin/login": {};
-  "/admin/nodes": {};
   "/admin/users": {};
   "/*": {
     "*": string;

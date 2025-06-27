@@ -34,8 +34,8 @@ function FilesAdminExample() {
     console.log('File event:', event.type, event.data?.fileName);
   };
 
-  useSSE<FileEvent>({
-    channel: 'files',
+  useSSE({
+    channel: 'files' as const,
     onEvent: handleFileEvent,
     strictChannelValidation: true, // ファイルイベントのみ受信
     validateEvents: true
@@ -57,8 +57,8 @@ function JobsAdminExample() {
     }
   };
 
-  useSSE<JobEvent>({
-    channel: 'jobs',
+  useSSE({
+    channel: 'jobs' as const,
     onEvent: handleJobEvent,
     strictChannelValidation: true
   });
@@ -163,8 +163,8 @@ function ProductionReadyExample() {
     }
   };
 
-  const { isConnected, disconnect, reconnect } = useSSE<FileEvent>({
-    channel: 'files',
+  const { isConnected, disconnect, reconnect } = useSSE({
+    channel: 'files' as const,
     onEvent: handleFileEvent,
     onConnect: () => {
       console.log('SSE connected');
@@ -208,14 +208,14 @@ function validateChannelEvent(event: unknown, expectedChannel: string) {
   
   switch (channel) {
     case 'files':
-      const fileEvent = validateEventForChannel<FileEvent>(event, 'files');
+      const fileEvent = validateEventForChannel(event, 'files');
       if (fileEvent) {
         console.log('Valid file event:', fileEvent.type);
         return fileEvent;
       }
       break;
     case 'jobs':
-      const jobEvent = validateEventForChannel<JobEvent>(event, 'jobs');
+      const jobEvent = validateEventForChannel(event, 'jobs');
       if (jobEvent) {
         console.log('Valid job event:', jobEvent.type);
         return jobEvent;

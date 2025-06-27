@@ -79,7 +79,12 @@ export const BUTTONS = {
   ACTIVATE: 'Activate',
   DEACTIVATE: 'Deactivate',
   TEST_CONNECTION: 'Test Connection',
-  RESET: 'Reset'
+  RESET: 'Reset',
+  KEEP_JOB: 'Keep Job',
+  CANCELLING: 'Cancelling...',
+  DELETING: 'Deleting...',
+  SAVING: 'Saving...',
+  SAVE_CHANGES: 'Save Changes'
 } as const;
 
 // フォームラベル
@@ -92,7 +97,9 @@ export const FORM_LABELS = {
   STATUS: 'Status',
   MESSAGE: 'Message',
   CREATED_AT: 'Created At',
-  UPDATED_AT: 'Last Updated'
+  UPDATED_AT: 'Last Updated',
+  USER: 'User',
+  NODE: 'Node'
 } as const;
 
 // ステータス表示
@@ -138,20 +145,42 @@ export const ERROR_MESSAGES = {
   JOB_NAME_INVALID: 'Job name must be alphanumeric and 3-50 characters',
   NODE_REQUIRED: 'Please select an execution node',
   CPU_REQUIRED: 'Please select CPU cores',
+  INVALID_CPU_CORES: 'CPU cores must be between 1 and {max}',
   
   // システムエラー
   NODE_UNAVAILABLE: 'Selected node is no longer available',
   NODE_MAINTENANCE: 'Node is under maintenance. Please select another node',
   CONNECTION_FAILED: 'Failed to connect to execution node',
   EXECUTION_FAILED: 'Abaqus execution error occurred',
-  UNKNOWN_ERROR: 'An unexpected error occurred. Please try again'
+  UNKNOWN_ERROR: 'An unexpected error occurred. Please try again',
+  
+  // API エラー
+  INVALID_ACTION: 'Invalid action specified',
+  JOB_CREATION_FAILED: 'Failed to create job. Please try again',
+  VALIDATION_FAILED: 'Data validation failed'
+} as const;
+
+// バリデーション専用メッセージ
+export const VALIDATION_MESSAGES = {
+  JOB_NAME_TOO_SHORT: 'Job name must be at least 3 characters',
+  INVALID_USER_ID: 'Valid user ID is required',
+  INVALID_NODE_ID: 'Valid node ID is required', 
+  INVALID_CPU_CORES: 'Valid CPU cores count is required',
+  INVALID_JOB_ID: 'Valid job ID is required',
+  JOB_NOT_FOUND: 'Job not found',
+  ONLY_WAITING_JOBS_EDITABLE: 'Only waiting jobs can be edited',
+  ONLY_COMPLETED_FAILED_MISSING_DELETABLE: 'Only completed, failed, or missing jobs can be deleted',
+  ONLY_WAITING_STARTING_RUNNING_CANCELLABLE: 'Only waiting, starting, or running jobs can be cancelled'
 } as const;
 
 // 成功メッセージ
 export const SUCCESS_MESSAGES = {
   JOB_CREATED: 'Job created successfully',
+  JOB_UPDATED: 'Job updated successfully',
   JOB_DELETED: 'Job deleted successfully',
+  JOB_CANCELLED: 'Job cancelled successfully',
   FILE_UPLOADED: 'File uploaded successfully',
+  FILE_DELETED: 'File deleted successfully',
   SETTINGS_SAVED: 'Settings saved successfully',
   NODE_UPDATED: 'Node updated successfully',
   USER_UPDATED: 'User updated successfully'
@@ -163,7 +192,11 @@ export const INFO_MESSAGES = {
   LOADING: 'Loading...',
   DRAG_DROP_FILE: 'Drag & drop or click to select INP file',
   LICENSE_CALCULATED: 'License tokens calculated automatically',
-  RESOURCE_CHECK: 'Checking resource availability...'
+  RESOURCE_CHECK: 'Checking resource availability...',
+  CANNOT_DELETE_ACTIVE_JOB: 'Only completed, failed, or missing jobs can be deleted',
+  CANNOT_CANCEL_JOB: 'Only waiting, starting, or running jobs can be cancelled',
+  CANNOT_EDIT_NON_WAITING_JOB: 'Only waiting jobs can be edited',
+  CANCEL_RUNNING_JOB_WARNING: 'Warning: This will forcefully terminate the running job'
 } as const;
 
 // テーブルヘッダー
@@ -191,10 +224,10 @@ export const RESOURCE_LABELS = {
 
 // 優先度レベル
 export const PRIORITY_LEVELS = {
-  LOW: 'Low',
-  NORMAL: 'Normal',
-  HIGH: 'High',
-  URGENT: 'Urgent'
+  low: 'Low',
+  normal: 'Normal',
+  high: 'High',
+  urgent: 'Urgent'
 } as const;
 
 // Node Related Messages
@@ -311,6 +344,9 @@ export const CONFIRMATION_MESSAGES = {
   UNSAVED_CHANGES: "You have unsaved changes. Are you sure you want to leave?",
 } as const;
 
+// Alias for backward compatibility
+export const CONFIRM_MESSAGES = CONFIRMATION_MESSAGES;
+
 // Time Formats
 export const TIME_FORMATS = {
   SECONDS: "seconds",
@@ -327,6 +363,7 @@ export const PLACEHOLDERS = {
   SELECT_NODE: "Select node", 
   SELECT_FILE: "Select file",
   ENTER_JOB_NAME: "Enter job name",
+  JOB_NAME: "Enter job name",
   ENTER_HOSTNAME: "Enter hostname",
   ENTER_NODE_NAME: "Enter node name",
   ENTER_DISPLAY_NAME: "Enter display name",

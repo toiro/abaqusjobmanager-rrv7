@@ -2,19 +2,10 @@ import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server.bun";
 import type { AppLoadContext, EntryContext } from "react-router";
 import { ServerRouter } from "react-router";
-import { initializeDatabase } from "./lib/database";
+import { initializeLogger, logger } from "~/lib/logger/logger";
 
-// データベース初期化（一度のみ実行）
-let dbInitialized = false;
-if (!dbInitialized) {
-  try {
-    initializeDatabase();
-    dbInitialized = true;
-    console.log("Database initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize database:", error);
-  }
-}
+// Initialize LogTape on server startup
+let loggerInitialized = false;
 
 export default async function handleRequest(
   request: Request,
@@ -23,6 +14,27 @@ export default async function handleRequest(
   routerContext: EntryContext,
   _loadContext: AppLoadContext
 ) {
+  // Initialize logger once on server side
+  if (!loggerInitialized) {
+    try {
+      await initializeLogger();
+      loggerInitialized = true;
+      
+      // Log server startup info for development
+      const port = process.env.PORT || 3000;
+      const nodeEnv = process.env.NODE_ENV || 'development';
+      
+      logger.info('Development server started via entry.server.tsx', 'DEV_SERVER_STARTUP', {
+        port,
+        environment: nodeEnv,
+        bunVersion: Bun.version,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Failed to initialize logger on server:", error);
+    }
+  }
+
   let shellRendered = false;
   const userAgent = request.headers.get("user-agent");
 

@@ -6,6 +6,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "bunx --bun vite --host",
+    "dev:log": "LOG_FILE_ENABLED=true LOG_LEVEL=info bun run dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "bun ./build/server/index.js",
     "test": "bun test",
@@ -15,6 +16,7 @@
     "db:reset:test": "rm -f sqlite/test.db* && BUN_ENV=test bun run db:init"
   },
   "dependencies": {
+    "@logtape/logtape": "^1.0.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-router/fs-routes": "^7.3.0",
     "@react-router/node": "^7.3.0",

@@ -1,0 +1,18 @@
+{"timestamp":"2025-06-24T10:37:28.376Z","level":"info","category":"abaqus-job-manager","message":["LogTape initialized successfully"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"info","category":"abaqus-job-manager","message":["[TEST] Testing basic info log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"debug","category":"abaqus-job-manager","message":["[TEST] Testing debug log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"warning","category":"abaqus-job-manager","message":["[TEST] Testing warning log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"error","category":"abaqus-job-manager","message":["[TEST] Testing error log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"debug","category":"abaqus-job-manager.database","message":["Testing database log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"info","category":"abaqus-job-manager","message":["Testing user action log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"info","category":"abaqus-job-manager","message":["Testing structured log"]}
+{"timestamp":"2025-06-24T10:37:28.377Z","level":"error","category":"abaqus-job-manager","message":["[TEST] Testing error object logging"]}
+{"timestamp":"2025-06-24T11:11:29.772Z","level":"info","category":"abaqus-job-manager","message":["LogTape initialized successfully"]}
+{"timestamp":"2025-06-24T11:11:29.772Z","level":"info","category":"abaqus-job-manager","message":["[SERVER_STARTUP] Starting Abaqus Job Manager server"]}
+{"timestamp":"2025-06-24T11:11:29.773Z","level":"info","category":"abaqus-job-manager","message":["[SERVER_READY] Server started successfully"]}
+{"timestamp":"2025-06-24T11:11:30.468Z","level":"info","category":"abaqus-job-manager","message":["[DEV_SERVER_STARTUP] Development server started via entry.server.tsx"]}
+{"timestamp":"2025-06-24T11:12:58.750Z","level":"info","category":"abaqus-job-manager","message":["[SERVER_STARTUP] Starting Abaqus Job Manager server"]}
+{"timestamp":"2025-06-24T11:12:58.750Z","level":"info","category":"abaqus-job-manager","message":["[SERVER_READY] Server started successfully"]}
+{"timestamp":"2025-06-24T11:13:19.806Z","level":"info","category":"abaqus-job-manager","message":["[SERVER_SHUTDOWN] Received shutdown signal"]}
+{"timestamp":"2025-06-24T11:13:37.460Z","level":"info","category":"abaqus-job-manager","message":["LogTape initialized successfully"]}
+{"timestamp":"2025-06-24T11:13:37.460Z","level":"info","category":"abaqus-job-manager","message":["[DEV_SERVER_STARTUP] Development server started via entry.server.tsx"]}

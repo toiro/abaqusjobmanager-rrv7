@@ -3,43 +3,94 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { SuccessMessage, ErrorMessage } from "~/components/ui/message";
-import { fileOps } from "~/lib/dbOperations";
-import { ERROR_MESSAGES } from "~/lib/messages";
+import { fileOps, type FileRecord } from "~/lib/dbOperations";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
 import { formatFileSize } from "~/lib/utils";
 import { useSSE } from "~/hooks/useSSE";
 import { emitFileEvent } from "~/lib/sse";
 import { type FileEvent } from "~/lib/sse-schemas";
 import { useState, useCallback } from "react";
 import type { Route } from "./+types/admin.files";
-import type { FileRecord } from "~/lib/dbOperations";
+import { 
+  validateFormData,
+  type ApiResult,
+  createSuccessResponse,
+  createErrorResponse
+} from "~/lib/types/api-routes";
+import { z } from "zod";
+import { logger } from "~/lib/logger/logger";
 
+// Type-safe loader
 export function loader() {
   // Auth is handled by parent route (admin.tsx)
   const files = fileOps.findAll();
+  logger.route('Files admin data loaded', 'admin.files', { filesCount: files.length });
   return { files };
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const intent = formData.get("intent");
+// File deletion schema validation
+const FileActionSchema = z.object({
+  intent: z.literal("delete-file"),
+  fileId: z.number().min(1, "File ID is required")
+});
 
-  if (intent === "delete-file") {
-    try {
-      const fileId = Number(formData.get("fileId"));
+type FileActionResult = ApiResult<{ fileId: number }, string>;
+
+export async function action({ request }: Route.ActionArgs): Promise<FileActionResult> {
+  logger.route('Files admin action called', 'admin.files', { 
+    method: request.method,
+    url: request.url 
+  });
+  
+  try {
+    // Validate form data with type safety
+    const validationResult = await validateFormData(request, FileActionSchema);
+    
+    if (!validationResult.success) {
+      logger.error('File action validation failed', 'admin.files', validationResult.error);
+      return createErrorResponse(validationResult.error, validationResult.details);
+    }
+    
+    const actionData = validationResult.data;
+    
+    if (actionData.intent === "delete-file") {
+      logger.userAction('Deleting file', { fileId: actionData.fileId });
+      
+      // Check if file exists
+      const existingFile = fileOps.findById(actionData.fileId);
+      if (!existingFile) {
+        return createErrorResponse('File not found');
+      }
+      
+      // Delete file from database
+      const deleteSuccess = fileOps.delete(actionData.fileId);
+      if (!deleteSuccess) {
+        return createErrorResponse('Failed to delete file from database');
+      }
       
       // TODO: Also delete the physical file from filesystem
-      fileOps.delete(fileId);
       
       // Emit SSE event for real-time updates
-      emitFileEvent('deleted', { fileId, fileName: `File ID ${fileId}` });
+      emitFileEvent('deleted', { 
+        fileId: actionData.fileId, 
+        fileName: existingFile.original_name 
+      });
       
-      return { success: "File deleted successfully" };
-    } catch {
-      return { error: ERROR_MESSAGES.UNKNOWN_ERROR };
+      logger.userAction('File deleted successfully', { fileId: actionData.fileId });
+      return createSuccessResponse(
+        { fileId: actionData.fileId },
+        SUCCESS_MESSAGES.FILE_DELETED
+      );
     }
+    
+    return createErrorResponse(ERROR_MESSAGES.INVALID_ACTION);
+  } catch (error) {
+    logger.error('Failed to process file action', 'admin.files', error);
+    return createErrorResponse(
+      ERROR_MESSAGES.UNKNOWN_ERROR,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
   }
-
-  return null;
 }
 
 export default function FilesAdmin({ loaderData, actionData }: Route.ComponentProps) {
@@ -54,8 +105,8 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
   }, []);
 
   // Setup SSE connection with strict channel validation
-  useSSE<FileEvent>({
-    channel: 'files',
+  useSSE({
+    channel: 'files' as const,
     onEvent: handleSSEEvent,
     onConnect: () => setIsConnected(true),
     onDisconnect: () => setIsConnected(false),
@@ -80,11 +131,11 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
     >
       <div className="space-y-6">
         {/* Messages */}
-        {actionData?.success && (
-          <SuccessMessage message={actionData.success} />
+        {actionData && 'success' in actionData && actionData.success && actionData.message && (
+          <SuccessMessage message={actionData.message} />
         )}
-        {actionData?.error && (
-          <ErrorMessage message={actionData.error} />
+        {actionData && 'error' in actionData && !actionData.success && (
+          <ErrorMessage message={typeof actionData.error === 'string' ? actionData.error : 'An error occurred'} />
         )}
 
         {/* File Statistics */}
