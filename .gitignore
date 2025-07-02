@@ -14,3 +14,6 @@ sqlite/*.db*
 *.db
 *.db-shm
 *.db-wal
+
+#playwright tmp
+tmp/

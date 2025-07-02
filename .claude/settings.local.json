@@ -9,7 +9,9 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": [
       "Bash(bun dev)",
