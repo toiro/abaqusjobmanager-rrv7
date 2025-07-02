@@ -2,6 +2,79 @@
 
 BunランタイムでAbaqusジョブの管理と環境変数の表示を行うReact Router v7 Webアプリケーション。
 
+## 🚨 重要な開発方針・注意事項
+
+### **開発プロセス**
+- **実際に作業を行う前に作業方針を立て、ユーザーに確認すること**
+- **ユーザーからの指示や仕様に疑問や不足点があれば作業を中断し、質問すること**
+- **コードエクセレンス原則に基づきテスト駆動開発を必須で実施すること**
+- **TDD及びテスト駆動開発についてはすべて t-wada の推奨に従うこと**
+- **リファクタリングは Martin Fowler の推奨に従うこと**
+
+### **技術制約・ルール**
+- **React Router v7によるファイルベースルーティングを使用**
+- **データ取得にサーバーとクライアントの両方のローダーを実装**
+- **Zodスキーマによる実行時型検証とTypeScriptコンパイル時検証の両立**
+- **モダンなJavaScript機能を使用したBunランタイム向けに構築**
+
+### **🎯 エンティティ定義の正定義 (Single Source of Truth)**
+
+**重要: `/app/app/lib/types/database.ts` が全エンティティの正定義**
+
+**すべてのJob、Node、User、FileRecord、JobLogの型定義はこのファイルから参照すること。**
+
+#### **正定義の原則**
+1. **データベーススキーマが真実の源泉** - 実際のSQLiteテーブル構造に完全準拠
+2. **Zodスキーマ + TypeScript型** - 実行時検証とコンパイル時検証の両方を提供
+3. **統一インポート** - 他のファイルでのエンティティ定義禁止
+
+#### **正定義ファイル構造**
+```
+/app/app/lib/types/database.ts  <- 🎯 正定義 (Single Source of Truth)
+├── JobSchema + Job type        (ジョブ管理)
+├── NodeSchema + Node type      (実行ノード)  
+├── UserSchema + User type      (ユーザー管理)
+├── FileRecordSchema + FileRecord type (ファイル管理)
+└── JobLogSchema + JobLog type  (ログ管理)
+```
+
+#### **適切なoptional/default使用規則**
+- **自動生成フィールド** → `.optional()` (id, created_at, updated_at)
+- **NULL可能フィールド** → `.nullable().optional()` (node_id, start_time等)
+- **デフォルト値あり** → `.default(value)` (priority='normal', ssh_port=22等)
+- **必須フィールド** → 修飾なし (name, status, file_id等)
+
+#### **禁止事項**
+- ❌ `dbOperations.ts`でのエンティティinterface定義
+- ❌ `sse-schemas.ts`での独自エンティティ定義
+- ❌ 他ファイルでの重複型定義
+- ❌ データベーススキーマと不整合な定義
+
+#### **インポート例**
+```typescript
+// ✅ 正しい - 正定義から参照
+import { Job, Node, User, JobSchema, NodeSchema } from "~/lib/types/database";
+
+// ❌ 間違い - 散らばった定義から参照  
+import { Job } from "~/lib/dbOperations";
+```
+
+### **作業記録**
+
+`docs/dev-log/yyyy-mm-dd_hhmm.md` の形式で作業記録を作成してください。内容は以下です。
+
+- **日付**: yyyy-mm-dd hh:mm
+- **作業内容**:
+  - 何をしたか
+  - どのような問題が発生したか
+  - どのように解決したか
+- **次にすべき作業**:
+
+**所感**: 開発の進捗や学び
+**愚痴**: 適当に吐き出す
+
+---
+
 ## 技術スタック
 
 - **ランタイム**: Bun
@@ -14,6 +87,25 @@ BunランタイムでAbaqusジョブの管理と環境変数の表示を行うRe
 - **ファイル管理**: INPファイルアップロード対応
 - **リアルタイム通信**: Server-Sent Events (SSE)
 - **型検証**: Zod (実行時型検証)
+
+## 開発コマンド
+
+```bash
+# 開発サーバー起動
+bun run dev
+
+# 本番用ビルド
+bun run build
+
+# 本番サーバー起動
+bun run start
+
+# リント実行
+bun run lint
+
+# 型チェック
+bun run typecheck
+```
 
 ## プロジェクト構造
 
@@ -96,37 +188,6 @@ app/
   - shadcn/uiによるモダン・ミニマルデザイン
   - レスポンシブ対応
   - 英語UIメッセージシステム
-
-## 開発コマンド
-
-```bash
-# 開発サーバー起動
-bun run dev
-
-# 本番用ビルド
-bun run build
-
-# 本番サーバー起動
-bun run start
-
-# リント実行
-bun run lint
-
-# 型チェック
-bun run typecheck
-```
-
-## 注意事項
-
-- ユーザーからの指示や仕様に疑問や不足点があれば作業を中断し、質問すること
-- コードエクセレンス原則に基づきテスト駆動開発を必須で実施すること
-- TDD及びテスト駆動開発についてはすべて t-wada の推奨に従うこと
-- リファクタリングは Martin Fowler の推奨に従うこと
-- React Router v7によるファイルベースルーティングを使用
-- データ取得にサーバーとクライアントの両方のローダーを実装
-- エンティティ定義は `/app/app/lib/types/database.ts` の正定義を参照
-- Zodスキーマによる実行時型検証とTypeScriptコンパイル時検証の両立
-- モダンなJavaScript機能を使用したBunランタイム向けに構築
 
 ## ドキュメント
 
@@ -252,53 +313,3 @@ bun run typecheck
   - JobExecutionEmitterによるバックエンド処理管理
   - SSEEventEmitterとの連携システム
   - 詳細: [event-system-architecture.md](docs/event-system-architecture.md)
-
-## エンティティ定義の正定義 (Single Source of Truth)
-
-### **重要: `/app/app/lib/types/database.ts` が全エンティティの正定義**
-
-**すべてのJob、Node、User、FileRecord、JobLogの型定義はこのファイルから参照すること。**
-
-#### **正定義の原則**
-1. **データベーススキーマが真実の源泉** - 実際のSQLiteテーブル構造に完全準拠
-2. **Zodスキーマ + TypeScript型** - 実行時検証とコンパイル時検証の両方を提供
-3. **統一インポート** - 他のファイルでのエンティティ定義禁止
-
-#### **正定義ファイル構造**
-```
-/app/app/lib/types/database.ts  <- 🎯 正定義 (Single Source of Truth)
-├── JobSchema + Job type        (ジョブ管理)
-├── NodeSchema + Node type      (実行ノード)  
-├── UserSchema + User type      (ユーザー管理)
-├── FileRecordSchema + FileRecord type (ファイル管理)
-└── JobLogSchema + JobLog type  (ログ管理)
-```
-
-#### **適切なoptional/default使用規則**
-- **自動生成フィールド** → `.optional()` (id, created_at, updated_at)
-- **NULL可能フィールド** → `.nullable().optional()` (node_id, start_time等)
-- **デフォルト値あり** → `.default(value)` (priority='normal', ssh_port=22等)
-- **必須フィールド** → 修飾なし (name, status, file_id等)
-
-#### **禁止事項**
-- ❌ `dbOperations.ts`でのエンティティinterface定義
-- ❌ `sse-schemas.ts`での独自エンティティ定義
-- ❌ 他ファイルでの重複型定義
-- ❌ データベーススキーマと不整合な定義
-
-#### **インポート例**
-```typescript
-// ✅ 正しい - 正定義から参照
-import { Job, Node, User, JobSchema, NodeSchema } from "~/lib/types/database";
-
-// ❌ 間違い - 散らばった定義から参照  
-import { Job } from "~/lib/dbOperations";
-```
-
-#### **検証済み整合性**
-- ✅ データベース実スキーマとの完全一致確認済み
-- ✅ 全Zodスキーマで実データ検証テスト済み
-- ✅ CRUD操作での型安全性確認済み
-- ✅ SSEイベントスキーマとの整合性修正済み
-
-**⚠️ この正定義を変更する場合は、データベーススキーマとの整合性を必ず確認すること**

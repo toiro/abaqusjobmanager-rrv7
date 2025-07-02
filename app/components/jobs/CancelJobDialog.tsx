@@ -3,7 +3,7 @@ import { Button } from "~/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "~/components/ui/dialog";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { BUTTONS, CONFIRM_MESSAGES, INFO_MESSAGES } from "~/lib/messages";
-import type { Job } from "~/lib/dbOperations";
+import type { Job } from "~/lib/db";
 
 interface CancelJobDialogProps {
   isOpen: boolean;

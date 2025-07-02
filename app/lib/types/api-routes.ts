@@ -106,7 +106,7 @@ export async function validateFormData<T>(
       );
     }
   } catch (error) {
-    logger.error('Failed to validate form data', 'API', error);
+    logger.error('Failed to validate form data', 'Routes', error);
     return createErrorResponse(
       'Failed to parse form data',
       error instanceof Error ? error.message : 'Unknown error'
@@ -132,7 +132,7 @@ export async function validateJsonBody<T>(
       );
     }
   } catch (error) {
-    logger.error('Failed to validate JSON body', 'API', error);
+    logger.error('Failed to validate JSON body', 'Routes', error);
     return createErrorResponse(
       'Failed to parse JSON body',
       error instanceof Error ? error.message : 'Unknown error'
@@ -174,7 +174,7 @@ export function validateSearchParams<T>(
       );
     }
   } catch (error) {
-    logger.error('Failed to validate search params', 'API', error);
+    logger.error('Failed to validate search params', 'Routes', error);
     return createErrorResponse(
       'Failed to parse query parameters',
       error instanceof Error ? error.message : 'Unknown error'
@@ -243,7 +243,7 @@ export class TypedApiResponse {
     message = 'Internal server error',
     details?: unknown
   ): Response {
-    logger.error('Server error in API response', 'API', { message, details });
+    logger.error('Server error in API response', 'Routes', { message, details });
     return TypedApiResponse.error(message, details, 500);
   }
 }

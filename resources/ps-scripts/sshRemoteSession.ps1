@@ -32,7 +32,6 @@ try {
   $rawScript = Get-Content $ScriptPath -Raw
   $sb = [scriptblock]::Create($rawScript)
 
-
   $session = New-PSSession -HostName $Hostname -UserName $UserName
 
   if (Test-FirstParamIsPSSession($sb)) {

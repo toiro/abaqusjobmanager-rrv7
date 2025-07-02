@@ -1,11 +1,14 @@
 import { MainLayout } from "~/components/layout/MainLayout";
 import { Button } from "~/components/ui/button";
 import { JobTable } from "~/components/jobs/JobTable";
-import { jobOps, userOps, nodeOps, fileOps, type Job } from "~/lib/dbOperations";
+import { 
+  findAllJobs, createJob, findJobById, updateJob, deleteJob, updateJobStatus,
+  findActiveUsers, findActiveNodes, createFileRecord,
+  type Job 
+} from "~/lib/db";
 import { PAGE_TITLES, BUTTONS, SUCCESS_MESSAGES, ERROR_MESSAGES, VALIDATION_MESSAGES } from "~/lib/messages";
 import type { Route } from "./+types/_index";
 import { useState } from "react";
-import * as React from "react";
 import { NewJobModal } from "~/components/jobs/NewJobModal";
 import { EditJobModal } from "~/components/jobs/EditJobModal";
 import { DeleteJobDialog } from "~/components/jobs/DeleteJobDialog";
@@ -13,75 +16,53 @@ import { CancelJobDialog } from "~/components/jobs/CancelJobDialog";
 import { promises as fs } from "fs";
 import path from "path";
 import { logger } from "~/lib/logger/logger";
-import { emitFileEvent } from "~/lib/sse";
+import { emitFileCreated } from "~/lib/sse";
 import { type FileEventData } from "~/lib/sse-schemas";
 import { 
-  validateFormData,
-  type ApiResult,
-  createSuccessResponse,
-  createErrorResponse
-} from "~/lib/types/api-routes";
-import { z } from "zod";
+  success,
+  error,
+  handleApiError,
+  getFormIntent,
+  getFormString,
+  getFormNumber,
+  ValidationError
+} from "~/lib/apiHelpers";
 
-// Type-safe loader
+// Simple loader - no complex type abstractions
 export function loader() {
-  const jobs = jobOps.findAll();
-  const users = userOps.findActive();
-  const nodes = nodeOps.findActive();
+  const jobs = findAllJobs();
+  const users = findActiveUsers();
+  const nodes = findActiveNodes();
   
-  logger.route('Data loaded', '_index', { 
+  logger.info('Jobs page data loaded', 'Routes', { 
     jobsCount: jobs.length, 
     usersCount: users.length, 
     nodesCount: nodes.length
   });
   
-  return {
-    jobs,
-    users,
-    nodes,
-  };
+  return { jobs, users, nodes };
 }
 
-// Common validation functions
-function validateJobId(formData: FormData): number {
-  const job_id_str = formData.get("job_id") as string;
-  const job_id = parseInt(job_id_str);
-  if (!job_id || isNaN(job_id)) {
-    throw new Error(VALIDATION_MESSAGES.INVALID_JOB_ID);
-  }
-  return job_id;
-}
+// Simple validation helpers - no complex schemas
+function validateJobData(formData: FormData) {
+  const name = getFormString(formData, "name");
+  const user_id = getFormNumber(formData, "user_id");
+  const node_id = getFormNumber(formData, "node_id");
+  const cpu_cores = getFormNumber(formData, "cpu_cores");
+  const priority = getFormString(formData, "priority", false) || "normal";
 
-function validateJobFormData(formData: FormData) {
-  const name = formData.get("name") as string;
-  const user_id_str = formData.get("user_id") as string;
-  const node_id_str = formData.get("node_id") as string;
-  const cpu_cores_str = formData.get("cpu_cores") as string;
-  const priority = (formData.get("priority") as string) || "normal";
-
-  const user_id = parseInt(user_id_str);
-  const node_id = parseInt(node_id_str);
-  const cpu_cores = parseInt(cpu_cores_str);
-
-  // Validate all fields
-  if (!name || name.length < 3) {
-    throw new Error(VALIDATION_MESSAGES.JOB_NAME_TOO_SHORT);
-  }
-  if (!user_id || isNaN(user_id)) {
-    throw new Error(VALIDATION_MESSAGES.INVALID_USER_ID);
-  }
-  if (!node_id || isNaN(node_id)) {
-    throw new Error(VALIDATION_MESSAGES.INVALID_NODE_ID);
-  }
-  if (!cpu_cores || isNaN(cpu_cores) || cpu_cores < 1) {
-    throw new Error(VALIDATION_MESSAGES.INVALID_CPU_CORES);
+  // Simple validation
+  if (name.length < 3) {
+    throw new ValidationError(VALIDATION_MESSAGES.JOB_NAME_TOO_SHORT);
   }
   
-  // Validate priority
+  if (cpu_cores < 1) {
+    throw new ValidationError(VALIDATION_MESSAGES.INVALID_CPU_CORES);
+  }
+  
   const validPriorities = ['low', 'normal', 'high', 'urgent'];
-  const normalizedPriority = priority.toLowerCase();
-  if (!validPriorities.includes(normalizedPriority)) {
-    throw new Error(`Invalid priority: ${priority}. Must be one of: ${validPriorities.join(', ')}`);
+  if (!validPriorities.includes(priority)) {
+    throw new ValidationError(`Invalid priority: ${priority}`);
   }
 
   return {
@@ -89,202 +70,152 @@ function validateJobFormData(formData: FormData) {
     user_id,
     node_id, 
     cpu_cores,
-    priority: normalizedPriority as "low" | "normal" | "high" | "urgent"
+    priority: priority as "low" | "normal" | "high" | "urgent"
   };
 }
 
-function validateJobExists(job_id: number): Job {
-  const existingJob = jobOps.findById(job_id);
+function validateJobStatus(job: Job, allowedStatuses: string[], action: string) {
+  if (!allowedStatuses.includes(job.status)) {
+    throw new ValidationError(`Cannot ${action} job with status: ${job.status}`);
+  }
+}
+
+// Simple action handlers
+async function handleCreateJob(formData: FormData): Promise<Response> {
+  // Handle file upload
+  const inpFile = formData.get("inp_file") as File;
+  if (!inpFile || inpFile.size === 0) {
+    return error(ERROR_MESSAGES.FILE_REQUIRED);
+  }
+
+  // Simple file validation
+  if (!inpFile.name.toLowerCase().endsWith('.inp')) {
+    return error(ERROR_MESSAGES.INVALID_FILE_TYPE);
+  }
+  if (inpFile.size > 100 * 1024 * 1024) {
+    return error(ERROR_MESSAGES.FILE_SIZE_EXCEEDED);
+  }
+
+  // Validate job data
+  const jobData = validateJobData(formData);
+
+  // Save file
+  const fileBuffer = Buffer.from(await inpFile.arrayBuffer());
+  const storedName = `${Date.now()}_${inpFile.name}`;
+  const uploadsDir = process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
+  const filePath = path.join(uploadsDir, storedName);
+
+  await fs.mkdir(uploadsDir, { recursive: true });
+  await fs.writeFile(filePath, fileBuffer);
+
+  // Create file record
+  const fileId = createFileRecord({
+    original_name: inpFile.name,
+    stored_name: storedName,
+    file_path: filePath,
+    mime_type: inpFile.type || "application/octet-stream",
+    file_size: inpFile.size,
+    uploaded_by: "system"
+  });
+  
+  // Emit file event
+  const fileEventData: FileEventData = {
+    fileId,
+    fileName: inpFile.name,
+    fileSize: inpFile.size,
+    mimeType: inpFile.type || "application/octet-stream",
+    uploadedBy: "system"
+  };
+  emitFileCreated(fileEventData);
+  
+  // Create job
+  const jobId = createJob({
+    name: jobData.name,
+    status: "waiting" as const,
+    file_id: fileId,
+    user_id: jobData.user_id,
+    node_id: jobData.node_id,
+    cpu_cores: jobData.cpu_cores,
+    priority: jobData.priority
+  });
+
+  logger.info('Job created successfully', 'Routes', { jobId, jobName: jobData.name });
+  return success({ jobId }, SUCCESS_MESSAGES.JOB_CREATED);
+}
+
+async function handleEditJob(formData: FormData): Promise<Response> {
+  const job_id = getFormNumber(formData, "job_id");
+  const jobData = validateJobData(formData);
+  
+  const existingJob = findJobById(job_id);
   if (!existingJob) {
-    throw new Error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
+    return error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
   }
-  return existingJob;
+  
+  validateJobStatus(existingJob, ['waiting'], 'edit');
+  
+  const updateResult = updateJob(job_id, {
+    name: jobData.name,
+    user_id: jobData.user_id,
+    node_id: jobData.node_id,
+    cpu_cores: jobData.cpu_cores,
+    priority: jobData.priority
+  });
+  
+  if (!updateResult) {
+    return error('Failed to update job');
+  }
+  
+  logger.info('Job updated successfully', 'Routes', { jobId: job_id, jobName: jobData.name });
+  return success({ message: 'Job updated successfully' }, SUCCESS_MESSAGES.JOB_UPDATED);
 }
 
-function validateJobEditable(job: Job): void {
-  if (job.status !== 'waiting') {
-    throw new Error(VALIDATION_MESSAGES.ONLY_WAITING_JOBS_EDITABLE);
+async function handleDeleteJob(formData: FormData): Promise<Response> {
+  const job_id = getFormNumber(formData, "job_id");
+  
+  const existingJob = findJobById(job_id);
+  if (!existingJob) {
+    return error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
   }
+  
+  validateJobStatus(existingJob, ['completed', 'failed', 'missing'], 'delete');
+  
+  const deleteResult = deleteJob(job_id);
+  if (!deleteResult) {
+    return error('Failed to delete job');
+  }
+  
+  logger.info('Job deleted successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
+  return success({ message: 'Job deleted successfully' }, SUCCESS_MESSAGES.JOB_DELETED);
 }
 
-function validateJobDeletable(job: Job): void {
-  if (!['completed', 'failed', 'missing'].includes(job.status)) {
-    throw new Error(VALIDATION_MESSAGES.ONLY_COMPLETED_FAILED_MISSING_DELETABLE);
+async function handleCancelJob(formData: FormData): Promise<Response> {
+  const job_id = getFormNumber(formData, "job_id");
+  
+  const existingJob = findJobById(job_id);
+  if (!existingJob) {
+    return error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
   }
+  
+  validateJobStatus(existingJob, ['waiting', 'starting', 'running'], 'cancel');
+  
+  const cancelResult = updateJobStatus(job_id, "failed", "Cancelled by user");
+  if (!cancelResult) {
+    return error('Failed to cancel job');
+  }
+  
+  logger.info('Job cancelled successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
+  return success({ message: 'Job cancelled successfully' }, SUCCESS_MESSAGES.JOB_CANCELLED);
 }
 
-function validateJobCancellable(job: Job): void {
-  if (!['waiting', 'starting', 'running'].includes(job.status)) {
-    throw new Error(VALIDATION_MESSAGES.ONLY_WAITING_STARTING_RUNNING_CANCELLABLE);
-  }
-}
-
-// Separated action handlers
-async function handleCreateJob(formData: FormData): Promise<JobActionResult> {
+// Simple action handler - no complex type abstractions
+export async function action({ request }: Route.ActionArgs): Promise<Response> {
   try {
-    // Handle file upload first
-    const inpFile = formData.get("inp_file") as File;
-    if (!inpFile || inpFile.size === 0) {
-      return createErrorResponse(ERROR_MESSAGES.FILE_REQUIRED);
-    }
-
-    // Validate file type and size
-    const fileName = inpFile.name.toLowerCase();
-    if (!fileName.endsWith('.inp')) {
-      return createErrorResponse(ERROR_MESSAGES.INVALID_FILE_TYPE);
-    }
-    if (inpFile.size > 100 * 1024 * 1024) {
-      return createErrorResponse(ERROR_MESSAGES.FILE_SIZE_EXCEEDED);
-    }
-
-    // Validate form data
-    const jobData = validateJobFormData(formData);
-    
-
-    // Save file to filesystem and database
-    const fileBuffer = Buffer.from(await inpFile.arrayBuffer());
-    const storedName = `${Date.now()}_${inpFile.name}`;
-    const uploadsDir = process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
-    const filePath = path.join(uploadsDir, storedName);
-
-    // Ensure uploads directory exists
-    try {
-      await fs.mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      console.error("Failed to create uploads directory:", error);
-    }
-
-    // Save file to filesystem
-    try {
-      await fs.writeFile(filePath, fileBuffer);
-    } catch (error) {
-      logger.error("Failed to save file", '_index', error);
-      return createErrorResponse(ERROR_MESSAGES.UPLOAD_FAILED);
-    }
-
-    // Create file record
-    const fileId = fileOps.create({
-      original_name: inpFile.name,
-      stored_name: storedName,
-      file_path: filePath,
-      mime_type: inpFile.type || "application/octet-stream",
-      file_size: inpFile.size,
-      uploaded_by: "system" // TODO: Get from user context
-    });
-    
-    // Emit SSE event for real-time updates
-    const fileEventData: FileEventData = {
-      fileId,
-      fileName: inpFile.name,
-      fileSize: inpFile.size,
-      mimeType: inpFile.type || "application/octet-stream",
-      uploadedBy: "system"
-    };
-    emitFileEvent('created', fileEventData);
-    
-    // Create job with validated data
-    const jobCreateData = {
-      name: jobData.name,
-      status: "waiting" as const,
-      file_id: fileId,
-      user_id: jobData.user_id,
-      node_id: jobData.node_id,
-      cpu_cores: jobData.cpu_cores,
-      priority: jobData.priority || "normal" as const
-    };
-
-    const jobId = jobOps.create(jobCreateData);
-    logger.userAction('Job created successfully', { jobId, jobName: jobData.name });
-    return createSuccessResponse({ jobId }, SUCCESS_MESSAGES.JOB_CREATED);
-  } catch (error) {
-    if (error instanceof Error) {
-      return createErrorResponse(error.message);
-    }
-    logger.error('Failed to create job', '_index', error);
-    return createErrorResponse(ERROR_MESSAGES.JOB_CREATION_FAILED);
-  }
-}
-
-async function handleEditJob(formData: FormData): Promise<JobActionResult> {
-  try {
-    const job_id = validateJobId(formData);
-    const jobData = validateJobFormData(formData);
-    const existingJob = validateJobExists(job_id);
-    validateJobEditable(existingJob);
-    
-    // Update job with new data
-    const updateData = {
-      name: jobData.name,
-      user_id: jobData.user_id,
-      node_id: jobData.node_id,
-      cpu_cores: jobData.cpu_cores,
-      priority: jobData.priority
-    };
-    
-    const updateResult = jobOps.update(job_id, updateData);
-    
-    if (!updateResult) {
-      logger.error('Job update failed', '_index', { job_id, updateData });
-      return createErrorResponse('Failed to update job in database');
-    }
-    
-    logger.userAction('Job updated successfully', { jobId: job_id, jobName: jobData.name });
-    return createSuccessResponse({ message: 'Job updated successfully' }, SUCCESS_MESSAGES.JOB_UPDATED);
-  } catch (error) {
-    logger.error('Failed to update job', '_index', error);
-    if (error instanceof Error) {
-      return createErrorResponse(error.message);
-    }
-    return createErrorResponse('Failed to update job');
-  }
-}
-
-async function handleDeleteJob(formData: FormData): Promise<JobActionResult> {
-  try {
-    const job_id = validateJobId(formData);
-    const existingJob = validateJobExists(job_id);
-    validateJobDeletable(existingJob);
-    
-    jobOps.delete(job_id);
-    logger.userAction('Job deleted successfully', { jobId: job_id, jobName: existingJob.name });
-    return createSuccessResponse({ message: 'Job deleted successfully' }, SUCCESS_MESSAGES.JOB_DELETED);
-  } catch (error) {
-    if (error instanceof Error) {
-      return createErrorResponse(error.message);
-    }
-    logger.error('Failed to delete job', '_index', error);
-    return createErrorResponse('Failed to delete job');
-  }
-}
-
-async function handleCancelJob(formData: FormData): Promise<JobActionResult> {
-  try {
-    const job_id = validateJobId(formData);
-    const existingJob = validateJobExists(job_id);
-    validateJobCancellable(existingJob);
-    
-    // Update job status to cancelled (we'll use 'failed' status for cancelled jobs)
-    jobOps.update(job_id, { status: 'failed' });
-    logger.userAction('Job cancelled successfully', { jobId: job_id, jobName: existingJob.name });
-    return createSuccessResponse({ message: 'Job cancelled successfully' }, SUCCESS_MESSAGES.JOB_CANCELLED);
-  } catch (error) {
-    if (error instanceof Error) {
-      return createErrorResponse(error.message);
-    }
-    logger.error('Failed to cancel job', '_index', error);
-    return createErrorResponse('Failed to cancel job');
-  }
-}
-
-type JobActionResult = ApiResult<{ jobId?: number; message?: string }, string>;
-
-export async function action({ request }: Route.ActionArgs): Promise<JobActionResult> {
-  try {
-    // Get form data to determine intent
     const formData = await request.formData();
-    const intent = formData.get("intent") as string;
+    const intent = getFormIntent(formData);
     
-    // Route to appropriate handler based on intent
+    logger.info('Job action called', 'Routes', { intent, method: request.method });
+    
     switch (intent) {
       case "create-job":
         return await handleCreateJob(formData);
@@ -295,129 +226,111 @@ export async function action({ request }: Route.ActionArgs): Promise<JobActionRe
       case "cancel-job":
         return await handleCancelJob(formData);
       default:
-        return createErrorResponse(ERROR_MESSAGES.INVALID_ACTION);
+        return error(ERROR_MESSAGES.INVALID_ACTION);
     }
   } catch (error) {
-    logger.error('Unexpected error in action handler', '_index', error);
-    return createErrorResponse(
-      'An unexpected error occurred',
-      error instanceof Error ? error.message : 'Unknown error'
-    );
+    return handleApiError(error, 'Job Action');
   }
 }
 
 export default function Index({ loaderData, actionData }: Route.ComponentProps) {
-  const { jobs, users, nodes } = loaderData;
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [showEditJobModal, setShowEditJobModal] = useState(false);
+  const [showDeleteJobDialog, setShowDeleteJobDialog] = useState(false);
+  const [showCancelJobDialog, setShowCancelJobDialog] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  
-  // Close modals on successful actions
-  React.useEffect(() => {
-    if (actionData && 'success' in actionData && actionData.success) {
-      setIsModalOpen(false);
-      setIsEditModalOpen(false);
-      setIsDeleteDialogOpen(false);
-      setIsCancelDialogOpen(false);
-      setSelectedJob(null);
-    }
-  }, [actionData]);
-  
-  const handleJobAction = (jobId: number, action: 'view' | 'edit' | 'delete' | 'cancel') => {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-    
+
+  // Handle action results - type the response as any for now since React Router v7 types are complex
+  const actionResult = actionData as any;
+  const isSuccess = actionResult?.success === true;
+  const isError = actionResult?.success === false;
+
+  const handleEditJob = (job: Job) => {
     setSelectedJob(job);
-    
-    switch (action) {
-      case 'view':
-        // TODO: Navigate to job details page
-        break;
-      case 'edit':
-        setIsEditModalOpen(true);
-        break;
-      case 'delete':
-        setIsDeleteDialogOpen(true);
-        break;
-      case 'cancel':
-        setIsCancelDialogOpen(true);
-        break;
-    }
+    setShowEditJobModal(true);
   };
 
-  const handleCreateJob = () => {
-    setIsModalOpen(true);
+  const handleDeleteJob = (job: Job) => {
+    setSelectedJob(job);
+    setShowDeleteJobDialog(true);
   };
 
-  const createJobButton = (
-    <Button onClick={handleCreateJob} className="flex items-center gap-2">
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 4v16m8-8H4"
-        />
-      </svg>
-      {BUTTONS.NEW_JOB}
-    </Button>
-  );
+  const handleCancelJob = (job: Job) => {
+    setSelectedJob(job);
+    setShowCancelJobDialog(true);
+  };
 
   return (
-    <MainLayout 
-      title={PAGE_TITLES.JOBS}
-      description="Manage and monitor your Abaqus job execution"
-      actions={createJobButton}
-      users={users}
-      showSystemStatus={true}
-    >
+    <MainLayout title={PAGE_TITLES.JOBS}>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">{PAGE_TITLES.JOBS}</h1>
+        <Button onClick={() => setShowNewJobModal(true)}>
+          {BUTTONS.NEW_JOB}
+        </Button>
+      </div>
+
+      {isSuccess && actionResult.message && (
+        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+          {actionResult.message}
+        </div>
+      )}
+
+      {isError && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {actionResult.error}
+        </div>
+      )}
+
       <JobTable
-        jobs={jobs}
-        onJobAction={handleJobAction}
+        jobs={loaderData.jobs}
+        onJobAction={(jobId, action) => {
+          const job = loaderData.jobs.find(j => j.id === jobId);
+          if (!job) return;
+          
+          switch (action) {
+            case 'edit':
+              handleEditJob(job);
+              break;
+            case 'delete':
+              handleDeleteJob(job);
+              break;
+            case 'cancel':
+              handleCancelJob(job);
+              break;
+          }
+        }}
       />
+
       <NewJobModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        users={users}
-        nodes={nodes}
-        actionData={actionData}
+        isOpen={showNewJobModal}
+        onClose={() => setShowNewJobModal(false)}
+        users={loaderData.users}
+        nodes={loaderData.nodes}
       />
-      <EditJobModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedJob(null);
-        }}
-        job={selectedJob}
-        users={users}
-        nodes={nodes}
-        actionData={actionData}
-      />
-      <DeleteJobDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => {
-          setIsDeleteDialogOpen(false);
-          setSelectedJob(null);
-        }}
-        job={selectedJob}
-        actionData={actionData}
-      />
-      <CancelJobDialog
-        isOpen={isCancelDialogOpen}
-        onClose={() => {
-          setIsCancelDialogOpen(false);
-          setSelectedJob(null);
-        }}
-        job={selectedJob}
-        actionData={actionData}
-      />
+
+      {selectedJob && (
+        <>
+          <EditJobModal
+            isOpen={showEditJobModal}
+            onClose={() => setShowEditJobModal(false)}
+            job={selectedJob}
+            users={loaderData.users}
+            nodes={loaderData.nodes}
+          />
+
+          <DeleteJobDialog
+            isOpen={showDeleteJobDialog}
+            onClose={() => setShowDeleteJobDialog(false)}
+            job={selectedJob}
+          />
+
+          <CancelJobDialog
+            isOpen={showCancelJobDialog}
+            onClose={() => setShowCancelJobDialog(false)}
+            job={selectedJob}
+          />
+        </>
+      )}
     </MainLayout>
   );
 }

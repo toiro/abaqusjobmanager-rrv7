@@ -10,6 +10,8 @@
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "bun ./build/server/index.js",
     "test": "bun test",
+    "test:ssh": "bun test tests/integration/ssh-real.test.ts",
+    "test:ssh:manual": "bun run scripts/test-ssh-connection.ts",
     "typecheck": "react-router typegen && tsc",
     "db:init": "bun run scripts/init-db.ts",
     "db:reset": "rm -f sqlite/*.db* && bun run db:init",

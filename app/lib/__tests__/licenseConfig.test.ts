@@ -7,16 +7,16 @@ import {
   getAvailableLicenseTokens,
   hasAvailableLicenseTokens
 } from "../licenseConfig";
-import { initializeDatabase, resetDatabase } from "../database";
+import { getDatabase } from "../db/connection";
+import { initializeTestDatabase } from "../db/testSetup";
 
 // Initialize test database
 beforeEach(() => {
-  // Reset database connection to ensure fresh state
-  resetDatabase();
   // Use in-memory database for isolated tests
   process.env.DATABASE_PATH = ":memory:";
-  // Initialize with test setup (includes test license config)
-  initializeDatabase(true);
+  
+  // Initialize database tables
+  initializeTestDatabase();
 });
 
 describe("License Configuration", () => {

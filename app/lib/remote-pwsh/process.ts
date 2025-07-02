@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 
 const SESSION_SCRIPT_PATH = join(
 	__dirname,
-	"../../resources/ps-scripts/sshRemoteSession.ps1",
+	"../../../resources/ps-scripts/sshRemoteSession.ps1",
 );
 
 export function spawnPowerShellProcess(

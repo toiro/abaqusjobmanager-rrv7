@@ -1,159 +1,188 @@
-import { eventEmitter } from "~/routes/api.events";
-import { logger } from "~/lib/logger/logger";
+/**
+ * Simplified SSE (Server-Sent Events) Implementation
+ * Practical approach focused on usability and maintainability
+ */
+
+import { logger } from './logger/logger';
 import { 
-  SSEEventUnionSchema,
-  FileEventSchema,
-  JobEventSchema,
-  NodeEventSchema,
-  UserEventSchema,
-  SystemEventSchema,
+  createJobEvent, 
+  createFileEvent, 
+  createNodeEvent, 
+  createUserEvent, 
+  createSystemEvent,
   type SSEEvent,
-  type SSEChannel,
-  type FileEventData,
   type JobEventData,
+  type FileEventData,
   type NodeEventData,
-  type UserEventData
-} from "~/lib/sse-schemas";
+  type UserEventData,
+  type SystemEventData,
+  EVENT_TYPES,
+  SSE_CHANNELS
+} from './sse-schemas';
 
 /**
- * Emit SSE event to specific channel with validation - 型安全なチャンネル
+ * Get the event emitter - import from the route that provides it
  */
-export function emitSSEEvent<TData = unknown>(
-  channel: SSEChannel, 
-  event: SSEEvent<TData>
-) {
-  const eventData = {
-    ...event,
-    timestamp: new Date().toISOString(),
-    channel
-  };
-  
-  // Validate event structure using union schema
-  const validatedEvent = SSEEventUnionSchema.safeParse(eventData);
-  if (!validatedEvent.success) {
-    logger.error("Invalid SSE event structure", `SSE:${channel}`, {
-      channel,
-      errors: validatedEvent.error.issues,
-      eventData
-    });
-    return;
+function getEventEmitter() {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { eventEmitter } = require('~/routes/api.events');
+    return eventEmitter;
+  } catch (error) {
+    logger.error('Failed to get event emitter', 'SSE', { error });
+    return null;
   }
-  
-  logger.debug("SSE event emitted", `SSE:${channel}`, validatedEvent.data);
-  eventEmitter.emit(channel, validatedEvent.data);
 }
 
 /**
- * Emit file-related events with type validation
+ * Generic SSE event emission
  */
-export function emitFileEvent(type: 'created' | 'deleted' | 'updated', fileData?: FileEventData) {
-  const event = {
-    type: `file_${type}` as const,
-    data: fileData
-  };
-  
-  // Validate file event structure
-  const validatedEvent = FileEventSchema.safeParse(event);
-  if (!validatedEvent.success) {
-    logger.error("Invalid file event structure", "SSE:files", {
+export function emitSSE<T = any>(channel: string, type: string, data?: T): void {
+  try {
+    const eventEmitter = getEventEmitter();
+    if (!eventEmitter) {
+      logger.error('Event emitter not available', 'SSE', { channel, type });
+      return;
+    }
+    
+    const event: SSEEvent<T> = {
       type,
-      errors: validatedEvent.error.issues,
-      fileData
+      data,
+      timestamp: new Date().toISOString(),
+      channel
+    };
+    
+    const eventData = JSON.stringify(event);
+    eventEmitter.emit(channel, eventData);
+    
+    logger.debug('SSE event emitted', `SSE:${channel}`, { 
+      type, 
+      dataSize: eventData.length 
     });
-    return;
+  } catch (error) {
+    logger.error('Failed to emit SSE event', `SSE:${channel}`, { 
+      type, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
-  
-  emitSSEEvent('files', validatedEvent.data);
 }
 
 /**
- * Emit job-related events with type validation
+ * Job Events
  */
-export function emitJobEvent(type: 'created' | 'updated' | 'deleted' | 'status_changed', jobData?: JobEventData) {
-  const event = {
-    type: `job_${type}` as const,
-    data: jobData
-  };
-  
-  // Validate job event structure
-  const validatedEvent = JobEventSchema.safeParse(event);
-  if (!validatedEvent.success) {
-    logger.error("Invalid job event structure", "SSE:jobs", {
-      type,
-      errors: validatedEvent.error.issues,
-      jobData
-    });
-    return;
-  }
-  
-  emitSSEEvent('jobs', validatedEvent.data);
+export function emitJobEvent(type: string, data?: JobEventData): void {
+  emitSSE(SSE_CHANNELS.JOBS, type, data);
+}
+
+export function emitJobCreated(data: JobEventData): void {
+  emitJobEvent(EVENT_TYPES.JOB_CREATED, data);
+}
+
+export function emitJobUpdated(data: JobEventData): void {
+  emitJobEvent(EVENT_TYPES.JOB_UPDATED, data);
+}
+
+export function emitJobDeleted(data: JobEventData): void {
+  emitJobEvent(EVENT_TYPES.JOB_DELETED, data);
+}
+
+export function emitJobStatusChanged(data: JobEventData): void {
+  emitJobEvent(EVENT_TYPES.JOB_STATUS_CHANGED, data);
 }
 
 /**
- * Emit node-related events with type validation
+ * File Events  
  */
-export function emitNodeEvent(type: 'created' | 'updated' | 'deleted' | 'status_changed', nodeData?: NodeEventData) {
-  const event = {
-    type: `node_${type}` as const,
-    data: nodeData
-  };
-  
-  // Validate node event structure
-  const validatedEvent = NodeEventSchema.safeParse(event);
-  if (!validatedEvent.success) {
-    logger.error("Invalid node event structure", "SSE:nodes", {
-      type,
-      errors: validatedEvent.error.issues,
-      nodeData
-    });
-    return;
-  }
-  
-  emitSSEEvent('nodes', validatedEvent.data);
+export function emitFileEvent(type: string, data?: FileEventData): void {
+  emitSSE(SSE_CHANNELS.FILES, type, data);
+}
+
+export function emitFileCreated(data: FileEventData): void {
+  emitFileEvent(EVENT_TYPES.FILE_CREATED, data);
+}
+
+export function emitFileUpdated(data: FileEventData): void {
+  emitFileEvent(EVENT_TYPES.FILE_UPDATED, data);
+}
+
+export function emitFileDeleted(data: FileEventData): void {
+  emitFileEvent(EVENT_TYPES.FILE_DELETED, data);
 }
 
 /**
- * Emit user-related events with type validation
+ * Node Events
  */
-export function emitUserEvent(type: 'created' | 'updated' | 'deleted' | 'status_changed', userData?: UserEventData) {
-  const event = {
-    type: `user_${type}` as const,
-    data: userData
-  };
-  
-  // Validate user event structure
-  const validatedEvent = UserEventSchema.safeParse(event);
-  if (!validatedEvent.success) {
-    logger.error("Invalid user event structure", "SSE:users", {
-      type,
-      errors: validatedEvent.error.issues,
-      userData
-    });
-    return;
-  }
-  
-  emitSSEEvent('users', validatedEvent.data);
+export function emitNodeEvent(type: string, data?: NodeEventData): void {
+  emitSSE(SSE_CHANNELS.NODES, type, data);
+}
+
+export function emitNodeCreated(data: NodeEventData): void {
+  emitNodeEvent(EVENT_TYPES.NODE_CREATED, data);
+}
+
+export function emitNodeUpdated(data: NodeEventData): void {
+  emitNodeEvent(EVENT_TYPES.NODE_UPDATED, data);
+}
+
+export function emitNodeDeleted(data: NodeEventData): void {
+  emitNodeEvent(EVENT_TYPES.NODE_DELETED, data);
+}
+
+export function emitNodeStatusChanged(data: NodeEventData): void {
+  emitNodeEvent(EVENT_TYPES.NODE_STATUS_CHANGED, data);
 }
 
 /**
- * Emit system events (ping, connected, etc.)
+ * User Events
  */
-export function emitSystemEvent(type: 'ping' | 'connected' | 'disconnected' | 'error', data?: { message?: string; channel?: string }) {
-  const event = {
-    type,
-    data
-  };
-  
-  // Validate system event structure
-  const validatedEvent = SystemEventSchema.safeParse(event);
-  if (!validatedEvent.success) {
-    logger.error("Invalid system event structure", "SSE:system", {
-      type,
-      errors: validatedEvent.error.issues,
-      data
-    });
-    return;
-  }
-  
-  emitSSEEvent('system', validatedEvent.data);
+export function emitUserEvent(type: string, data?: UserEventData): void {
+  emitSSE(SSE_CHANNELS.USERS, type, data);
 }
+
+export function emitUserCreated(data: UserEventData): void {
+  emitUserEvent(EVENT_TYPES.USER_CREATED, data);
+}
+
+export function emitUserUpdated(data: UserEventData): void {
+  emitUserEvent(EVENT_TYPES.USER_UPDATED, data);
+}
+
+export function emitUserDeleted(data: UserEventData): void {
+  emitUserEvent(EVENT_TYPES.USER_DELETED, data);
+}
+
+export function emitUserStatusChanged(data: UserEventData): void {
+  emitUserEvent(EVENT_TYPES.USER_STATUS_CHANGED, data);
+}
+
+/**
+ * System Events
+ */
+export function emitSystemEvent(type: string, data?: SystemEventData): void {
+  emitSSE(SSE_CHANNELS.SYSTEM, type, data);
+}
+
+export function emitPing(data?: SystemEventData): void {
+  emitSystemEvent(EVENT_TYPES.PING, data);
+}
+
+export function emitConnected(data?: SystemEventData): void {
+  emitSystemEvent(EVENT_TYPES.CONNECTED, data);
+}
+
+export function emitDisconnected(data?: SystemEventData): void {
+  emitSystemEvent(EVENT_TYPES.DISCONNECTED, data);
+}
+
+export function emitError(data?: SystemEventData): void {
+  emitSystemEvent(EVENT_TYPES.ERROR, data);
+}
+
+/**
+ * Legacy compatibility - maintain old function names for gradual migration
+ */
+export { emitFileEvent as emitFileEvent_legacy };
+export { emitJobEvent as emitJobEvent_legacy };
+export { emitNodeEvent as emitNodeEvent_legacy };
+export { emitUserEvent as emitUserEvent_legacy };
+export { emitSystemEvent as emitSystemEvent_legacy };

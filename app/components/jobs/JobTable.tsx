@@ -10,7 +10,7 @@ import {
 } from "~/components/ui/table";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { TABLE_HEADERS, BUTTONS, INFO_MESSAGES } from "~/lib/messages";
-import type { Job } from "~/lib/dbOperations";
+import type { Job } from "~/lib/db";
 import { calculateLicenseTokens } from "~/lib/licenseCalculator";
 
 interface JobTableProps {

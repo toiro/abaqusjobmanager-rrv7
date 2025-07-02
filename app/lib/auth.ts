@@ -10,7 +10,7 @@ export function parseBearerAuth(authHeader: string): string | null {
     return null;
   }
 
-  const token = authHeader.slice(7); // Remove "Bearer " prefix
+  const token = authHeader.slice(7).trim(); // Remove "Bearer " prefix and trim whitespace
   return token || null;
 }
 
@@ -47,15 +47,16 @@ export function createAuthError(): Response {
 export function requireAdminAuth(request: Request): Response | null {
   const url = new URL(request.url);
   
-  // Check for token in URL parameter (temporary solution)
-  let token = url.searchParams.get('token');
+  // Check for token in Authorization header first (higher priority)
+  let token: string | null = null;
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    token = parseBearerAuth(authHeader);
+  }
   
-  // Check for token in Authorization header
+  // Check for token in URL parameter if not found in header
   if (!token) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader) {
-      token = parseBearerAuth(authHeader);
-    }
+    token = url.searchParams.get('token');
   }
   
   // Debug logging only in development
@@ -100,5 +101,5 @@ export function requireAdminAuth(request: Request): Response | null {
  * In production, use a proper JWT or secure token generation
  */
 export function generateAdminToken(): string {
-  return 'admin_' + Math.random().toString(36).substring(2, 18);
+  return 'admin_' + Math.random().toString(36).substring(2);
 }

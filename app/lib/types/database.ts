@@ -35,7 +35,13 @@ export const NodeSchema = z.object({
   hostname: z.string().min(1),
   ssh_port: z.number().min(1).max(65535).default(22),
   max_cpu_cores: z.number().min(1),
-  is_active: z.union([z.boolean(), z.number()]).transform(val => Boolean(val)).default(true),
+  status: z.enum(['available', 'busy', 'unavailable']).default('unavailable').optional(),
+  is_active: z.union([z.boolean(), z.number().int()]).transform(val => {
+    if (typeof val === 'number') {
+      return val === 1;
+    }
+    return Boolean(val);
+  }).default(true),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -44,7 +50,12 @@ export const UserSchema = z.object({
   id: z.number().optional(),
   display_name: z.string().min(2),
   max_concurrent_jobs: z.number().min(1).default(1),
-  is_active: z.union([z.boolean(), z.number()]).transform(val => Boolean(val)).default(true),
+  is_active: z.union([z.boolean(), z.number().int()]).transform(val => {
+    if (typeof val === 'number') {
+      return val === 1;
+    }
+    return Boolean(val);
+  }).default(true),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });

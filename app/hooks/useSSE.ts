@@ -1,165 +1,156 @@
+/**
+ * Simplified useSSE Hook
+ * Practical implementation focused on usability
+ */
+
 import { useEffect, useCallback, useRef } from 'react';
 import { logger } from '~/lib/logger/logger';
 import { 
-  validateSSEEventUnion, 
-  validateEventForChannel,
-  isValidChannel,
-  type SSEEventUnion,
-  type SSEChannel,
-  type FileEvent,
-  type JobEvent,
-  type NodeEvent,
-  type UserEvent,
-  type SystemEvent
+  validateSSEEvent,
+  type SSEEvent,
+  type SSEChannel
 } from '~/lib/sse-schemas';
 
-// Channel to event type mapping
-type ChannelEventTypeMap = {
-  'files': FileEvent;
-  'jobs': JobEvent;
-  'nodes': NodeEvent;
-  'users': UserEvent;
-  'system': SystemEvent;
-};
-
-interface UseSSEOptions<TChannel extends SSEChannel> {
-  channel: TChannel;
-  onEvent?: (event: ChannelEventTypeMap[TChannel]) => void;
+export interface UseSSEOptions<T = any> {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
-  reconnectInterval?: number;
-  enabled?: boolean;
-  validateEvents?: boolean;
-  strictChannelValidation?: boolean;
+  onEvent?: (event: SSEEvent<T>) => void;
 }
 
-export function useSSE<TChannel extends SSEChannel>({
-  channel,
-  onEvent,
-  onConnect,
-  onDisconnect,
-  onError,
-  reconnectInterval = 5000,
-  enabled = true,
-  validateEvents = true,
-  strictChannelValidation = false
-}: UseSSEOptions<TChannel>) {
+/**
+ * Simplified useSSE hook with practical event handling
+ */
+export function useSSE<T = any>(
+  channel: string,
+  onEvent: (event: SSEEvent<T>) => void,
+  options: UseSSEOptions<T> = {}
+): {
+  isConnected: boolean;
+  lastEvent: SSEEvent<T> | null;
+  disconnect: () => void;
+} {
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isConnectedRef = useRef(false);
+  const lastEventRef = useRef<SSEEvent<T> | null>(null);
+  
+  const { onConnect, onDisconnect, onError } = options;
 
-  const connect = useCallback(() => {
-    if (!enabled || isConnectedRef.current) return;
-
+  // Handle incoming SSE messages
+  const handleMessage = useCallback((event: MessageEvent) => {
     try {
-      const eventSource = new EventSource(`/api/events?channel=${encodeURIComponent(channel)}`);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        logger.info("SSE connection established", `useSSE:${channel}`);
-        isConnectedRef.current = true;
-        onConnect?.();
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const rawData = JSON.parse(event.data);
-          
-          // Handle keep-alive pings
-          if (rawData.type === 'ping') {
-            return;
-          }
-          
-          logger.debug("SSE event received", `useSSE:${channel}`, { type: rawData.type });
-          
-          if (validateEvents) {
-            let validatedEvent: ChannelEventTypeMap[TChannel] | null = null;
-            
-            if (strictChannelValidation && isValidChannel(channel)) {
-              // Use channel-specific validation
-              validatedEvent = validateEventForChannel(rawData, channel);
-            } else {
-              // Use general union validation and cast
-              const unionEvent = validateSSEEventUnion(rawData);
-              validatedEvent = unionEvent as ChannelEventTypeMap[TChannel] | null;
-            }
-            
-            if (!validatedEvent) {
-              logger.error("Invalid SSE event received", `useSSE:${channel}`, {
-                channel,
-                rawData,
-                strictValidation: strictChannelValidation
-              });
-              return;
-            }
-            
-            logger.debug("SSE event validated", `useSSE:${channel}`, { type: validatedEvent.type });
-            onEvent?.(validatedEvent);
-          } else {
-            // Pass through without validation for backwards compatibility
-            onEvent?.(rawData as ChannelEventTypeMap[TChannel]);
-          }
-        } catch (error) {
-          logger.error("Failed to parse SSE event data", `useSSE:${channel}`, error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        logger.error("SSE connection error", `useSSE:${channel}`, { error });
-        isConnectedRef.current = false;
-        onError?.(error);
-        onDisconnect?.();
-
-        // Attempt to reconnect
-        if (enabled && reconnectInterval > 0) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            logger.info("Attempting SSE reconnection", `useSSE:${channel}`, { 
-              reconnectInterval 
-            });
-            connect();
-          }, reconnectInterval);
-        }
-      };
-
+      const rawData = JSON.parse(event.data);
+      const validatedEvent = validateSSEEvent(rawData);
+      
+      if (validatedEvent) {
+        logger.debug('SSE event received', `useSSE:${channel}`, { 
+          type: validatedEvent.type 
+        });
+        
+        lastEventRef.current = validatedEvent as SSEEvent<T>;
+        onEvent(validatedEvent as SSEEvent<T>);
+      } else {
+        logger.error('Invalid SSE event received', `useSSE:${channel}`, {
+          rawData
+        });
+      }
     } catch (error) {
-      logger.error("Failed to create SSE EventSource", `useSSE:${channel}`, error);
+      logger.error('Failed to parse SSE event data', `useSSE:${channel}`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        rawData: event.data
+      });
     }
-  }, [channel, enabled, onEvent, onConnect, onDisconnect, onError, reconnectInterval, validateEvents, strictChannelValidation]);
+  }, [channel, onEvent]);
 
+  // Handle connection open
+  const handleOpen = useCallback(() => {
+    isConnectedRef.current = true;
+    logger.info('SSE connection established', `useSSE:${channel}`);
+    onConnect?.();
+  }, [channel, onConnect]);
+
+  // Handle connection error
+  const handleError = useCallback((error: Event) => {
+    logger.error('SSE connection error', `useSSE:${channel}`, { error });
+    onError?.(error);
+  }, [channel, onError]);
+
+  // Handle connection close
+  const handleClose = useCallback(() => {
+    isConnectedRef.current = false;
+    logger.info('SSE connection closed', `useSSE:${channel}`);
+    onDisconnect?.();
+  }, [channel, onDisconnect]);
+
+  // Disconnect function
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
     if (eventSourceRef.current) {
-      logger.info("SSE disconnecting", `useSSE:${channel}`);
       eventSourceRef.current.close();
       eventSourceRef.current = null;
       isConnectedRef.current = false;
-      onDisconnect?.();
+      logger.info('SSE connection manually closed', `useSSE:${channel}`);
     }
-  }, [channel, onDisconnect]);
+  }, [channel]);
 
+  // Set up SSE connection
   useEffect(() => {
-    if (enabled) {
-      connect();
-    } else {
-      disconnect();
-    }
+    // Construct SSE URL with channel parameter
+    const sseUrl = `/api/events?channel=${encodeURIComponent(channel)}`;
+    
+    logger.info('Establishing SSE connection', `useSSE:${channel}`, { url: sseUrl });
+    
+    try {
+      const eventSource = new EventSource(sseUrl);
+      eventSourceRef.current = eventSource;
 
-    return () => {
-      disconnect();
-    };
-  }, [enabled, connect, disconnect]);
+      // Set up event listeners
+      eventSource.onopen = handleOpen;
+      eventSource.onmessage = handleMessage;
+      eventSource.onerror = handleError;
+      
+      // Custom event listener for connection close
+      eventSource.addEventListener('close', handleClose);
+
+      // Cleanup function
+      return () => {
+        eventSource.close();
+        eventSourceRef.current = null;
+        isConnectedRef.current = false;
+        logger.debug('SSE cleanup completed', `useSSE:${channel}`);
+      };
+    } catch (error) {
+      logger.error('Failed to create SSE connection', `useSSE:${channel}`, {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }, [channel, handleOpen, handleMessage, handleError, handleClose]);
 
   return {
     isConnected: isConnectedRef.current,
-    disconnect,
-    reconnect: () => {
-      disconnect();
-      setTimeout(connect, 100);
-    }
+    lastEvent: lastEventRef.current,
+    disconnect
   };
+}
+
+/**
+ * Specialized hooks for common channels
+ */
+export function useJobSSE(onEvent: (event: SSEEvent) => void, options?: UseSSEOptions) {
+  return useSSE('jobs', onEvent, options);
+}
+
+export function useFileSSE(onEvent: (event: SSEEvent) => void, options?: UseSSEOptions) {
+  return useSSE('files', onEvent, options);
+}
+
+export function useNodeSSE(onEvent: (event: SSEEvent) => void, options?: UseSSEOptions) {
+  return useSSE('nodes', onEvent, options);
+}
+
+export function useUserSSE(onEvent: (event: SSEEvent) => void, options?: UseSSEOptions) {
+  return useSSE('users', onEvent, options);
+}
+
+export function useSystemSSE(onEvent: (event: SSEEvent) => void, options?: UseSSEOptions) {
+  return useSSE('system', onEvent, options);
 }

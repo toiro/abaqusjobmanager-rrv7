@@ -1,10 +1,10 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
-import { userOps } from "~/lib/dbOperations";
+import { findAllUsers } from "~/lib/db";
 import type { Route } from "./+types/admin.users";
 
 export function loader() {
   // Auth is handled by parent route (admin.tsx)
-  const users = userOps.findAll();
+  const users = findAllUsers();
   return { users };
 }
 

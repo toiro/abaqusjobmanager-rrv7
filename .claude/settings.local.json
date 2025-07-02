@@ -7,7 +7,9 @@
       "Bash(bun install:*)",
       "Bash(bun run:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)"
     ],
     "deny": [
       "Bash(bun dev)",

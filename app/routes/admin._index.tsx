@@ -1,28 +1,33 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
 import { Badge } from "~/components/ui/badge";
-import { jobOps, userOps, nodeOps, fileOps } from "~/lib/dbOperations";
+import { 
+  findAllJobs, findJobsByStatus,
+  findAllUsers, findActiveUsers,
+  findAllNodes, findAvailableNodes,
+  findAllFiles
+} from "~/lib/db";
 import type { Route } from "./+types/admin._index";
 
 export function loader() {
   // Auth is handled by parent route (admin.tsx)
   const stats = {
     jobs: {
-      total: jobOps.findAll().length,
-      waiting: jobOps.findByStatus("waiting").length,
-      running: jobOps.findByStatus("running").length,
-      completed: jobOps.findByStatus("completed").length,
-      failed: jobOps.findByStatus("failed").length,
+      total: findAllJobs().length,
+      waiting: findJobsByStatus("waiting").length,
+      running: findJobsByStatus("running").length,
+      completed: findJobsByStatus("completed").length,
+      failed: findJobsByStatus("failed").length,
     },
     users: {
-      total: userOps.findAll().length,
-      active: userOps.findActive().length,
+      total: findAllUsers().length,
+      active: findActiveUsers().length,
     },
     nodes: {
-      total: nodeOps.findAll().length,
-      available: nodeOps.findAvailable().length,
+      total: findAllNodes().length,
+      available: findAvailableNodes().length,
     },
     files: {
-      total: fileOps.findAll().length,
+      total: findAllFiles().length,
     },
   };
   

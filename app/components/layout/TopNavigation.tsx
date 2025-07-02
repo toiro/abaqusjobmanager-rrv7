@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { SYSTEM_MESSAGES, PAGE_TITLES } from "~/lib/messages";
 import { UserSelector } from "~/components/ui/UserSelector";
-import type { User } from "~/lib/dbOperations";
+import type { User } from "~/lib/db";
 
 interface NavigationItem {
   label: string

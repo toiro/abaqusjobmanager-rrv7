@@ -1,300 +1,197 @@
-import { z } from 'zod';
+/**
+ * Simplified SSE (Server-Sent Events) Schema
+ * Practical design focused on usability over excessive type safety
+ */
 
-// Channel types - 型安全なチャンネル定義
-export const SSEChannelSchema = z.enum(['files', 'jobs', 'nodes', 'users', 'system']);
-export type SSEChannel = z.infer<typeof SSEChannelSchema>;
-
-// Base SSE event schema
-export const SSEEventSchema = z.object({
-  type: z.string(),
-  data: z.unknown().optional(),
-  timestamp: z.string().optional(),
-  channel: SSEChannelSchema.optional()
-});
-
-// File event data schemas - aligned with database schema
-export const FileEventDataSchema = z.object({
-  fileId: z.number().optional(), // maps to id
-  fileName: z.string().optional(), // maps to original_name
-  fileSize: z.number().optional(), // maps to file_size
-  mimeType: z.string().optional(), // maps to mime_type
-  uploadedBy: z.string().optional() // maps to uploaded_by
-});
-
-export const FileEventSchema = SSEEventSchema.extend({
-  type: z.enum(['file_created', 'file_updated', 'file_deleted']),
-  data: FileEventDataSchema.optional()
-});
-
-// Job event data schemas - aligned with database schema
-export const JobEventDataSchema = z.object({
-  jobId: z.number().optional(), // maps to id
-  jobName: z.string().optional(), // maps to name
-  status: z.enum(['waiting', 'starting', 'running', 'completed', 'failed', 'missing']).optional(), // matches database status enum
-  nodeId: z.number().optional(), // maps to node_id
-  userId: z.number().optional(), // maps to user_id
-  cpuCores: z.number().optional(), // maps to cpu_cores
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional() // matches database priority enum
-});
-
-export const JobEventSchema = SSEEventSchema.extend({
-  type: z.enum(['job_created', 'job_updated', 'job_deleted', 'job_status_changed']),
-  data: JobEventDataSchema.optional()
-});
-
-// Node event data schemas - aligned with database schema
-export const NodeEventDataSchema = z.object({
-  nodeId: z.number().optional(), // maps to id
-  nodeName: z.string().optional(), // maps to name
-  hostname: z.string().optional(), // maps to hostname
-  sshPort: z.number().optional(), // maps to ssh_port
-  maxCpuCores: z.number().optional(), // maps to max_cpu_cores
-  isActive: z.boolean().optional() // maps to is_active
-});
-
-export const NodeEventSchema = SSEEventSchema.extend({
-  type: z.enum(['node_created', 'node_updated', 'node_deleted', 'node_status_changed']),
-  data: NodeEventDataSchema.optional()
-});
-
-// User event data schemas - aligned with database schema
-export const UserEventDataSchema = z.object({
-  userId: z.number().optional(), // maps to id
-  userName: z.string().optional(), // maps to display_name
-  maxConcurrentJobs: z.number().optional(), // maps to max_concurrent_jobs
-  isActive: z.boolean().optional() // maps to is_active
-});
-
-export const UserEventSchema = SSEEventSchema.extend({
-  type: z.enum(['user_created', 'user_updated', 'user_deleted', 'user_status_changed']),
-  data: UserEventDataSchema.optional()
-});
-
-// System event schemas
-export const SystemEventSchema = SSEEventSchema.extend({
-  type: z.enum(['ping', 'connected', 'disconnected', 'error']),
-  data: z.object({
-    message: z.string().optional(),
-    channel: z.string().optional()
-  }).optional()
-});
-
-// Discriminated union of all possible SSE events
-export const SSEEventUnionSchema = z.discriminatedUnion('type', [
-  FileEventSchema,
-  JobEventSchema,
-  NodeEventSchema,
-  UserEventSchema,
-  SystemEventSchema
-]);
-
-// Generic SSE event type with payload - 型安全なチャンネル
-export type SSEEvent<TData = unknown> = {
+/**
+ * Basic SSE event structure
+ */
+export interface SSEEvent<T = any> {
   type: string;
-  data?: TData;
-  timestamp?: string;
-  channel?: SSEChannel;
-};
+  data?: T;
+  timestamp: string;
+  channel: string;
+}
 
-// Specific event types with proper data typing
-export type FileEvent = z.infer<typeof FileEventSchema>;
-export type FileEventData = z.infer<typeof FileEventDataSchema>;
-export type JobEvent = z.infer<typeof JobEventSchema>;
-export type JobEventData = z.infer<typeof JobEventDataSchema>;
-export type NodeEvent = z.infer<typeof NodeEventSchema>;
-export type NodeEventData = z.infer<typeof NodeEventDataSchema>;
-export type UserEvent = z.infer<typeof UserEventSchema>;
-export type UserEventData = z.infer<typeof UserEventDataSchema>;
-export type SystemEvent = z.infer<typeof SystemEventSchema>;
+/**
+ * Common channel names
+ */
+export const SSE_CHANNELS = {
+  JOBS: 'jobs',
+  FILES: 'files', 
+  NODES: 'nodes',
+  USERS: 'users',
+  SYSTEM: 'system'
+} as const;
 
-// Union type for all possible events
-export type SSEEventUnion = z.infer<typeof SSEEventUnionSchema>;
+export type SSEChannel = typeof SSE_CHANNELS[keyof typeof SSE_CHANNELS];
 
-// Type guards for event discrimination
-export const isFileEvent = (event: SSEEventUnion): event is FileEvent => 
-  event.type.startsWith('file_');
+/**
+ * Common event types for different channels
+ */
+export const EVENT_TYPES = {
+  // Job events
+  JOB_CREATED: 'job_created',
+  JOB_UPDATED: 'job_updated', 
+  JOB_DELETED: 'job_deleted',
+  JOB_STATUS_CHANGED: 'job_status_changed',
+  
+  // File events
+  FILE_CREATED: 'file_created',
+  FILE_UPDATED: 'file_updated',
+  FILE_DELETED: 'file_deleted',
+  
+  // Node events
+  NODE_CREATED: 'node_created',
+  NODE_UPDATED: 'node_updated',
+  NODE_DELETED: 'node_deleted',
+  NODE_STATUS_CHANGED: 'node_status_changed',
+  
+  // User events
+  USER_CREATED: 'user_created',
+  USER_UPDATED: 'user_updated',
+  USER_DELETED: 'user_deleted',
+  USER_STATUS_CHANGED: 'user_status_changed',
+  
+  // System events
+  PING: 'ping',
+  CONNECTED: 'connected',
+  DISCONNECTED: 'disconnected',
+  ERROR: 'error'
+} as const;
 
-export const isJobEvent = (event: SSEEventUnion): event is JobEvent => 
-  event.type.startsWith('job_');
-
-export const isNodeEvent = (event: SSEEventUnion): event is NodeEvent => 
-  event.type.startsWith('node_');
-
-export const isUserEvent = (event: SSEEventUnion): event is UserEvent => 
-  event.type.startsWith('user_');
-
-export const isSystemEvent = (event: SSEEventUnion): event is SystemEvent => 
-  ['ping', 'connected', 'disconnected', 'error'].includes(event.type);
-
-// Generic validation helper
-export function validateSSEEvent<T = unknown>(
-  event: unknown, 
-  schema: z.ZodSchema<T>
-): T | null {
+/**
+ * Practical validation - basic structure check without excessive Zod schemas
+ */
+export function validateSSEEvent(data: unknown): SSEEvent | null {
   try {
-    return schema.parse(event);
+    if (typeof data === 'object' && data && 
+        'type' in data && typeof data.type === 'string' &&
+        'channel' in data && typeof data.channel === 'string') {
+      
+      const event = data as SSEEvent;
+      
+      // Add timestamp if missing
+      if (!event.timestamp) {
+        event.timestamp = new Date().toISOString();
+      }
+      
+      return event;
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-// Specific validation functions
-export function validateFileEvent(event: unknown): FileEvent | null {
-  return validateSSEEvent(event, FileEventSchema);
+/**
+ * Create an SSE event with proper structure
+ */
+export function createSSEEvent<T = any>(
+  channel: string, 
+  type: string, 
+  data?: T
+): SSEEvent<T> {
+  return {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+    channel
+  };
 }
 
-export function validateJobEvent(event: unknown): JobEvent | null {
-  return validateSSEEvent(event, JobEventSchema);
+/**
+ * Helper functions for common event creation
+ */
+export function createJobEvent<T = any>(type: string, data?: T): SSEEvent<T> {
+  return createSSEEvent(SSE_CHANNELS.JOBS, type, data);
 }
 
-export function validateNodeEvent(event: unknown): NodeEvent | null {
-  return validateSSEEvent(event, NodeEventSchema);
+export function createFileEvent<T = any>(type: string, data?: T): SSEEvent<T> {
+  return createSSEEvent(SSE_CHANNELS.FILES, type, data);
 }
 
-export function validateUserEvent(event: unknown): UserEvent | null {
-  return validateSSEEvent(event, UserEventSchema);
+export function createNodeEvent<T = any>(type: string, data?: T): SSEEvent<T> {
+  return createSSEEvent(SSE_CHANNELS.NODES, type, data);
 }
 
-export function validateSystemEvent(event: unknown): SystemEvent | null {
-  return validateSSEEvent(event, SystemEventSchema);
+export function createUserEvent<T = any>(type: string, data?: T): SSEEvent<T> {
+  return createSSEEvent(SSE_CHANNELS.USERS, type, data);
 }
 
-export function validateSSEEventUnion(event: unknown): SSEEventUnion | null {
-  return validateSSEEvent(event, SSEEventUnionSchema);
+export function createSystemEvent<T = any>(type: string, data?: T): SSEEvent<T> {
+  return createSSEEvent(SSE_CHANNELS.SYSTEM, type, data);
 }
 
-// Enhanced channel-specific event validation with type mapping
-type ChannelEventMap = {
-  'jobs': JobEvent;
-  'files': FileEvent;
-  'nodes': NodeEvent;
-  'users': UserEvent;
-  'system': SystemEvent;
-};
-
-// Type-safe channel validation
-export function validateEventForChannel<TChannel extends SSEChannel>(
-  data: unknown,
-  channel: TChannel
-): ChannelEventMap[TChannel] | null {
-  if (!isValidChannel(channel)) {
-    return null;
-  }
-
-  const unionEvent = validateSSEEventUnion(data);
-  if (!unionEvent) {
-    return null;
-  }
-
-  // Channel-specific validation with proper type mapping
-  switch (channel) {
-    case 'jobs':
-      return isJobEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
-    case 'files':
-      return isFileEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
-    case 'nodes':
-      return isNodeEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
-    case 'users':
-      return isUserEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
-    case 'system':
-      return isSystemEvent(unionEvent) ? (unionEvent as ChannelEventMap[TChannel]) : null;
-    default:
-      // Exhaustive check - TypeScript will catch unhandled cases
-      const _exhaustiveCheck: never = channel;
-      return null;
-  }
-}
-
-// Type-safe event channel mapping
-export function getChannelForEvent(event: SSEEventUnion): SSEChannel {
-  if (isJobEvent(event)) return 'jobs';
-  if (isFileEvent(event)) return 'files';
-  if (isNodeEvent(event)) return 'nodes';
-  if (isUserEvent(event)) return 'users';
-  if (isSystemEvent(event)) return 'system';
-  
-  // Exhaustive check - should never reach here
-  const _exhaustiveCheck: never = event;
-  throw new Error(`Unhandled event type: ${(_exhaustiveCheck as any).type}`);
-}
-
-// Type-safe event validation with result type
-export type EventValidationResult<T> = {
-  success: true;
-  data: T;
-} | {
-  success: false;
-  error: string;
-};
-
-export function validateSSEEventSafe<T extends SSEEventUnion = SSEEventUnion>(
-  data: unknown
-): EventValidationResult<T> {
-  try {
-    const result = validateSSEEventUnion(data);
-    if (result) {
-      return { success: true, data: result as T };
-    } else {
-      return { success: false, error: 'Event validation failed' };
-    }
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown validation error' 
-    };
-  }
-}
-
-// チャンネル名の検証ヘルパー
+/**
+ * Check if a string is a valid channel
+ */
 export function isValidChannel(channel: string): channel is SSEChannel {
-  return SSEChannelSchema.safeParse(channel).success;
+  return Object.values(SSE_CHANNELS).includes(channel as SSEChannel);
 }
 
-// Type-safe SSE event creation helpers
-export function createJobEvent(
-  type: JobEvent['type'],
-  data?: JobEventData
-): JobEvent {
-  return {
-    type,
-    data,
-    timestamp: new Date().toISOString(),
-    channel: 'jobs'
-  };
+/**
+ * Type-safe data interfaces for common events (optional to use)
+ */
+export interface JobEventData {
+  jobId?: number;
+  jobName?: string;
+  status?: string;
+  nodeId?: number;
+  userId?: number;
+  cpuCores?: number;
+  priority?: string;
 }
 
-export function createFileEvent(
-  type: FileEvent['type'],
-  data?: FileEventData
-): FileEvent {
-  return {
-    type,
-    data,
-    timestamp: new Date().toISOString(),
-    channel: 'files'
-  };
+export interface FileEventData {
+  fileId?: number;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  uploadedBy?: string;
 }
 
-export function createNodeEvent(
-  type: NodeEvent['type'],
-  data?: NodeEventData
-): NodeEvent {
-  return {
-    type,
-    data,
-    timestamp: new Date().toISOString(),
-    channel: 'nodes'
-  };
+export interface NodeEventData {
+  nodeId?: number;
+  nodeName?: string;
+  hostname?: string;
+  sshPort?: number;
+  maxCpuCores?: number;
+  isActive?: boolean;
 }
 
-export function createSystemEvent(
-  type: SystemEvent['type'],
-  data?: SystemEvent['data']
-): SystemEvent {
-  return {
-    type,
-    data,
-    timestamp: new Date().toISOString(),
-    channel: 'system'
-  };
+export interface UserEventData {
+  userId?: number;
+  userName?: string;
+  maxConcurrentJobs?: number;
+  isActive?: boolean;
+}
+
+export interface SystemEventData {
+  message?: string;
+  channel?: string;
+  [key: string]: any;
+}
+
+/**
+ * Typed event creation helpers (optional - can use generic createSSEEvent instead)
+ */
+export function createTypedJobEvent(type: string, data?: JobEventData): SSEEvent<JobEventData> {
+  return createJobEvent(type, data);
+}
+
+export function createTypedFileEvent(type: string, data?: FileEventData): SSEEvent<FileEventData> {
+  return createFileEvent(type, data);
+}
+
+export function createTypedNodeEvent(type: string, data?: NodeEventData): SSEEvent<NodeEventData> {
+  return createNodeEvent(type, data);
+}
+
+export function createTypedUserEvent(type: string, data?: UserEventData): SSEEvent<UserEventData> {
+  return createUserEvent(type, data);
+}
+
+export function createTypedSystemEvent(type: string, data?: SystemEventData): SSEEvent<SystemEventData> {
+  return createSystemEvent(type, data);
 }

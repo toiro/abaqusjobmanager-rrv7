@@ -29,7 +29,7 @@ export const httpLogger = (): MiddlewareHandler => {
     const requestId = c.req.header('X-Request-ID') || crypto.randomUUID();
 
     // Log request start
-    logger.info('HTTP Request started', 'HTTP_REQUEST', {
+    logger.info('HTTP Request started', 'Routes', {
       method,
       url,
       userAgent,
@@ -57,14 +57,26 @@ export const httpLogger = (): MiddlewareHandler => {
     };
 
     // Log response completion
-    logger.structuredLog(logLevel, 'HTTP Request completed', {
-      type: 'HTTP_RESPONSE',
-      ...logData
-    });
+    if (logLevel === 'error') {
+      logger.error('HTTP Request completed', 'Routes', {
+        type: 'HTTP_RESPONSE',
+        ...logData
+      });
+    } else if (logLevel === 'warn') {
+      logger.warn('HTTP Request completed', 'Routes', {
+        type: 'HTTP_RESPONSE',
+        ...logData
+      });
+    } else {
+      logger.info('HTTP Request completed', 'Routes', {
+        type: 'HTTP_RESPONSE',
+        ...logData
+      });
+    }
 
     // Performance logging for slow requests (>1000ms)
     if (duration > 1000) {
-      logger.performance('Slow HTTP request detected', duration, 'HTTP_PERFORMANCE', {
+      logger.performance('Slow HTTP request detected', duration, 'Routes', {
         method,
         url,
         status,
@@ -86,6 +98,6 @@ export const simpleHttpLogger = (): MiddlewareHandler => {
     const duration = Date.now() - start;
     const status = c.res.status;
     
-    logger.info(`${c.req.method} ${c.req.url} ${status} ${duration}ms`, 'HTTP_ACCESS');
+    logger.info(`${c.req.method} ${c.req.url} ${status} ${duration}ms`, 'Routes');
   };
 };

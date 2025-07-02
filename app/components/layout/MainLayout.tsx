@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import { TopNavigation } from "./TopNavigation";
 import { SystemStatusBar } from "~/components/ui/SystemStatusBar";
-import type { User } from "~/lib/dbOperations";
+import type { User } from "~/lib/db";
 
 interface MainLayoutProps {
   children: ReactNode;

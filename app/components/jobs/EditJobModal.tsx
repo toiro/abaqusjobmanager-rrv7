@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Label } from "~/components/ui/label";
 import { FORM_LABELS, BUTTONS, PLACEHOLDERS, PRIORITY_LEVELS, ERROR_MESSAGES, INFO_MESSAGES } from "~/lib/messages";
-import type { User, Node, Job } from "~/lib/dbOperations";
+import type { User, Node, Job } from "~/lib/db";
 import { useState, useEffect } from "react";
 import { calculateLicenseTokens } from "~/lib/licenseCalculator";
 

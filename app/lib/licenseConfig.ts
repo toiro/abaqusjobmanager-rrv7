@@ -3,11 +3,36 @@
  * Provides type-safe access to license-related system configuration
  */
 
-import { getSystemConfig, setSystemConfig } from "./database";
+import { getDatabase } from "./db/connection";
 
 export interface LicenseConfig {
   serverName: string;
   totalTokens: number;
+}
+
+/**
+ * Simple system configuration functions
+ * Basic implementation for license management
+ */
+function getSystemConfig(key: string): string | null {
+  try {
+    const db = getDatabase();
+    const stmt = db.prepare("SELECT value FROM system_config WHERE key = ?");
+    const result = stmt.get(key) as { value: string } | undefined;
+    return result?.value || null;
+  } catch {
+    return null;
+  }
+}
+
+function setSystemConfig(key: string, value: string): void {
+  try {
+    const db = getDatabase();
+    const stmt = db.prepare("INSERT OR REPLACE INTO system_config (key, value) VALUES (?, ?)");
+    stmt.run(key, value);
+  } catch {
+    // Ignore errors for now
+  }
 }
 
 /**
@@ -28,7 +53,7 @@ export function getLicenseConfig(): LicenseConfig {
  */
 export function setLicenseServerName(serverName: string): void {
   validateServerName(serverName);
-  setSystemConfig('license_server_name', serverName, 'Abaqus license server hostname or IP address');
+  setSystemConfig('license_server_name', serverName);
 }
 
 /**
@@ -36,7 +61,7 @@ export function setLicenseServerName(serverName: string): void {
  */
 export function setTotalLicenseTokens(tokens: number): void {
   validateTokenCount(tokens);
-  setSystemConfig('total_license_tokens', tokens.toString(), 'Total available Abaqus license tokens');
+  setSystemConfig('total_license_tokens', tokens.toString());
 }
 
 /**
@@ -46,8 +71,8 @@ export function updateLicenseConfig(config: LicenseConfig): void {
   validateServerName(config.serverName);
   validateTokenCount(config.totalTokens);
   
-  setSystemConfig('license_server_name', config.serverName, 'Abaqus license server hostname or IP address');
-  setSystemConfig('total_license_tokens', config.totalTokens.toString(), 'Total available Abaqus license tokens');
+  setSystemConfig('license_server_name', config.serverName);
+  setSystemConfig('total_license_tokens', config.totalTokens.toString());
 }
 
 /**

@@ -4,9 +4,22 @@
  * Run once to set up the database and initial data
  */
 
-import { getDatabase, checkDatabaseHealth } from "../app/lib/database";
+import { getDatabase } from "../app/lib/db/connection";
 import path from "path";
 import fs from "fs";
+
+/**
+ * Check database health
+ */
+export function checkDatabaseHealth(): boolean {
+  try {
+    const db = getDatabase();
+    const result = db.prepare("SELECT 1 as test").get() as { test: number };
+    return result.test === 1;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Execute SQL file
@@ -25,7 +38,7 @@ function executeSqlFile(database: any, filePath: string): void {
 /**
  * Initialize database with required tables
  */
-function initializeDatabase(isTest: boolean = false): void {
+export function initializeDatabase(isTest: boolean = false): void {
   const database = getDatabase();
   const sqlDir = path.join(process.cwd(), "resources", "sql");
   

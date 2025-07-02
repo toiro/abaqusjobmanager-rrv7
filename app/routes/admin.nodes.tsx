@@ -3,14 +3,13 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { SuccessMessage, ErrorMessage } from "~/components/ui/message";
-import { nodeOps } from "~/lib/dbOperations";
+import { findAllNodes, createNode, updateNodeStatus, activateNode, deactivateNode, type Node } from "~/lib/db";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
 import type { Route } from "./+types/admin.nodes";
-import type { Node } from "~/lib/dbOperations";
 
 export function loader() {
   // Auth is handled by parent route (admin.tsx)
-  const nodes = nodeOps.findAll();
+  const nodes = findAllNodes();
   return { nodes };
 }
 
@@ -25,7 +24,7 @@ export async function action({ request }: Route.ActionArgs) {
         hostname: formData.get("hostname") as string,
         ssh_port: Number(formData.get("ssh_port")) || 22,
         max_cpu_cores: Number(formData.get("max_cpu_cores")),
-        status: (formData.get("status") as Node["status"]) || "available",
+        is_active: true,
       };
 
       // Basic validation
@@ -33,7 +32,7 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: "Name, hostname, and CPU cores are required" };
       }
 
-      const nodeId = nodeOps.create(nodeData);
+      const nodeId = createNode(nodeData);
       return { success: `Node '${nodeData.name}' created successfully`, nodeId };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR };
@@ -45,7 +44,7 @@ export async function action({ request }: Route.ActionArgs) {
       const nodeId = Number(formData.get("nodeId"));
       const status = formData.get("status") as Node["status"];
       
-      nodeOps.updateStatus(nodeId, status);
+      updateNodeStatus(nodeId, status);
       return { success: SUCCESS_MESSAGES.NODE_UPDATED };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR };
@@ -58,9 +57,9 @@ export async function action({ request }: Route.ActionArgs) {
       const isActive = formData.get("isActive") === "true";
       
       if (isActive) {
-        nodeOps.deactivate(nodeId);
+        deactivateNode(nodeId);
       } else {
-        nodeOps.activate(nodeId);
+        activateNode(nodeId);
       }
       
       return { success: "Node status updated successfully" };
@@ -76,14 +75,13 @@ export default function NodesAdmin({ loaderData: { nodes }, actionData }: Route.
   const getStatusBadge = (status: Node["status"]) => {
     const variants = {
       available: "bg-green-100 text-green-800",
-      high_load: "bg-yellow-100 text-yellow-800",
+      busy: "bg-yellow-100 text-yellow-800",
       unavailable: "bg-red-100 text-red-800",
-      maintenance: "bg-gray-100 text-gray-800",
     };
     
     return (
-      <Badge className={variants[status]}>
-        {status.replace('_', ' ')}
+      <Badge className={variants[status || 'unavailable']}>
+        {status ? status.replace('_', ' ') : 'unavailable'}
       </Badge>
     );
   };
