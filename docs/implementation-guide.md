@@ -43,7 +43,7 @@
    - ファイル検証（拡張子、サイズ）
    - データベースへのファイル情報保存
 
-3. **WebSocket実装**
+3. **SSE実装**
    - リアルタイム状態更新
    - クライアント接続管理
 
@@ -59,7 +59,7 @@
    - ファイル検証
 
 3. **リアルタイム更新**
-   - WebSocket接続
+   - SSE接続
    - 状態の自動更新
 
 ### Phase 4: Abaqus統合
@@ -114,7 +114,7 @@
 │       ├── database.ts               # データベース接続
 │       ├── fileManager.ts            # ファイル管理
 │       ├── jobManager.ts             # ジョブ管理
-│       └── websocketManager.ts       # WebSocket管理
+│       └── sseManager.ts             # SSE管理
 ├── data/
 │   └── abaqus-jobs.db               # SQLiteデータベース
 ├── uploads/

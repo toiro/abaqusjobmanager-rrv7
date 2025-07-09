@@ -13,7 +13,7 @@ import {
   type SSEEvent,
   type JobEventData,
   type FileEventData
-} from '../sse-schemas';
+} from '../services/sse/sse-schemas';
 
 describe('Simplified SSE Schema System', () => {
   describe('validateSSEEvent', () => {

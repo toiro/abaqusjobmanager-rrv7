@@ -2,7 +2,7 @@
 
 ## 概要
 
-Abaqus Job Manager のREST API及びWebSocket API仕様
+Abaqus Job Manager のREST API及びSSE API仕様
 
 ## REST API
 
@@ -257,7 +257,7 @@ Content-Disposition: attachment; filename="simulation_001.sta"
 
 ---
 
-## WebSocket API
+## SSE API
 
 ### 接続
 ```
@@ -375,5 +375,5 @@ ws://localhost:3000/ws?user_id=student01
 ## レート制限
 
 - API呼び出し: 100回/分/ユーザー
-- WebSocket接続: 10接続/ユーザー
+- SSE接続: 10接続/ユーザー
 - ファイルダウンロード: 50MB/分/ユーザー

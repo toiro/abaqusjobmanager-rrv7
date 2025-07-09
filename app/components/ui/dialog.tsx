@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "~/lib/utils";
+import { cn } from "~/lib/helpers/utils";
 
 export interface DialogProps {
   open?: boolean;
@@ -34,6 +34,14 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
       <div
         className="fixed inset-0 bg-black/50"
         onClick={() => onOpenChange?.(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            onOpenChange?.(false);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Close dialog"
       />
       {/* Content */}
       <div className="relative z-10">{children}</div>
@@ -54,6 +62,16 @@ export function DialogContent({ className, children }: DialogContentProps) {
         className
       )}
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        // Handle keyboard navigation
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+        }
+      }}
+      role="dialog"
+      tabIndex={-1}
+      aria-modal="true"
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     >
       {children}
     </div>

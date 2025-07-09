@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Alert, AlertDescription, AlertTitle } from "./alert"
-import { cn } from "~/lib/utils"
+import { cn } from "~/lib/helpers/utils"
 
 export type MessageType = "success" | "error" | "warning" | "info"
 

@@ -5,7 +5,7 @@ import {
   findAllJobs, createJob, findJobById, updateJob, deleteJob, updateJobStatus,
   findActiveUsers, findActiveNodes, createFileRecord,
   type Job 
-} from "~/lib/db";
+} from "~/lib/core/database";
 import { PAGE_TITLES, BUTTONS, SUCCESS_MESSAGES, ERROR_MESSAGES, VALIDATION_MESSAGES } from "~/lib/messages";
 import type { Route } from "./+types/_index";
 import { useState } from "react";
@@ -15,9 +15,9 @@ import { DeleteJobDialog } from "~/components/jobs/DeleteJobDialog";
 import { CancelJobDialog } from "~/components/jobs/CancelJobDialog";
 import { promises as fs } from "fs";
 import path from "path";
-import { logger } from "~/lib/logger/logger";
-import { emitFileCreated } from "~/lib/sse";
-import { type FileEventData } from "~/lib/sse-schemas";
+import { getLogger } from "~/lib/core/logger";
+import { emitFileCreated } from "~/lib/services/sse/sse";
+import { type FileEventData } from "~/lib/services/sse/sse-schemas";
 import { 
   success,
   error,
@@ -26,7 +26,7 @@ import {
   getFormString,
   getFormNumber,
   ValidationError
-} from "~/lib/apiHelpers";
+} from "~/lib/helpers/api-helpers";
 
 // Simple loader - no complex type abstractions
 export function loader() {
@@ -34,7 +34,7 @@ export function loader() {
   const users = findActiveUsers();
   const nodes = findActiveNodes();
   
-  logger.info('Jobs page data loaded', 'Routes', { 
+  getLogger().info('Jobs page data loaded', 'Routes', { 
     jobsCount: jobs.length, 
     usersCount: users.length, 
     nodesCount: nodes.length
@@ -139,7 +139,7 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
     priority: jobData.priority
   });
 
-  logger.info('Job created successfully', 'Routes', { jobId, jobName: jobData.name });
+  getLogger().info('Job created successfully', 'Routes', { jobId, jobName: jobData.name });
   return success({ jobId }, SUCCESS_MESSAGES.JOB_CREATED);
 }
 
@@ -166,7 +166,7 @@ async function handleEditJob(formData: FormData): Promise<Response> {
     return error('Failed to update job');
   }
   
-  logger.info('Job updated successfully', 'Routes', { jobId: job_id, jobName: jobData.name });
+  getLogger().info('Job updated successfully', 'Routes', { jobId: job_id, jobName: jobData.name });
   return success({ message: 'Job updated successfully' }, SUCCESS_MESSAGES.JOB_UPDATED);
 }
 
@@ -185,7 +185,7 @@ async function handleDeleteJob(formData: FormData): Promise<Response> {
     return error('Failed to delete job');
   }
   
-  logger.info('Job deleted successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
+  getLogger().info('Job deleted successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
   return success({ message: 'Job deleted successfully' }, SUCCESS_MESSAGES.JOB_DELETED);
 }
 
@@ -204,7 +204,7 @@ async function handleCancelJob(formData: FormData): Promise<Response> {
     return error('Failed to cancel job');
   }
   
-  logger.info('Job cancelled successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
+  getLogger().info('Job cancelled successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
   return success({ message: 'Job cancelled successfully' }, SUCCESS_MESSAGES.JOB_CANCELLED);
 }
 
@@ -214,7 +214,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
     const formData = await request.formData();
     const intent = getFormIntent(formData);
     
-    logger.info('Job action called', 'Routes', { intent, method: request.method });
+    getLogger().info('Job action called', 'Routes', { intent, method: request.method });
     
     switch (intent) {
       case "create-job":

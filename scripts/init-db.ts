@@ -4,7 +4,7 @@
  * Run once to set up the database and initial data
  */
 
-import { getDatabase } from "../app/lib/db/connection";
+import { getDatabase } from "../app/lib/core/database/connection";
 import path from "path";
 import fs from "fs";
 

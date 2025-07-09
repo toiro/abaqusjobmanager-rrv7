@@ -7,12 +7,11 @@ export default defineConfig({
   plugins: [
     reactRouterHonoServer({
       runtime: "bun",
-      defaultLogger: false, // Disable Hono's default logger
-      configure: (app) => {
-        // Add custom LogTape-integrated HTTP logging
-        const { httpLogger } = require("./app/lib/middleware/httpLogger");
-        app.use("*", httpLogger());
-      }
+      // configure: (app: any) => {
+      //   // Add custom LogTape-integrated HTTP logging
+      //   const { httpLogger } = require("./app/lib/middleware/http-logger");
+      //   app.use("*", httpLogger());
+      // }
     }),
     reactRouter(),
     tsconfigPaths(),

@@ -1,29 +1,8 @@
 import type { Route } from "./+types/api.events";
-import { logger } from "~/lib/logger/logger";
-import { emitSystemEvent } from "~/lib/sse";
-import { isValidChannel, type SSEChannel } from "~/lib/sse-schemas";
-
-// Global event emitter for SSE
-class EventEmitter {
-  private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
-
-  on(event: string, callback: (data: unknown) => void) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    this.listeners.get(event)!.add(callback);
-  }
-
-  off(event: string, callback: (data: unknown) => void) {
-    this.listeners.get(event)?.delete(callback);
-  }
-
-  emit(event: string, data: unknown) {
-    this.listeners.get(event)?.forEach(callback => callback(data));
-  }
-}
-
-export const eventEmitter = new EventEmitter();
+import { getLogger } from "~/lib/core/logger";
+import { emitSystemEvent } from "~/lib/services/sse/sse";
+import { getSSEEventEmitter } from "~/lib/services/sse/sse-event-emitter";
+import { isValidChannel, type SSEChannel, type SSEEvent } from "~/lib/services/sse/sse-schemas";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -31,7 +10,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   
   // チャンネル名のバリデーション
   if (!isValidChannel(channelParam)) {
-    logger.warn("Invalid SSE channel requested", "api.events", { 
+    getLogger().warn("Invalid SSE channel requested", "api.events", { 
       requestedChannel: channelParam,
       validChannels: ['files', 'jobs', 'nodes', 'users', 'system']
     });
@@ -46,41 +25,102 @@ export async function loader({ request }: Route.LoaderArgs) {
       // Send initial connection message
       const encoder = new TextEncoder();
       
-      // Emit system connected event using proper typing
-      emitSystemEvent('connected', { channel });
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected', channel, timestamp: new Date().toISOString() })}\n\n`));
+      // Send initial connection event
+      const connectionEvent: SSEEvent = {
+        type: 'connected',
+        channel,
+        timestamp: new Date().toISOString(),
+        data: { channel }
+      };
       
-      logger.info("SSE connection established", "api.events", { channel });
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(connectionEvent)}\n\n`));
+      getLogger().info("SSE connection established", "api.events", { channel });
+
+      // Track connection state
+      let isConnectionActive = true;
 
       // Set up event listener
-      const listener = (data: unknown) => {
+      const listener = (eventData: unknown) => {
+        // Check if connection is still active before sending
+        if (!isConnectionActive) {
+          getLogger().debug("SSE data ignored - connection closed", "api.events", { channel });
+          return;
+        }
+
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-        } catch {
-          // Connection closed or other error
+          const serializedData = JSON.stringify(eventData);
+          controller.enqueue(encoder.encode(`data: ${serializedData}\n\n`));
+          getLogger().debug("SSE data sent to client", "api.events", { 
+            channel,
+            dataSize: serializedData.length
+          });
+        } catch (error) {
+          // Connection was likely closed
+          if (error instanceof Error && error.message.includes('ReadableStreamDefaultController')) {
+            getLogger().debug("SSE connection closed during data send", "api.events", { channel });
+            isConnectionActive = false;
+            // Remove this listener since connection is dead
+            getSSEEventEmitter().off(channel, listener);
+          } else {
+            getLogger().error("Failed to send SSE data", "api.events", { 
+              channel,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
         }
       };
 
-      eventEmitter.on(channel, listener);
+      getSSEEventEmitter().on(channel, listener);
+      getLogger().debug("SSE listener registered", "api.events", { 
+        channel,
+        totalListeners: getSSEEventEmitter().getListenerCount(channel)
+      });
 
       // Keep-alive ping every 30 seconds
       const keepAlive = setInterval(() => {
+        if (!isConnectionActive) {
+          clearInterval(keepAlive);
+          return;
+        }
+
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() })}\n\n`));
-        } catch {
+          const pingEvent: SSEEvent = {
+            type: 'ping',
+            channel,
+            timestamp: new Date().toISOString()
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(pingEvent)}\n\n`));
+          getLogger().debug("SSE ping sent", "api.events", { channel });
+        } catch (error) {
+          getLogger().debug("SSE ping failed - connection closed", "api.events", { 
+            channel,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+          isConnectionActive = false;
           clearInterval(keepAlive);
         }
       }, 30000);
 
       // Cleanup when connection closes
       request.signal?.addEventListener('abort', () => {
+        isConnectionActive = false;
         clearInterval(keepAlive);
-        eventEmitter.off(channel, listener);
+        getSSEEventEmitter().off(channel, listener);
         
-        logger.info("SSE connection closed", "api.events", { channel });
+        getLogger().info("SSE connection closed", "api.events", { 
+          channel,
+          remainingListeners: getSSEEventEmitter().getListenerCount(channel)
+        });
         
-        // Emit disconnection event
-        emitSystemEvent('disconnected', { channel });
+        // Emit disconnection event only if we can
+        try {
+          emitSystemEvent('disconnected', { channel });
+        } catch (error) {
+          getLogger().debug("Could not emit disconnection event", "api.events", { 
+            channel,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
         
         try {
           controller.close();

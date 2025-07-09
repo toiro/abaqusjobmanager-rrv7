@@ -222,37 +222,37 @@
 - ファイルダウンロード
 - 不要ファイルの削除
 
-## Phase 6: WebSocket・リアルタイム更新 (Week 6-7)
+## Phase 6: SSE・リアルタイム更新 (Week 6-7)
 
-### 6.1 WebSocketサーバー
+### 6.1 SSEサーバー
 ```bash
 # 優先度: ★★★ / 難易度: ★★★
-- WebSocketサーバーの実装
+- SSEサーバーの実装
 - クライアント接続管理
 - メッセージ配信
 ```
 
 **実装順序:**
-1. `app/lib/websocketManager.ts` - WebSocket管理クラス
+1. `app/routes/api.events.ts` - SSE エンドポイント
 2. `app/server.ts` での統合
 3. クライアント接続管理
 4. ブロードキャスト機能
 
 **完了条件:**
-- WebSocketサーバーの起動
+- SSEサーバーの起動
 - クライアント接続の確立
 - メッセージ送受信
 
-### 6.2 フロントエンドWebSocket
+### 6.2 フロントエンドSSE
 ```bash
 # 優先度: ★★★ / 難易度: ★★☆
-- WebSocketフック
+- SSEフック
 - リアルタイム更新
 - 自動再接続
 ```
 
 **実装順序:**
-1. `app/hooks/useWebSocket.ts` - WebSocketフック
+1. `app/hooks/useSSE.ts` - SSEフック
 2. ジョブ一覧のリアルタイム更新
 3. 接続状態表示
 4. エラーハンドリング
@@ -452,11 +452,11 @@
 ### リスク軽減策
 1. **Phase 6 (SSH/Abaqus)**: 最も技術的難易度が高いため、早期のPoC実施を推奨
 2. **Phase 7 (スケジューラー)**: 複雑な制御ロジックのため、段階的実装と十分なテスト
-3. **Phase 5 (WebSocket)**: React Router v7との統合で予期しない問題の可能性
+3. **Phase 5 (SSE)**: React Router v7との統合で予期しない問題の可能性
 
 ### 並行作業の可能性
 - Phase 2-3: ライセンス管理とファイル管理は並行実装可能
-- Phase 5-6: WebSocketとSSH接続は一部並行実装可能
+- Phase 5-6: SSEとSSH接続は一部並行実装可能
 - Phase 8-9: 監視機能とテスト実装は並行実装可能
 
 この順序により、段階的に機能を構築しながら、技術的リスクを早期に特定・解決できます。

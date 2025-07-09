@@ -5,6 +5,8 @@ BunランタイムでAbaqusジョブの管理と環境変数の表示を行うRe
 ## 🚨 重要な開発方針・注意事項
 
 ### **開発プロセス**
+- **SOLID, KISS, YAGNI, DRY 原則に従うこと**
+- **後方互換性を考慮しないこと**
 - **実際に作業を行う前に作業方針を立て、ユーザーに確認すること**
 - **ユーザーからの指示や仕様に疑問や不足点があれば作業を中断し、質問すること**
 - **コードエクセレンス原則に基づきテスト駆動開発を必須で実施すること**
@@ -16,6 +18,40 @@ BunランタイムでAbaqusジョブの管理と環境変数の表示を行うRe
 - **データ取得にサーバーとクライアントの両方のローダーを実装**
 - **Zodスキーマによる実行時型検証とTypeScriptコンパイル時検証の両立**
 - **モダンなJavaScript機能を使用したBunランタイム向けに構築**
+
+### **📁 ファイル命名規則**
+プロジェクト全体でファイル命名をケバブケース（kebab-case）に統一する：
+
+#### **適用範囲**
+- TypeScriptファイル（`.ts`, `.tsx`）
+- テストファイル（`.test.ts`, `.spec.ts`）
+- 設定ファイル
+- ドキュメントファイル（`.md`）
+
+#### **命名パターン**
+```
+✅ 正しい命名（ケバブケース）
+- base-scheduler.ts
+- interval-scheduler.ts
+- health-check-scheduler.ts
+- sse-cleanup-scheduler.ts
+- scheduler-system.ts
+
+❌ 間違った命名（キャメルケース・スネークケース）
+- baseScheduler.ts
+- intervalScheduler.ts
+- healthCheckScheduler.ts
+- base_scheduler.ts
+- scheduler_system.ts
+```
+
+#### **例外**
+- React Router v7のルートファイル（`api.scheduler-status.ts`等）は既にケバブケース準拠
+- UIコンポーネントはPascalCase（`TopNavigation.tsx`等）を維持
+- ディレクトリ名もケバブケース（`health-check/`等）を使用
+
+#### **移行方針**
+既存ファイルは段階的にケバブケースに移行し、新規ファイルは必ずケバブケースで作成する。
 
 ### **🎯 エンティティ定義の正定義 (Single Source of Truth)**
 

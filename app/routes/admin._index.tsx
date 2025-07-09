@@ -5,7 +5,7 @@ import {
   findAllUsers, findActiveUsers,
   findAllNodes, findAvailableNodes,
   findAllFiles
-} from "~/lib/db";
+} from "~/lib/core/database";
 import type { Route } from "./+types/admin._index";
 
 export function loader() {

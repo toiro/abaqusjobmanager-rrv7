@@ -3,7 +3,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { SuccessMessage, ErrorMessage } from "~/components/ui/message";
-import { findAllNodes, createNode, updateNodeStatus, activateNode, deactivateNode, type Node } from "~/lib/db";
+import { findAllNodes, createNode, updateNodeStatus, activateNode, deactivateNode, type Node } from "~/lib/core/database";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
 import type { Route } from "./+types/admin.nodes";
 

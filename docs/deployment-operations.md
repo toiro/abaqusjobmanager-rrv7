@@ -10,7 +10,7 @@
 │ - React Router v7   │◄──►│ - Windows Server    │    │ - Windows Server    │
 │ - Bun Runtime       │SSH │ - Abaqus 2023       │    │ - Abaqus 2023       │
 │ - SQLite Database   │    │ - SSH Server        │    │ - SSH Server        │
-│ - WebSocket Server  │    │ - PowerShell        │    │ - PowerShell        │
+│ - SSE Server        │    │ - PowerShell        │    │ - PowerShell        │
 │                     │    │                     │    │                     │
 │ Port: 3000          │    │ SSH Port: 22        │    │ SSH Port: 22        │
 └─────────────────────┘    └─────────────────────┘    └─────────────────────┘

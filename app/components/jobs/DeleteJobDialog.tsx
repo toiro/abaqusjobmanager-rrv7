@@ -3,13 +3,17 @@ import { Button } from "~/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "~/components/ui/dialog";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { BUTTONS, CONFIRM_MESSAGES, INFO_MESSAGES } from "~/lib/messages";
-import type { Job } from "~/lib/db";
+import type { Job } from "~/lib/core/database";
 
 interface DeleteJobDialogProps {
   isOpen: boolean;
   onClose: () => void;
   job: Job | null;
-  actionData?: any;
+  actionData?: {
+    success?: boolean;
+    message?: string;
+    error?: string;
+  };
 }
 
 export function DeleteJobDialog({ isOpen, onClose, job, actionData }: DeleteJobDialogProps) {

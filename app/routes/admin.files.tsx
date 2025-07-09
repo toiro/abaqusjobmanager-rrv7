@@ -3,13 +3,9 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { SuccessMessage, ErrorMessage } from "~/components/ui/message";
-import { findAllFiles, findFileById, deleteFileRecord, type FileRecord } from "~/lib/db";
+import { findAllFiles, findFileById, deleteFileRecord } from "~/lib/core/database";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
-import { formatFileSize } from "~/lib/utils";
-import { useSSE } from "~/hooks/useSSE";
-import { emitFileDeleted } from "~/lib/sse";
-import { type SSEEvent, type FileEventData } from "~/lib/sse-schemas";
-import { useState, useCallback } from "react";
+import { formatFileSize } from "~/lib/helpers/utils";
 import type { Route } from "./+types/admin.files";
 import { 
   success,
@@ -17,14 +13,19 @@ import {
   handleApiError,
   getFormIntent,
   getFormNumber
-} from "~/lib/apiHelpers";
-import { logger } from "~/lib/logger/logger";
+} from "~/lib/helpers/api-helpers";
+import { getLogger } from "~/lib/core/logger";
 
 // Simple loader
 export function loader() {
-  const files = findAllFiles();
-  logger.info('Files admin data loaded', 'Routes', { filesCount: files.length });
-  return { files };
+  try {
+    const files = findAllFiles();
+    getLogger().info('Files admin data loaded', 'Routes', { filesCount: files.length });
+    return { files };
+  } catch (error) {
+    getLogger().error('Failed to load files', 'Routes', { error });
+    return { files: [] };
+  }
 }
 
 // Simple action handler
@@ -33,7 +34,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
     const formData = await request.formData();
     const intent = getFormIntent(formData);
     
-    logger.info('Files admin action called', 'Routes', { 
+    getLogger().info('Files admin action called', 'Routes', { 
       intent,
       method: request.method,
       url: request.url 
@@ -42,7 +43,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
     if (intent === "delete-file") {
       const fileId = getFormNumber(formData, "fileId");
       
-      logger.info('Deleting file', 'Routes', { fileId });
+      getLogger().info('Deleting file', 'Routes', { fileId });
       
       // Check if file exists
       const existingFile = findFileById(fileId);
@@ -58,13 +59,9 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
       
       // TODO: Also delete the physical file from filesystem
       
-      // Emit SSE event for real-time updates
-      emitFileDeleted({ 
-        fileId, 
-        fileName: existingFile.original_name 
-      });
+      // File deleted successfully
       
-      logger.info('File deleted successfully', 'Routes', { fileId });
+      getLogger().info('File deleted successfully', 'Routes', { fileId });
       return success(
         { fileId },
         SUCCESS_MESSAGES.FILE_DELETED
@@ -78,30 +75,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
 }
 
 export default function FilesAdmin({ loaderData, actionData }: Route.ComponentProps) {
-  const [files, setFiles] = useState<FileRecord[]>(loaderData.files);
-  const [isConnected, setIsConnected] = useState(false);
-
-  // Handle SSE events for real-time updates
-  const handleSSEEvent = useCallback((event: SSEEvent<FileEventData>) => {
-    logger.debug('SSE file event received', 'Routes', { type: event.type });
-    
-    if (event.type === 'file_created' && event.data) {
-      // File was added, refresh the list
-      const updatedFiles = findAllFiles();
-      setFiles(updatedFiles);
-    } else if (event.type === 'file_deleted' && event.data) {
-      // Remove deleted file from state
-      setFiles(prevFiles => 
-        prevFiles.filter(file => file.id !== event.data!.fileId)
-      );
-    }
-  }, []);
-
-  // Subscribe to file SSE events
-  useSSE('files', handleSSEEvent, {
-    onConnect: () => setIsConnected(true),
-    onDisconnect: () => setIsConnected(false)
-  });
+  const { files } = loaderData;
 
   // Handle action results - type as any for React Router v7 compatibility
   const actionResult = actionData as any;
@@ -119,9 +93,6 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
           <h1 className="text-3xl font-bold">File Management</h1>
           <p className="text-gray-600 mt-2">
             {totalFiles} files • {formatFileSize(totalSize)} total
-            {isConnected && (
-              <Badge variant="success" className="ml-2">Live</Badge>
-            )}
           </p>
         </div>
       </div>

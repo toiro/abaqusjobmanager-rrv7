@@ -1,5 +1,5 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
-import { findAllUsers } from "~/lib/db";
+import { findAllUsers } from "~/lib/core/database";
 import type { Route } from "./+types/admin.users";
 
 export function loader() {

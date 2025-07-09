@@ -1,12 +1,12 @@
 import { Outlet, redirect } from "react-router";
-import { requireAdminAuth } from "~/lib/auth";
+import { requireAdminAuth } from "~/lib/services/auth/auth";
 import type { Route } from "./+types/admin";
 
 export async function loader({ request }: Route.LoaderArgs) {
   // Check Bearer Auth before rendering any admin content
   const authError = requireAdminAuth(request);
   if (authError) {
-    return redirect('/admin/login');
+    throw authError;
   }
   
   return null;

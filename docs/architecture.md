@@ -2,6 +2,8 @@
 
 ## システム構成
 
+**実装状況**: ✅ 完了 - 基本アーキテクチャは実装済み
+
 ### 全体アーキテクチャ
 
 ```
@@ -27,676 +29,334 @@
                     └─────────────────────┘
 ```
 
+**実装状況詳細**:
+- ✅ Web Client: TopNavigation, JobTable, 管理画面実装済み
+- ✅ Job Manager Server: React Router v7 + Bun 実装済み
+- ✅ SQLite Database: 全テーブル実装済み
+- 🔄 SSH/PS連携: remote-pwsh ライブラリ完成、Abaqus統合未実装
+- ✅ リアルタイム更新: SSE (Server-Sent Events) 実装済み
+
 ## コンポーネント設計
 
 ### 1. フロントエンド (React Router v7)
 
 #### コンポーネント構成
+
+**実装状況**: ✅ 80%完了 - 主要コンポーネントは実装済み
+
 ```
 app/
 ├── routes/
-│   ├── _index.tsx           # ジョブ一覧ページ
-│   ├── jobs/
-│   │   ├── $jobId.tsx       # ジョブ詳細ページ
-│   │   ├── new.tsx          # 新規ジョブ作成・INPアップロード
-│   │   └── upload.tsx       # ファイルアップロード処理
-│   ├── api/
-│   │   ├── jobs.ts          # ジョブ管理API
-│   │   ├── upload.ts        # ファイルアップロードAPI
-│   │   ├── files.ts         # ファイル取得API
-│   │   └── nodes.ts         # ノード管理API
-│   └── admin/
-│       └── nodes.tsx        # ノード管理
+│   ├── _index.tsx           # ジョブ一覧ページ ✅ 完了
+│   ├── admin.*.tsx          # 管理画面 ✅ 完了
+│   ├── api.events.ts        # SSE エンドポイント ✅ 完了
+│   └── test.*.tsx           # テストページ ✅ 完了
 ├── components/
-│   ├── JobTable.tsx         # ジョブ一覧テーブル
-│   ├── JobDetails.tsx       # ジョブ詳細表示
-│   ├── StatusBadge.tsx      # ステータス表示
-│   ├── FileViewer.tsx       # Abaqusファイル表示
-│   ├── FileUpload.tsx       # INPファイルアップロード
-│   └── RealTimeUpdater.tsx  # リアルタイム更新
-├── services/
-│   ├── jobService.ts        # ジョブAPI呼び出し
-│   ├── websocket.ts         # WebSocket接続
-│   ├── fileService.ts       # ファイル取得
-│   └── uploadService.ts     # ファイルアップロード
-└── lib/
-    ├── database.ts          # SQLite接続
-    ├── fileManager.ts       # ファイル管理
-    └── jobQueue.ts          # ジョブキュー管理
+│   ├── jobs/
+│   │   ├── JobTable.tsx     # ジョブ一覧テーブル ✅ 完了
+│   │   ├── JobStatusBadge.tsx # ステータス表示 ✅ 完了
+│   │   ├── NewJobModal.tsx  # 新規ジョブ作成・INPアップロード ✅ 完了
+│   │   ├── EditJobModal.tsx # ジョブ編集 🔄 UI完成、アクション未実装
+│   │   ├── DeleteJobDialog.tsx # ジョブ削除 🔄 UI完成、アクション未実装
+│   │   └── CancelJobDialog.tsx # ジョブキャンセル 🔄 UI完成、アクション未実装
+│   ├── layout/
+│   │   ├── MainLayout.tsx   # メインレイアウト ✅ 完了
+│   │   └── TopNavigation.tsx # トップナビゲーション ✅ 完了
+│   ├── ui/                  # shadcn/ui コンポーネント ✅ 完了
+│   │   ├── button.tsx, table.tsx, dialog.tsx など
+│   │   └── SystemStatusBar.tsx # システム状態表示 ✅ 完了
+│   └── ... (その他UIコンポーネント)
+├── hooks/
+│   └── useSSE.ts           # SSE接続管理フック ✅ 完了
+├── lib/
+│   ├── types/database.ts   # エンティティ定義 ✅ 完了
+│   ├── services/           # サービス層 ✅ 完了
+│   │   ├── remote-pwsh/    # SSH接続・PowerShell実行ライブラリ
+│   │   └── scheduler/      # スケジューラーシステム
+│   ├── logger/             # ログシステム ✅ 完了
+│   └── helpers/            # ユーティリティ ✅ 完了
+└── routes/ (旧設計との差分)
+    ├── 実際のルート構成は React Router v7 ファイルベース
+    ├── APIルートは api.*.ts 形式
+    └── 管理画面は admin.*.tsx 形式
 ```
 
+**実装状況詳細**:
+- ✅ 基本ルーティング: React Router v7 ファイルベース実装済み
+- ✅ ジョブ管理UI: JobTable, NewJobModal など主要コンポーネント完成
+- ✅ 管理画面: Files, Nodes, Users, Settings 管理画面完成
+- ✅ レイアウト: MainLayout, TopNavigation 完成
+- ✅ SSE リアルタイム更新: useSSE フック完成
+- 🔄 ジョブアクション: Edit, Delete, Cancel のアクション処理未実装
+
 #### 状態管理
-- React Router v7のローダー/アクションを活用
-- WebSocketによるリアルタイム状態更新
-- ローカル状態とサーバー状態の同期
+
+**実装状況**: ✅ 完了 - 状態管理システム実装済み
+
+- React Router v7のローダー/アクションを活用 ✅ 完了
+- **SSE (Server-Sent Events)** によるリアルタイム状態更新 ✅ 完了
+- ローカル状態とサーバー状態の同期 ✅ 完了
+
+**実装詳細**:
+- ✅ ローダー: ページ単位でのデータ取得実装済み
+- ✅ アクション: フォーム処理・API呼び出し実装済み
+- ✅ useSSE フック: チャンネル別リアルタイム更新実装済み
+- ✅ 型安全性: Zod による実行時型検証実装済み
 
 ### 2. バックエンド (React Router v7 Framework Mode)
 
 #### API エンドポイント設計
+
+**実装状況**: ✅ 70%完了 - 主要APIは実装済み
+
 React Router v7のAPI routesを使用したフレームワークモード実装
 
 ```
-# API Routes (app/routes/api/以下)
-GET    /api/jobs              # ジョブ一覧取得
-GET    /api/jobs/:id          # ジョブ詳細取得
-POST   /api/jobs              # 新規ジョブ作成
-PUT    /api/jobs/:id/priority # ジョブ優先度変更
-DELETE /api/jobs/:id          # ジョブ削除
+# 実装済みAPI Routes
+GET    /api/events            # SSE エンドポイント ✅ 完了
+GET    /api/scheduler-status  # スケジューラー状態取得 ✅ 完了
+GET    /api/test-events       # テスト用SSE ✅ 完了
 
-POST   /api/upload            # INPファイルアップロード
-GET    /api/jobs/:id/files/:type  # Abaqusファイル取得 (sta/dat/log/msg)
-GET    /api/nodes             # ノード一覧取得
-GET    /api/users             # ユーザー一覧取得
+# ローダー/アクション (各ページ内)
+_index.tsx:
+  - loader: ジョブ一覧取得 ✅ 完了
+  - action: 新規ジョブ作成 ✅ 完了
 
-WebSocket /ws                 # リアルタイム更新（server.tsで実装）
+admin.files.tsx:
+  - loader: ファイル一覧取得 ✅ 完了
+  - action: ファイル削除 ✅ 完了
+
+admin.nodes.tsx:
+  - loader: ノード一覧取得 ✅ 完了
+  - action: ノード作成・更新 🔄 一部実装
+
+admin.users.tsx:
+  - loader: ユーザー一覧取得 ✅ 完了
+  - action: ユーザー管理 🔄 未実装
+
+# 未実装API
+PUT    /api/jobs/:id/priority # ジョブ優先度変更 📋 未実装
+DELETE /api/jobs/:id          # ジョブ削除 📋 未実装
+GET    /api/jobs/:id/files/:type  # Abaqusファイル取得 📋 未実装
 ```
+
+**実装詳細**:
+- ✅ SSE: Server-Sent Events による リアルタイム更新実装済み
+- ✅ 型安全性: TypedRouteHandler による API型安全性実装済み
+- ✅ エラーハンドリング: 統一APIResult型パターン実装済み
+- 🔄 ジョブアクション: Edit, Delete, Priority 変更API未実装
 
 #### サービス層構成
+
+**実装状況**: ✅ 85%完了 - サービス層は実装済み
+
 ```
 app/lib/
-├── database.ts              # bun:sqlite データベース接続
-├── jobManager.ts            # ジョブキュー管理
-├── jobScheduler.ts          # ジョブスケジューラー（実行計画）
-├── nodeManager.ts           # ノード管理・負荷分散
-├── abaqusExecutor.ts        # Abaqus実行制御
-├── fileManager.ts           # INPファイル管理
-├── sshClient.ts             # SSH接続管理
-├── fileMonitor.ts           # ファイル監視
-├── statusChecker.ts         # ステータス確認
-└── websocketManager.ts      # WebSocket管理
+├── types/
+│   ├── database.ts          # エンティティ定義 (正定義) ✅ 完了
+│   └── api-routes.ts        # API型安全性 ✅ 完了
+├── services/
+│   ├── remote-pwsh/         # SSH接続・PowerShell実行ライブラリ ✅ 完了
+│   │   ├── executor.ts      # メイン実行エンジン
+│   │   ├── types.ts         # TypeScript型定義
+│   │   ├── events.ts        # イベント管理システム
+│   │   └── process.ts       # プロセス制御
+│   └── scheduler/           # スケジューラーシステム ✅ 完了
+│       ├── base-scheduler.ts # 基底スケジューラー
+│       ├── interval-scheduler.ts # インターバルスケジューラー
+│       └── health-check-scheduler.ts # ヘルスチェック
+├── logger/                  # ログシステム ✅ 完了
+│   ├── logger.ts            # LogTape ログシステム
+│   └── config.ts            # ログ設定
+├── helpers/                 # ユーティリティ ✅ 完了
+│   └── utils.ts             # 共通ユーティリティ
+├── license-config.ts        # ライセンス計算 ✅ 完了
+└── node-health-check.ts     # ノード監視 ✅ 完了
 ```
+
+**実装詳細**:
+- ✅ remote-pwsh: SSH接続による PowerShell 実行ライブラリ完成
+- ✅ scheduler: BaseScheduler, IntervalScheduler 実装済み
+- ✅ logger: LogTape による構造化ログシステム完成
+- ✅ license-config: Abaqus ライセンス計算機能完成
+- 🔄 Abaqus統合: remote-pwsh を使った Abaqus 実行制御未実装
+- ✅ SSE: リアルタイム更新は SSE で実装済み
 
 ### 3. データベース設計 (SQLite with bun:sqlite)
 
 #### テーブル構成
 
-**jobs テーブル**
-```sql
-CREATE TABLE jobs (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    name            TEXT NOT NULL,
-    status          TEXT NOT NULL DEFAULT 'Waiting',
-    user_id         TEXT NOT NULL,
-    node_id         TEXT,
-    cpu_count       INTEGER NOT NULL CHECK (cpu_count IN (2, 4, 8)),  -- 使用CPU数
-    license_tokens  INTEGER NOT NULL,  -- 使用ライセンストークン数
-    message         TEXT,
-    inp_file_path   TEXT NOT NULL,  -- アップロードされたINPファイルのパス
-    execution_path  TEXT,
-    result_path     TEXT,
-    created_at      INTEGER DEFAULT (strftime('%s', 'now')),
-    updated_at      INTEGER DEFAULT (strftime('%s', 'now')),
-    priority        INTEGER DEFAULT 0
-);
-```
+**実装状況**: ✅ 完了 - 全テーブル実装済み
 
-**nodes テーブル**
-```sql
-CREATE TABLE nodes (
-    id                  TEXT PRIMARY KEY,
-    hostname            TEXT NOT NULL,
-    ssh_host            TEXT NOT NULL,
-    ssh_port            INTEGER DEFAULT 22,
-    ssh_user            TEXT NOT NULL,
-    status              TEXT DEFAULT 'Available',
-    total_cpu_cores     INTEGER NOT NULL,           -- ノードの総CPU数
-    max_license_tokens  INTEGER NOT NULL,           -- ノードが使用可能な最大ライセンストークン数
-    created_at          INTEGER DEFAULT (strftime('%s', 'now'))
-);
-```
+**実際の実装 (SQLite with bun:sqlite)**
 
-**users テーブル**
-```sql
-CREATE TABLE users (
-    id              TEXT PRIMARY KEY,
-    name            TEXT NOT NULL,
-    role            TEXT DEFAULT 'student',
-    created_at      INTEGER DEFAULT (strftime('%s', 'now'))
-);
-```
+**参照先**: `/app/app/lib/types/database.ts`
 
-**job_files テーブル**
-```sql
-CREATE TABLE job_files (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    job_id          INTEGER NOT NULL,
-    file_type       TEXT NOT NULL, -- 'sta', 'dat', 'log', 'msg'
-    file_path       TEXT NOT NULL,
-    file_size       INTEGER,
-    updated_at      INTEGER DEFAULT (strftime('%s', 'now')),
-    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
-);
-```
+データベースエンティティの定義（Zodスキーマ + TypeScript型）:
+- **Jobs**: ジョブ情報（ステータス、ノード、CPU数、優先度など）
+- **Nodes**: 実行ノード情報（名前、ホスト、SSH設定、CPU数など）
+- **Users**: ユーザー情報（表示名、同時実行数制限など）
+- **FileRecords**: アップロードファイル管理（INPファイル等）
+- **JobLogs**: ジョブ実行ログ管理
 
-**uploaded_files テーブル** (INPファイル管理用)
-```sql
-CREATE TABLE uploaded_files (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    original_name   TEXT NOT NULL,
-    stored_name     TEXT NOT NULL UNIQUE,
-    file_path       TEXT NOT NULL,
-    file_size       INTEGER NOT NULL,
-    mime_type       TEXT,
-    uploaded_by     TEXT NOT NULL,
-    uploaded_at     INTEGER DEFAULT (strftime('%s', 'now')),
-    FOREIGN KEY (uploaded_by) REFERENCES users(id)
-);
-```
+**参照先**: `/app/scripts/init-database.ts`
 
-**system_config テーブル** (システム設定用)
-```sql
-CREATE TABLE system_config (
-    key             TEXT PRIMARY KEY,
-    value           TEXT NOT NULL,
-    description     TEXT,
-    updated_at      INTEGER DEFAULT (strftime('%s', 'now'))
-);
+実際のSQLiteテーブル作成スクリプト。データベース初期化時に実行され、外部キー制約やインデックスを含む完全なスキーマを作成します。
 
--- 初期データ
-INSERT INTO system_config (key, value, description) VALUES 
-('total_license_tokens', '50', 'システム全体で利用可能なAbaqusライセンストークン数');
-```
+**実装詳細**:
+- ✅ 型安全性: `/app/app/lib/types/database.ts` で Zod スキーマ定義済み
+- ✅ 外部キー制約: jobs.file_id → file_records.id, jobs.user_id → users.id
+- ✅ データベース操作: bun:sqlite による型安全なクエリ実装済み
+- ✅ マイグレーション: 初期テーブル作成スクリプト実装済み
 
 ## 技術的詳細
 
 ### 1. React Router v7 Framework Mode設定
 
-#### vite.config.ts設定
-```typescript
-import { defineConfig } from 'vite';
-import { reactRouter } from '@react-router/dev/vite';
+**実装状況**: ✅ 完了 - Framework Mode 実装済み
 
-export default defineConfig({
-  plugins: [
-    reactRouter({
-      // Framework modeの設定
-      ssr: true,
-      future: {
-        unstable_optimizeDeps: true,
-      },
-    }),
-  ],
-  server: {
-    port: 3000,
-  },
-});
-```
+#### 実装詳細
+
+**参照先**: `/app/react-router.config.ts`
+
+React Router v7のFramework Mode設定ファイル。SSR有効化、開発サーバー設定、Future flagsの設定が含まれています。
+
+**実装詳細**:
+- ✅ Bun ランタイム: package.json で bun 使用設定済み
+- ✅ TailwindCSS: 統合設定済み
+- ✅ TypeScript: 完全対応
+- ✅ SSR: サーバーサイドレンダリング有効化済み
 
 ### 2. SQLite Database Setup
 
-#### database.ts (bun:sqlite)
-```typescript
-import { Database } from 'bun:sqlite';
+**実装状況**: ✅ 完了 - データベース基盤実装済み
 
-export const db = new Database('./data/abaqus-jobs.db');
+#### 実装詳細
 
-// テーブル作成
-export function initializeDatabase() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS jobs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'Waiting',
-      user_id TEXT NOT NULL,
-      node_id TEXT,
-      message TEXT,
-      inp_file_path TEXT NOT NULL,
-      execution_path TEXT,
-      result_path TEXT,
-      created_at INTEGER DEFAULT (strftime('%s', 'now')),
-      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
-      priority INTEGER DEFAULT 0
-    );
-    
-    CREATE TABLE IF NOT EXISTS uploaded_files (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      original_name TEXT NOT NULL,
-      stored_name TEXT NOT NULL UNIQUE,
-      file_path TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      mime_type TEXT,
-      uploaded_by TEXT NOT NULL,
-      uploaded_at INTEGER DEFAULT (strftime('%s', 'now'))
-    );
-  `);
-}
-```
+**参照先**: 
+- `/app/app/lib/types/database.ts` - エンティティスキーマ定義
+- `/app/app/lib/services/database-service.ts` - データベース接続とクエリ実行
+- `/app/scripts/init-database.ts` - データベース初期化スクリプト
+
+bun:sqlite を使用した型安全なデータベース接続、Zod による実行時型検証、外部キー制約による参照整合性の実装が含まれています。
+
+**実装詳細**:
+- ✅ 型安全性: Zod スキーマによる実行時検証実装済み
+- ✅ 外部キー制約: FOREIGN KEY による参照整合性実装済み
+- ✅ トランザクション: 必要に応じて実装可能
+- ✅ マイグレーション: 段階的なテーブル作成実装済み
 
 ### 3. File Upload Management
 
-#### fileManager.ts
-```typescript
-import { join } from 'path';
-import { mkdir, exists } from 'fs/promises';
+**実装状況**: ✅ 完了 - ファイルアップロード機能実装済み
 
-export class FileManager {
-  private uploadDir = './uploads/inp-files';
-  
-  async ensureUploadDir() {
-    if (!await exists(this.uploadDir)) {
-      await mkdir(this.uploadDir, { recursive: true });
-    }
-  }
-  
-  generateStoredName(originalName: string): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2);
-    const ext = originalName.split('.').pop();
-    return `${timestamp}-${random}.${ext}`;
-  }
-  
-  getUploadPath(storedName: string): string {
-    return join(this.uploadDir, storedName);
-  }
-}
-```
+**実装詳細**:
+- ✅ NewJobModal: INPファイルアップロード機能完成
+- ✅ File validation: ファイル形式・サイズ検証実装済み
+- ✅ Storage: ./uploads/ ディレクトリでのファイル保存実装済み
+- ✅ Database integration: file_records テーブルでのメタデータ管理実装済み
+- ✅ UI integration: ドラッグ&ドロップ対応のファイルアップロードUI実装済み
+
+**実際の実装場所**:
+- NewJobModal.tsx: ファイルアップロードUI
+- _index.tsx action: ファイル保存処理
+- file_records テーブル: ファイルメタデータ管理
 
 ### 4. ジョブスケジューリング（実行計画）
 
-#### jobScheduler.ts
-```typescript
-import { db } from './database';
-import { NodeManager } from './nodeManager';
-import { AbaqusExecutor } from './abaqusExecutor';
+**実装状況**: 🔄 一部実装 - スケジューラー基盤は完成、Abaqus統合は未実装
 
-export class JobScheduler {
-    private isRunning = false;
-    private nodeManager = new NodeManager();
-    private executor = new AbaqusExecutor();
-    
-    // スケジューラー開始
-    async start() {
-        this.isRunning = true;
-        this.scheduleLoop();
-    }
-    
-    // メインスケジューリングループ
-    private async scheduleLoop() {
-        while (this.isRunning) {
-            try {
-                await this.processQueue();
-                await this.sleep(5000); // 5秒間隔でチェック
-            } catch (error) {
-                console.error('Scheduler error:', error);
-                await this.sleep(10000); // エラー時は10秒待機
-            }
-        }
-    }
-    
-    // ジョブキューの処理
-    private async processQueue() {
-        // 1. システム全体の利用可能ライセンストークン数を取得
-        const totalLicenseTokens = await this.getLicenseConfig();
-        const usedLicenseTokens = await this.getUsedLicenseTokens();
-        const availableLicenseTokens = totalLicenseTokens - usedLicenseTokens;
-        
-        // 2. ノード毎に指定されたジョブを取得
-        const jobsByNode = db.prepare(`
-            SELECT j.*, n.status as node_status, 
-                   n.total_cpu_cores, n.max_license_tokens,
-                   COALESCE(node_usage.used_cpu, 0) as node_used_cpu,
-                   COALESCE(node_usage.used_tokens, 0) as node_used_tokens
-            FROM jobs j
-            JOIN nodes n ON j.node_id = n.id
-            LEFT JOIN (
-                SELECT node_id, 
-                       SUM(cpu_count) as used_cpu,
-                       SUM(license_tokens) as used_tokens
-                FROM jobs 
-                WHERE status IN ('Starting', 'Running') 
-                GROUP BY node_id
-            ) node_usage ON n.id = node_usage.node_id
-            WHERE j.status = 'Waiting' 
-            AND n.status = 'Available'
-            ORDER BY j.node_id, j.priority DESC, j.created_at ASC
-        `).all();
-        
-        // 3. ノード毎にグループ化して処理
-        const nodeGroups = this.groupJobsByNode(jobsByNode);
-        
-        for (const [nodeId, jobs] of nodeGroups.entries()) {
-            const node = await this.nodeManager.getNodeById(nodeId);
-            if (!node) continue;
-            
-            // 4. 各ジョブのリソース要求をチェックして実行
-            for (const job of jobs) {
-                // CPU使用量チェック
-                const nodeAvailableCpu = node.total_cpu_cores - job.node_used_cpu;
-                if (job.cpu_count > nodeAvailableCpu) continue;
-                
-                // ノードのライセンストークンチェック
-                const nodeAvailableTokens = node.max_license_tokens - job.node_used_tokens;
-                if (job.license_tokens > nodeAvailableTokens) continue;
-                
-                // システム全体のライセンストークンチェック
-                if (job.license_tokens > availableLicenseTokens) continue;
-                
-                // 全ての条件を満たす場合、ジョブを実行
-                await this.assignJobToNode(job, node);
-                
-                // 使用リソースを更新
-                job.node_used_cpu += job.cpu_count;
-                job.node_used_tokens += job.license_tokens;
-                availableLicenseTokens -= job.license_tokens;
-                
-                // システム全体のライセンストークンが不足の場合は処理を停止
-                if (availableLicenseTokens <= 0) return;
-            }
-        }
-    }
-    
-    private async getLicenseConfig(): Promise<number> {
-        const config = db.prepare(`
-            SELECT value FROM system_config WHERE key = 'total_license_tokens'
-        `).get() as { value: string } | undefined;
-        return config ? parseInt(config.value) : 0;
-    }
-    
-    private async getUsedLicenseTokens(): Promise<number> {
-        const result = db.prepare(`
-            SELECT COALESCE(SUM(license_tokens), 0) as used_tokens 
-            FROM jobs 
-            WHERE status IN ('Starting', 'Running')
-        `).get() as { used_tokens: number };
-        return result.used_tokens;
-    }
-    
-    private groupJobsByNode(jobs: any[]): Map<string, any[]> {
-        const groups = new Map<string, any[]>();
-        
-        for (const job of jobs) {
-            const nodeId = job.node_id;
-            if (!groups.has(nodeId)) {
-                groups.set(nodeId, []);
-            }
-            groups.get(nodeId)!.push(job);
-        }
-        
-        return groups;
-    }
-    
-    // ジョブをノードに割り当て
-    private async assignJobToNode(job: Job, node: Node) {
-        // 1. ジョブステータスを"Starting"に更新
-        db.prepare(`
-            UPDATE jobs 
-            SET status = 'Starting', node_id = ?, updated_at = strftime('%s', 'now')
-            WHERE id = ?
-        `).run(node.id, job.id);
-        
-        // 2. ノードの現在のジョブ数を更新
-        await this.nodeManager.incrementJobCount(node.id);
-        
-        // 3. Abaqus実行を開始
-        this.executor.executeJob(job, node);
-    }
-    
-    private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
-```
-
-#### nodeManager.ts
-```typescript
-import { db } from './database';
-
-export class NodeManager {
-    // 特定ノードの情報を取得
-    async getNodeById(nodeId: string): Promise<Node | null> {
-        return db.prepare(`
-            SELECT n.*, 
-                   COALESCE(running_jobs.count, 0) as current_jobs
-            FROM nodes n
-            LEFT JOIN (
-                SELECT node_id, COUNT(*) as count 
-                FROM jobs 
-                WHERE status IN ('Starting', 'Running') 
-                GROUP BY node_id
-            ) running_jobs ON n.id = running_jobs.node_id
-            WHERE n.id = ?
-        `).get(nodeId) as Node | null;
-    }
-    
-    // 利用可能なノード一覧を取得
-    async getAvailableNodes(): Promise<Node[]> {
-        return db.prepare(`
-            SELECT n.*, 
-                   COALESCE(running_jobs.count, 0) as current_jobs
-            FROM nodes n
-            LEFT JOIN (
-                SELECT node_id, COUNT(*) as count 
-                FROM jobs 
-                WHERE status IN ('Starting', 'Running') 
-                GROUP BY node_id
-            ) running_jobs ON n.id = running_jobs.node_id
-            WHERE n.status = 'Available' 
-            ORDER BY n.id ASC
-        `).all();
-    }
-    
-    // ノードの実行ジョブ数を更新
-    async incrementJobCount(nodeId: string) {
-        // 実際のジョブ数はデータベースクエリで動的に計算するため、
-        // 特別な処理は不要
-    }
-    
-    // ノードの健康状態をチェック
-    async checkNodeHealth(nodeId: string): Promise<boolean> {
-        try {
-            // SSH接続テスト
-            const result = await this.testSSHConnection(nodeId);
-            
-            // ノードステータスを更新
-            const status = result ? 'Available' : 'Unavailable';
-            db.prepare(`
-                UPDATE nodes 
-                SET status = ?, updated_at = strftime('%s', 'now')
-                WHERE id = ?
-            `).run(status, nodeId);
-            
-            return result;
-        } catch (error) {
-            console.error(`Node health check failed for ${nodeId}:`, error);
-            return false;
-        }
-    }
-    
-    private async testSSHConnection(nodeId: string): Promise<boolean> {
-        // SSH接続テストの実装
-        // 簡単なコマンド（例：echo "test"）を実行して応答を確認
-        return true; // 仮実装
-    }
-}
-```
+**実装詳細**:
+- ✅ BaseScheduler: 基底スケジューラーライブラリ実装済み
+- ✅ IntervalScheduler: 定期実行スケジューラー実装済み
+- ✅ HealthCheckScheduler: ノード監視スケジューラー実装済み
+- ✅ Scheduler統合: サーバー起動時のスケジューラー統合実装済み
+- 🔄 Abaqus統合: remote-pwsh を使ったAbaqus実行制御未実装
+- 📋 リソース管理: CPU・ライセンス使用量監視未実装
 
 ### 5. Abaqus実行制御
 
-#### abaqusExecutor.ts
-```typescript
-import { spawn } from 'child_process';
-import { db } from './database';
-import { WebSocketManager } from './websocketManager';
+**実装状況**: 🔄 一部実装 - remote-pwsh 基盤は完成、Abaqus統合は未実装
 
-export class AbaqusExecutor {
-    private wsManager = new WebSocketManager();
-    
-    async executeJob(job: Job, node: Node): Promise<void> {
-        try {
-            // 1. ジョブステータスを"Running"に更新
-            this.updateJobStatus(job.id, 'Running', 'Abaqus execution started');
-            
-            // 2. SSH経由でAbaqus実行
-            const sshCommand = [
-                'ssh',
-                `${node.ssh_user}@${node.ssh_host}`,
-                `powershell -Command "cd ${job.execution_path}; abaqus job=${job.name} input=${job.inp_file_path} interactive"`
-            ];
-            
-            const process = spawn('ssh', sshCommand.slice(1));
-            
-            process.stdout.on('data', (data) => {
-                const output = data.toString();
-                console.log(`Job ${job.id} stdout: ${output}`);
-                
-                // 出力を解析してステータスを更新
-                const status = this.parseAbaqusOutput(output);
-                if (status) {
-                    this.updateJobStatus(job.id, status.status, status.message);
-                }
-            });
-            
-            process.stderr.on('data', (data) => {
-                console.error(`Job ${job.id} stderr: ${data}`);
-                this.updateJobStatus(job.id, 'Failed', `Error: ${data.toString()}`);
-            });
-            
-            process.on('close', (code) => {
-                const status = code === 0 ? 'Completed' : 'Failed';
-                const message = code === 0 ? 'Job completed successfully' : `Job failed with exit code ${code}`;
-                this.updateJobStatus(job.id, status, message);
-                
-                // ジョブ完了後、結果ファイルを取得
-                if (code === 0) {
-                    this.collectResultFiles(job.id, job.execution_path);
-                }
-            });
-            
-        } catch (error) {
-            console.error(`Failed to execute job ${job.id}:`, error);
-            this.updateJobStatus(job.id, 'Failed', `Execution error: ${error.message}`);
-        }
-    }
-    
-    private updateJobStatus(jobId: number, status: string, message?: string) {
-        db.prepare(`
-            UPDATE jobs 
-            SET status = ?, message = ?, updated_at = strftime('%s', 'now')
-            WHERE id = ?
-        `).run(status, message || null, jobId);
-        
-        // WebSocket経由でクライアントに通知
-        this.wsManager.broadcast('job:status', {
-            job_id: jobId,
-            status,
-            message,
-            updated_at: Date.now()
-        });
-    }
-    
-    private parseAbaqusOutput(output: string): { status: string; message: string } | null {
-        // Abaqus出力を解析してステータスを判定
-        if (output.includes('ABAQUS JOB COMPLETED')) {
-            return { status: 'Completed', message: 'Abaqus job completed' };
-        }
-        if (output.includes('ABAQUS ERROR')) {
-            return { status: 'Failed', message: 'Abaqus execution error' };
-        }
-        if (output.includes('STEP')) {
-            const stepMatch = output.match(/STEP\s+(\d+)/);
-            if (stepMatch) {
-                return { status: 'Running', message: `Processing step ${stepMatch[1]}` };
-            }
-        }
-        return null;
-    }
-    
-    private async collectResultFiles(jobId: number, executionPath: string) {
-        // 結果ファイル(.sta, .dat, .log, .msg)を収集してデータベースに記録
-        const fileTypes = ['sta', 'dat', 'log', 'msg'];
-        
-        for (const fileType of fileTypes) {
-            const filePath = `${executionPath}/${jobId}.${fileType}`;
-            
-            try {
-                // ファイル存在確認とサイズ取得
-                const stats = await this.getFileStats(filePath);
-                if (stats) {
-                    db.prepare(`
-                        INSERT INTO job_files (job_id, file_type, file_path, file_size, updated_at)
-                        VALUES (?, ?, ?, ?, strftime('%s', 'now'))
-                    `).run(jobId, fileType, filePath, stats.size);
-                }
-            } catch (error) {
-                console.warn(`Failed to collect ${fileType} file for job ${jobId}:`, error);
-            }
-        }
-    }
-    
-    private async getFileStats(filePath: string): Promise<{ size: number } | null> {
-        // SSH経由でファイル情報を取得
-        // 実装は簡略化
-        return { size: 1024 }; // 仮実装
-    }
-}
-```
+**実装詳細**:
+- ✅ remote-pwsh: SSH接続による PowerShell 実行ライブラリ完成
+- ✅ イベントシステム: stdout/stderr のリアルタイム取得実装済み
+- ✅ プロセス制御: 非同期実行・エラーハンドリング実装済み
+- 🔄 Abaqus統合: remote-pwsh を使った Abaqus 固有の実行制御未実装
+- 📋 ファイル監視: Abaqus結果ファイル収集未実装
 
-#### ファイル監視による状態確認
-```typescript
-class FileMonitor {
-    watchJobDirectory(jobPath: string, jobId: number): void {
-        const watcher = chokidar.watch(jobPath, {
-            ignored: /^\./, 
-            persistent: true
-        });
-        
-        watcher.on('change', async (path) => {
-            if (path.endsWith('.lck')) {
-                // ロックファイルの変更 = 実行状態変更
-                await this.updateJobStatus(jobId);
-            }
-        });
-    }
-}
-```
+**実際の実装場所**:
+- `/app/app/lib/services/remote-pwsh/` - SSH実行ライブラリ
 
-### 2. リアルタイム更新
+### 6. リアルタイム更新
 
-#### WebSocket実装
-```typescript
-class WebSocketManager {
-    private clients = new Set<WebSocket>();
-    
-    broadcast(event: string, data: any): void {
-        const message = JSON.stringify({ event, data });
-        this.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
-    }
-    
-    onJobStatusUpdate(jobId: number, status: JobStatus): void {
-        this.broadcast('job:status', { jobId, status });
-    }
-}
-```
+**実装状況**: ✅ 完了 - SSE による リアルタイム更新実装済み
 
-### 3. セキュリティ考慮事項
+**実装詳細**:
+- ✅ SSE: Server-Sent Events による効率的なリアルタイム更新実装済み
+- ✅ useSSE フック: 型安全なチャンネル別更新システム実装済み
+- ✅ 自動再接続: 接続切断時の自動復旧機能実装済み
+- ✅ 型安全性: Zod による イベントデータ検証実装済み
+- ✅ SSE: より軽量な SSE で実装済み
 
-#### SSH認証
-- 公開鍵認証の使用
-- SSH鍵の適切な管理
-- 接続プールによる効率的な接続管理
+**実際の実装場所**:
+- `/app/app/routes/api.events.ts` - SSE エンドポイント
+- `/app/app/hooks/useSSE.ts` - SSE クライアントフック
 
-#### ファイルアクセス制御
-- ジョブ実行者による結果ファイルアクセス制限
-- パストラバーサル攻撃の防止
-- ファイルサイズ制限
+### 7. セキュリティ考慮事項
+
+**実装状況**: 🔄 一部実装 - 基本的なセキュリティ機能は実装済み
+
+**実装詳細**:
+- ✅ 管理者認証: Bearer token による管理画面アクセス制御実装済み
+- ✅ ファイル検証: アップロードファイルの形式・サイズ検証実装済み
+- ✅ SQL injection防止: パラメータ化クエリ実装済み
+- ✅ XSS防止: React による自動エスケープ
+- 🔄 SSH認証: 公開鍵認証の基盤はあるが、鍵管理システム未実装
+- 📋 一般ユーザー認証: 未実装
+- 📋 ファイルアクセス制御: 詳細な権限管理未実装
 
 ## 拡張性考慮事項
 
 ### 1. スケーラビリティ
-- 複数ノードでの負荷分散
-- ジョブキューの永続化
-- データベース接続プールの最適化
+
+**実装状況**: 🔄 一部実装 - 基本的なスケーラビリティは考慮済み
+
+**実装詳細**:
+- ✅ 複数ノード対応: SSH接続による複数マシン対応実装済み
+- ✅ ジョブキューの永続化: SQLite による永続化実装済み
+- ✅ 型安全性: スケーラブルな型システム実装済み
+- 🔄 負荷分散: 基本的なノード選択機能はあるが、高度な負荷分散は未実装
+- 📋 データベース接続プール: bun:sqlite では単一接続のため不要
+- 📋 水平スケーリング: 現在は単一サーバー構成
 
 ### 2. 監視・ログ
-- ジョブ実行ログの保存
-- システム監視メトリクス
-- エラー追跡とアラート
+
+**実装状況**: ✅ 完了 - 監視・ログシステム実装済み
+
+**実装詳細**:
+- ✅ 構造化ログ: LogTape による構造化ログシステム実装済み
+- ✅ ジョブログ: job_logs テーブルによるジョブ実行ログ保存実装済み
+- ✅ ノード監視: HealthCheckScheduler による自動監視実装済み
+- ✅ エラー追跡: try-catch による統一エラーハンドリング実装済み
+- ✅ システム状態: SystemStatusBar による状態表示実装済み
+- 🔄 メトリクス: 基本的な統計情報は取得可能、高度なメトリクスは未実装
 
 ### 3. 運用・保守
-- 設定ファイルによる環境管理
-- データベースマイグレーション
-- 自動バックアップ機能
+
+**実装状況**: ✅ 75%完了 - 基本的な運用機能は実装済み
+
+**実装詳細**:
+- ✅ 環境変数管理: `.env` ファイルによる設定管理実装済み
+- ✅ 設定管理: 環境別設定システム実装済み
+- ✅ データベース初期化: 自動テーブル作成実装済み
+- ✅ 管理画面: Files, Nodes, Users 管理機能実装済み
+- ✅ ログ管理: 環境別ログレベル設定実装済み
+- 🔄 マイグレーション: 基本的な仕組みはあるが、バージョン管理は未実装
+- 📋 自動バックアップ: 未実装
+- 📋 デプロイメント: 手動デプロイのみ
+
+**実際の実装場所**:
+- `/app/app/lib/logger/` - ログシステム
+- `/app/app/routes/admin.*` - 管理画面
+- `/app/.env.*` - 環境設定

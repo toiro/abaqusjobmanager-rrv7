@@ -1,5 +1,5 @@
 import { Badge } from "~/components/ui/badge";
-import type { Job } from "~/lib/db";
+import type { Job } from "~/lib/core/database";
 
 interface JobStatusBadgeProps {
   status: Job['status'];

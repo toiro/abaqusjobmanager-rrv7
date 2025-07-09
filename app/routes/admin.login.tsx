@@ -2,7 +2,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ErrorMessage } from "~/components/ui/message";
-import { validateAdminToken } from "~/lib/auth";
+import { validateAdminToken } from "~/lib/services/auth/auth";
 import type { Route } from "./+types/admin.login";
 import { useState } from "react";
 

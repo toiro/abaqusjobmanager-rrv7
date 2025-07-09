@@ -34,23 +34,9 @@ Abaqusのトークンベースライセンスシステムに対応したリソ�
 
 ### 1. CPU数からライセンストークン数の計算
 
-```typescript
-/**
- * CPU数からAbaqusライセンストークン数を計算する関数
- * Abaqusの実際のライセンス消費パターンに基づく
- */
-function calculateLicenseTokens(cpuCount: number): number {
-    // 実際のAbaqusライセンス消費関数に置き換える
-    // 例: 非線形の関数（要確認）
-    if (cpuCount <= 1) return 1;
-    if (cpuCount <= 2) return 2;
-    if (cpuCount <= 4) return 5;  // 例: 4CPUで5トークン
-    if (cpuCount <= 8) return 12; // 例: 8CPUで12トークン
-    
-    // より多いCPU数の場合の計算式
-    return Math.ceil(cpuCount * 1.5 + 2);
-}
-```
+**参照先**: `/app/app/lib/license-config.ts`
+
+CPU数からAbaqusライセンストークン数を計算する関数。実際のライセンス消費パターンに基づく非線形の計算式が実装されています。
 
 ### 2. ユーザー選択オプション
 

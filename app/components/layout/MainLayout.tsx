@@ -1,7 +1,12 @@
+/**
+ * Hydration-Safe Main Layout Component
+ * Prevents hydration mismatches by handling client-side localStorage safely
+ */
+
 import { ReactNode, useState, useEffect } from "react";
 import { TopNavigation } from "./TopNavigation";
 import { SystemStatusBar } from "~/components/ui/SystemStatusBar";
-import type { User } from "~/lib/db";
+import type { User } from "~/lib/core/types/database";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -10,28 +15,67 @@ interface MainLayoutProps {
   actions?: ReactNode;
   users?: User[];
   showSystemStatus?: boolean;
+  initialSelectedUserId?: string;
+  initialLicenseUsed?: number;
+  initialLicenseTotal?: number;
 }
 
-export function MainLayout({ children, title, description, actions, users, showSystemStatus = false }: MainLayoutProps) {
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+export function MainLayout({ 
+  children, 
+  title, 
+  description, 
+  actions, 
+  users, 
+  showSystemStatus = false,
+  initialSelectedUserId = "",
+  initialLicenseUsed = 0,
+  initialLicenseTotal = 12
+}: MainLayoutProps) {
+  // Client-side state management
+  const [selectedUserId, setSelectedUserId] = useState<string>(initialSelectedUserId);
+  const [isMounted, setIsMounted] = useState(false);
+  const [hasStorageLoaded, setHasStorageLoaded] = useState(false);
 
+  // Handle user selection changes
   const handleUserChange = (userId: string) => {
     setSelectedUserId(userId);
-    // ローカルストレージに保存
-    if (userId) {
-      localStorage.setItem('selectedUserId', userId);
-    } else {
-      localStorage.removeItem('selectedUserId');
+    
+    // Only access localStorage on client-side
+    if (isMounted && typeof window !== 'undefined') {
+      try {
+        if (userId) {
+          localStorage.setItem('selectedUserId', userId);
+        } else {
+          localStorage.removeItem('selectedUserId');
+        }
+      } catch (error) {
+        console.warn('Failed to save user selection to localStorage:', error);
+      }
     }
   };
 
-  // 初期値をローカルストレージから取得
+  // Client-side mounting detection
   useEffect(() => {
-    const savedUserId = localStorage.getItem('selectedUserId');
-    if (savedUserId) {
-      setSelectedUserId(savedUserId);
-    }
+    setIsMounted(true);
   }, []);
+
+  // Load saved user selection from localStorage (client-side only)
+  useEffect(() => {
+    if (!isMounted || typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const savedUserId = localStorage.getItem('selectedUserId');
+      if (savedUserId && savedUserId !== selectedUserId) {
+        setSelectedUserId(savedUserId);
+      }
+    } catch (error) {
+      console.warn('Failed to load user selection from localStorage:', error);
+    } finally {
+      setHasStorageLoaded(true);
+    }
+  }, [isMounted, selectedUserId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,14 +83,16 @@ export function MainLayout({ children, title, description, actions, users, showS
         selectedUserId={selectedUserId}
         onUserChange={handleUserChange}
         users={users}
+        isLoading={!hasStorageLoaded}
       />
+      
       {showSystemStatus && (
         <SystemStatusBar 
-          sseStatus="connected"
-          licenseUsed={8}
-          licenseTotal={12}
+          initialLicenseUsed={initialLicenseUsed}
+          initialLicenseTotal={initialLicenseTotal}
         />
       )}
+      
       <main className="flex-1">
         {(title || description || actions) && (
           <header className="border-b bg-muted/10">
@@ -73,10 +119,30 @@ export function MainLayout({ children, title, description, actions, users, showS
             </div>
           </header>
         )}
+        
         <div className="container mx-auto px-4 py-6">
           {children}
         </div>
       </main>
     </div>
+  );
+}
+
+/**
+ * Hydration-safe wrapper for legacy MainLayout usage
+ */
+export function MainLayoutWrapper(props: {
+  children: ReactNode;
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
+  users?: User[];
+  showSystemStatus?: boolean;
+}) {
+  return (
+    <MainLayout 
+      {...props}
+      showSystemStatus={props.showSystemStatus}
+    />
   );
 }

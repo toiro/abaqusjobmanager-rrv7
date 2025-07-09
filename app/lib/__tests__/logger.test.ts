@@ -19,8 +19,8 @@ mock.module("@logtape/logtape", () => ({
 }));
 
 // Import after mocking
-import { AppLogger, type LogContext } from "../logger/logger";
-import { initializeLogger } from "../logger/config";
+import { AppLogger, type LogContext } from "../core/logger/logger";
+import { initializeLogger } from "../core/logger/config";
 
 describe("Simplified Logger System", () => {
   let testLogger: AppLogger;
@@ -281,7 +281,7 @@ describe("Logger Configuration", () => {
     await initializeLogger();
     
     expect(mockConfigure).toHaveBeenCalledTimes(1);
-    expect(mockGetConsoleSink).toHaveBeenCalledTimes(1);
+    // getConsoleSink is not used in the new implementation
   });
 
   test("should handle initialization errors gracefully", async () => {

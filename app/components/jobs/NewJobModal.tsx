@@ -6,17 +6,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "~/components/ui/label";
 import { FileUpload } from "~/components/ui/file-upload";
 import { FORM_LABELS, BUTTONS, PLACEHOLDERS, PRIORITY_LEVELS, ERROR_MESSAGES } from "~/lib/messages";
-import type { User, Node } from "~/lib/db";
+import type { User, Node } from "~/lib/core/database";
 import { useState, useEffect } from "react";
-import * as React from "react";
-import { calculateLicenseTokens } from "~/lib/licenseCalculator";
+import { calculateLicenseTokens } from "~/lib/services/license/license-calculator";
 
 interface NewJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   users: User[];
   nodes: Node[];
-  actionData?: any;
+  actionData?: {
+    success?: boolean;
+    message?: string;
+    error?: string;
+  };
 }
 
 export function NewJobModal({ isOpen, onClose, users, nodes, actionData }: NewJobModalProps) {

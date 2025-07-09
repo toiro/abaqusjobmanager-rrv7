@@ -6,9 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Label } from "~/components/ui/label";
 import { FORM_LABELS, BUTTONS, PLACEHOLDERS, PRIORITY_LEVELS, ERROR_MESSAGES, INFO_MESSAGES } from "~/lib/messages";
-import type { User, Node, Job } from "~/lib/db";
+import type { User, Node, Job } from "~/lib/core/database";
 import { useState, useEffect } from "react";
-import { calculateLicenseTokens } from "~/lib/licenseCalculator";
+import { calculateLicenseTokens } from "~/lib/services/license/license-calculator";
 
 interface EditJobModalProps {
   isOpen: boolean;
@@ -16,7 +16,11 @@ interface EditJobModalProps {
   job: Job | null;
   users: User[];
   nodes: Node[];
-  actionData?: any;
+  actionData?: {
+    success?: boolean;
+    message?: string;
+    error?: string;
+  };
 }
 
 export function EditJobModal({ isOpen, onClose, job, users, nodes, actionData }: EditJobModalProps) {

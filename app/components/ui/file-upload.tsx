@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "~/lib/utils";
+import { cn } from "~/lib/helpers/utils";
 import { FILE_MESSAGES } from "~/lib/messages";
 
 export interface FileUploadProps extends React.InputHTMLAttributes<HTMLInputElement> {

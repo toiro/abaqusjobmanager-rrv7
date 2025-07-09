@@ -19,7 +19,7 @@
  * bun run scripts/test-ssh-connection.ts -h 192.168.1.100 -u abaqus -p 22 --abaqus --verbose
  */
 
-import { testNodeConnection, type NodeConfig, type HealthCheckConfig } from '../app/lib/nodeHealthCheck';
+import { testNodeConnection, type NodeConfig, type HealthCheckConfig } from '../app/lib/services/node-health/node-health-check';
 import { parseArgs } from 'util';
 
 interface CLIArgs {

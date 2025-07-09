@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { createRemotePwshExecutor } from "../remote-pwsh/executor";
-import type { RemotePwshOptions, RemotePwshResult, RemotePwshEvents } from "../remote-pwsh/types";
+import { createRemotePwshExecutor } from "../services/remote-pwsh/executor";
+import type { RemotePwshOptions, RemotePwshResult, RemotePwshEvents } from "../services/remote-pwsh/types";
 
 // Mock the dependencies
 const mockEventManager = {
@@ -28,15 +28,15 @@ const mockSetupEventHandlers = mock(() => {});
 const mockAddTypedListener = mock(() => {});
 
 // Mock the module dependencies
-mock.module("../remote-pwsh/environment", () => ({
+mock.module("../services/remote-pwsh/environment", () => ({
   preparePowerShellEnvironment: mockPreparePowerShellEnvironment
 }));
 
-mock.module("../remote-pwsh/process", () => ({
+mock.module("../services/remote-pwsh/process", () => ({
   spawnPowerShellProcess: mockSpawnPowerShellProcess
 }));
 
-mock.module("../remote-pwsh/events", () => ({
+mock.module("../services/remote-pwsh/events", () => ({
   createEventManager: mockCreateEventManager,
   setupEventHandlers: mockSetupEventHandlers,
   addTypedListener: mockAddTypedListener

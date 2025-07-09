@@ -1,5 +1,5 @@
 import { Select } from "./select";
-import { type User } from "~/lib/db";
+import { type User } from "~/lib/core/database";
 import { PLACEHOLDERS, SYSTEM_MESSAGES } from "~/lib/messages";
 
 interface UserSelectorProps {

@@ -9,7 +9,7 @@ import {
   emitJobCreated,
   emitFileDeleted,
   emitSSE
-} from '../sse';
+} from '../services/sse/sse';
 
 import { 
   createJobEvent,
@@ -19,7 +19,7 @@ import {
   type FileEventData,
   EVENT_TYPES,
   SSE_CHANNELS
-} from '../sse-schemas';
+} from '../services/sse/sse-schemas';
 
 // Example 1: Basic event emission
 export function emitBasicJobEvent() {
@@ -80,7 +80,7 @@ export function componentUsageExample() {
   In a React component:
   
   import { useSSE } from '~/hooks/useSSE';
-  import { type SSEEvent, type JobEventData } from '~/lib/sse-schemas';
+  import { type SSEEvent, type JobEventData } from '~/lib/services/sse/sse-schemas';
   
   function MyComponent() {
     const handleJobEvent = (event: SSEEvent<JobEventData>) => {
