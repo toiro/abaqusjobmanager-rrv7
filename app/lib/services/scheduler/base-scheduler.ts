@@ -3,7 +3,7 @@
  * Common infrastructure for all scheduled server-side tasks
  */
 
-import { getLogger } from '../../core/logger';
+import { getLogger } from '../../core/logger/logger.server';
 
 // Common interfaces for all schedulers
 export interface SchedulerConfig {
@@ -367,19 +367,17 @@ export class SchedulerRegistry {
   }
 }
 
-// Auto-register process shutdown handlers (server-side only)
-if (typeof window === 'undefined') {
-  // Graceful shutdown on SIGTERM
-  process.on('SIGTERM', async () => {
-    getLogger().info('Received SIGTERM, shutting down schedulers', 'SchedulerRegistry');
-    await SchedulerRegistry.stopAll();
-    process.exit(0);
-  });
+// Auto-register process shutdown handlers (server-only execution)
+// Graceful shutdown on SIGTERM
+process.on('SIGTERM', async () => {
+  getLogger().info('Received SIGTERM, shutting down schedulers', 'SchedulerRegistry');
+  await SchedulerRegistry.stopAll();
+  process.exit(0);
+});
 
-  // Graceful shutdown on SIGINT
-  process.on('SIGINT', async () => {
-    getLogger().info('Received SIGINT, shutting down schedulers', 'SchedulerRegistry');
-    await SchedulerRegistry.stopAll();
-    process.exit(0);
-  });
-}
+// Graceful shutdown on SIGINT
+process.on('SIGINT', async () => {
+  getLogger().info('Received SIGINT, shutting down schedulers', 'SchedulerRegistry');
+  await SchedulerRegistry.stopAll();
+  process.exit(0);
+});

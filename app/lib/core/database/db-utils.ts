@@ -3,9 +3,9 @@
  * Replaces complex BaseRepository abstraction with direct, reusable functions
  */
 
-import { getDatabase } from "./connection";
+import { getDatabase } from "./connection.server";
 import type { Database } from "bun:sqlite";
-import { getLogger } from "../logger";
+import { getLogger } from "../logger/logger.server";
 import type { ZodSchema } from "zod";
 
 /**

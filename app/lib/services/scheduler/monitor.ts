@@ -4,7 +4,7 @@
  */
 
 import { SchedulerRegistry, type SchedulerHealth } from './base-scheduler';
-import { getLogger } from '../../core/logger';
+import { getLogger } from '../../core/logger/logger.server';
 import { createIntervalScheduler } from './interval-scheduler';
 
 export interface SchedulerMonitorConfig {

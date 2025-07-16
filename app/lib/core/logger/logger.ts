@@ -5,20 +5,42 @@
 
 import { getLogger as getLogTapeLogger, type Logger as LogTapeLogger } from "@logtape/logtape";
 import type { LoggerInterface, LogContext } from './types';
-import { config } from './config';
 
 // Re-export LogTape initialization
 export { initializeLogger } from './config';
 export type { LogContext } from './types';
 
+// Dynamic config import interface
+interface LoggerConfig {
+  categoryName: string;
+  logLevel: string;
+  isServer: boolean;
+}
+
 /**
  * Server-side logger with LogTape integration and full features
  */
 export class AppLogger implements LoggerInterface {
-  private logger: LogTapeLogger;
+  private logger!: LogTapeLogger; // Definite assignment assertion
+  private config: LoggerConfig | null = null;
 
   constructor() {
-    this.logger = getLogTapeLogger(config.categoryName);
+    // Dynamically import config to avoid client-side process.env access
+    this.initializeWithConfig();
+  }
+
+  private initializeWithConfig(): void {
+    try {
+      // Use dynamic import to avoid module-level evaluation on client side
+      const configModule = require('./config');
+      this.config = configModule.config;
+      this.logger = getLogTapeLogger(this.config?.categoryName || 'abaqus-job-manager');
+    } catch (error) {
+      // Fallback if config import fails
+      console.warn('Failed to load logger config, using defaults:', error);
+      this.config = null;
+      this.logger = getLogTapeLogger('abaqus-job-manager');
+    }
   }
 
   error(message: string, context?: LogContext, data?: any): void {
@@ -85,12 +107,5 @@ export class AppLogger implements LoggerInterface {
 // Export class for use by unified logger
 // No singleton here - let index.ts handle instantiation
 
-// Singleton instance for direct use (server-side)
-let _loggerInstance: AppLogger | null = null;
-
-export function getLogger(): LoggerInterface {
-  if (!_loggerInstance) {
-    _loggerInstance = new AppLogger();
-  }
-  return _loggerInstance;
-}
+// Export class for use by logger.server.ts
+// Singleton management is handled in logger.server.ts

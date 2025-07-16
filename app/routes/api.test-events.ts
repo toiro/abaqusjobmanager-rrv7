@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.test-events";
-import { emitSystemEvent, emitJobEvent } from "~/lib/services/sse/sse";
-import { getLogger } from "~/lib/core/logger";
+import { emitSystemEvent, emitJobEvent } from "~/lib/services/sse/sse.server";
+import { getLogger } from "~/lib/core/logger/logger.server";
 
 export async function action({ request }: Route.ActionArgs) {
   try {
@@ -10,11 +10,15 @@ export async function action({ request }: Route.ActionArgs) {
     getLogger().info("Test event requested", "api.test-events", { eventType, data });
 
     switch (eventType) {
-      case 'license_update':
-        emitSystemEvent('license_update', {
-          used: data.used || Math.floor(Math.random() * 12) + 1,
-          total: data.total || 12,
-          timestamp: new Date().toISOString()
+      case 'license_usage_updated':
+        emitSystemEvent('license_usage_updated', {
+          totalTokens: data.totalTokens || 50,
+          usedTokens: data.usedTokens || Math.floor(Math.random() * 50) + 1,
+          availableTokens: data.availableTokens || Math.floor(Math.random() * 50),
+          runningJobs: data.runningJobs || [
+            { id: 1, name: 'Test Job 1', cpu_cores: 4, tokens: 8 },
+            { id: 2, name: 'Test Job 2', cpu_cores: 2, tokens: 5 }
+          ]
         });
         break;
 

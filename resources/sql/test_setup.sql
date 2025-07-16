@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS nodes (
   name TEXT UNIQUE NOT NULL,
   hostname TEXT NOT NULL,
   ssh_port INTEGER DEFAULT 22,
-  max_cpu_cores INTEGER NOT NULL,
-  status TEXT DEFAULT 'unavailable' CHECK (status IN ('available', 'busy', 'unavailable')),
+  cpu_cores_limit INTEGER NOT NULL,
+  license_token_limit INTEGER NOT NULL,
+  status TEXT DEFAULT 'unavailable' CHECK (status IN ('available', 'unavailable')),
   is_active BOOLEAN DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

@@ -1,20 +1,22 @@
-import { useState, useEffect } from "react";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import {
+  Badge,
+  Button,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
-import { JobStatusBadge } from "./JobStatusBadge";
-import { TABLE_HEADERS, BUTTONS, INFO_MESSAGES } from "~/lib/messages";
+} from "~/components/ui";
+import { JobStatusConfig } from "./shared/JobStatusUtils";
+import { TABLE_HEADERS, INFO_MESSAGES } from "~/lib/messages";
 import type { Job } from "~/lib/core/types/database";
 import { calculateLicenseTokens } from "~/lib/services/license/license-calculator";
-import { useJobSSE } from "~/hooks/useSSE";
-import type { SSEEvent } from "~/lib/services/sse/sse-schemas";
+import { useJobTableData } from "./shared/useJobTableData";
+import { JobStatusRules } from "./shared/JobStatusUtils";
+import { BUTTONS } from "~/lib/messages";
+import { formatISOToReadable, formatJobIdWithPrefix } from "~/utils/formatting";
+import { getConnectionDotColor, getConnectionStatusText } from "~/utils/connection-status";
 
 interface JobTableProps {
   jobs: Job[];
@@ -24,82 +26,15 @@ interface JobTableProps {
 }
 
 export function JobTable({ jobs, onJobAction, loading, enableRealTimeUpdates = true }: JobTableProps) {
-  // Local state for real-time job updates
-  const [currentJobs, setCurrentJobs] = useState<Job[]>(jobs);
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Client-side mounting detection
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Update local jobs when props change
-  useEffect(() => {
-    setCurrentJobs(jobs);
-  }, [jobs]);
-
-  // SSE connection for real-time job updates (only on client-side)
-  const { connectionState } = useJobSSE((event: SSEEvent) => {
-    if (!enableRealTimeUpdates || !isMounted) return;
-
-    // Handle job-specific events
-    switch (event.type) {
-      case 'job_created':
-      case 'job_updated': {
-        const updatedJob = event.data as Job;
-        setCurrentJobs(prevJobs => {
-          const existingIndex = prevJobs.findIndex(job => job.id === updatedJob.id);
-          if (existingIndex >= 0) {
-            // Update existing job
-            const newJobs = [...prevJobs];
-            newJobs[existingIndex] = updatedJob;
-            return newJobs;
-          } else {
-            // Add new job
-            return [updatedJob, ...prevJobs];
-          }
-        });
-        break;
-      }
-
-      case 'job_deleted': {
-        const deletedJobId = event.data as { id: number };
-        setCurrentJobs(prevJobs => prevJobs.filter(job => job.id !== deletedJobId.id));
-        break;
-      }
-
-      case 'job_status_changed': {
-        const statusUpdate = event.data as { id: number; status: Job['status']; updated_at?: string };
-        setCurrentJobs(prevJobs => 
-          prevJobs.map(job => 
-            job.id === statusUpdate.id 
-              ? { ...job, status: statusUpdate.status, updated_at: statusUpdate.updated_at }
-              : job
-          )
-        );
-        break;
-      }
-    }
-  }, {
+  // Data management with SSE updates
+  const { currentJobs, connectionState, isMounted } = useJobTableData(jobs, {
+    enableRealTimeUpdates,
     autoReconnect: true,
     reconnectDelay: 2000,
     maxReconnectAttempts: 5
   });
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    try {
-      const date = new Date(dateString);
-      // Use consistent format that doesn't depend on locale
-      return date.toISOString().replace('T', ' ').substring(0, 19);
-    } catch {
-      return dateString;
-    }
-  };
-
-  const handleAction = (jobId: number, action: 'view' | 'edit' | 'delete' | 'cancel') => {
-    onJobAction?.(jobId, action);
-  };
+  // Utility functions now use readable abstractions (formatISOToReadable, formatJobIdWithPrefix)
 
   if (loading) {
     return (
@@ -142,17 +77,9 @@ export function JobTable({ jobs, onJobAction, loading, enableRealTimeUpdates = t
         <div className="px-4 py-2 bg-muted/30 border-b text-xs flex items-center justify-between">
           <span className="text-muted-foreground">Job Table</span>
           <div className="flex items-center space-x-2">
-            <div className={`h-2 w-2 rounded-full ${
-              connectionState === 'connected' ? 'bg-green-500' : 
-              connectionState === 'connecting' ? 'bg-yellow-500' :
-              connectionState === 'error' ? 'bg-orange-500' :
-              'bg-red-500'
-            }`}></div>
+            <div className={`h-2 w-2 rounded-full ${getConnectionDotColor(connectionState)}`}></div>
             <span className="text-muted-foreground">
-              {connectionState === 'connected' ? 'Real-time updates' : 
-               connectionState === 'connecting' ? 'Connecting...' :
-               connectionState === 'error' ? 'Connection error' :
-               'Offline mode'}
+              {getConnectionStatusText(connectionState)}
             </span>
           </div>
         </div>
@@ -176,13 +103,15 @@ export function JobTable({ jobs, onJobAction, loading, enableRealTimeUpdates = t
           {currentJobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="font-mono text-sm">
-                #{job.id?.toString().padStart(4, '0') || '-'}
+                {formatJobIdWithPrefix(job.id)}
               </TableCell>
               <TableCell className="font-medium">
                 {job.name}
               </TableCell>
               <TableCell>
-                <JobStatusBadge status={job.status} />
+                <Badge variant={JobStatusConfig.getBadgeVariant(job.status)}>
+                  {JobStatusConfig.getStatusText(job.status)}
+                </Badge>
               </TableCell>
               <TableCell>
                 <Badge variant="outline">
@@ -229,41 +158,44 @@ export function JobTable({ jobs, onJobAction, loading, enableRealTimeUpdates = t
                 {job.user_id || "-"}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {formatDate(job.created_at)}
+                {formatISOToReadable(job.created_at)}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end space-x-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => job.id && handleAction(job.id, 'view')}
+                    onClick={() => job.id && onJobAction?.(job.id, 'view')}
                   >
                     {BUTTONS.VIEW_DETAILS}
                   </Button>
-                  {job.status === 'waiting' && (
+                  
+                  {JobStatusRules.canEdit(job.status) && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => job.id && handleAction(job.id, 'edit')}
+                      onClick={() => job.id && onJobAction?.(job.id, 'edit')}
                     >
                       {BUTTONS.EDIT}
                     </Button>
                   )}
-                  {(job.status === 'waiting' || job.status === 'starting' || job.status === 'running') && (
+                  
+                  {JobStatusRules.canCancel(job.status) && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => job.id && handleAction(job.id, 'cancel')}
+                      onClick={() => job.id && onJobAction?.(job.id, 'cancel')}
                       className="text-destructive hover:text-destructive"
                     >
                       {BUTTONS.CANCEL_JOB}
                     </Button>
                   )}
-                  {(job.status === 'completed' || job.status === 'failed' || job.status === 'missing') && (
+                  
+                  {JobStatusRules.canDelete(job.status) && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => job.id && handleAction(job.id, 'delete')}
+                      onClick={() => job.id && onJobAction?.(job.id, 'delete')}
                       className="text-destructive hover:text-destructive"
                     >
                       {BUTTONS.DELETE}

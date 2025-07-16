@@ -3,8 +3,8 @@
  * Practical approach focused on usability and maintainability
  */
 
-import { getLogger } from '../../core/logger';
-import { getSSEEventEmitter } from './sse-event-emitter';
+import { getLogger } from '../../core/logger/logger.server';
+import { getSSEEventEmitter } from './sse-event-emitter.server';
 import { 
   type SSEEvent,
   type JobEventData,

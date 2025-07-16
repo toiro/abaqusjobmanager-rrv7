@@ -1,7 +1,4 @@
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { ErrorMessage } from "~/components/ui/message";
+import { Button, Input, Label, ErrorMessage } from "~/components/ui";
 import { validateAdminToken } from "~/lib/services/auth/auth";
 import type { Route } from "./+types/admin.login";
 import { useState } from "react";
@@ -75,11 +72,6 @@ export default function AdminLogin({ actionData }: Route.ComponentProps) {
             </Button>
           </div>
 
-          <div className="text-center">
-            <div className="text-sm text-gray-500">
-              Development token: <code className="bg-gray-100 px-2 py-1 rounded">admin_dev_token_12345</code>
-            </div>
-          </div>
         </form>
       </div>
     </div>

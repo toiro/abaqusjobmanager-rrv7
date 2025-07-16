@@ -191,7 +191,8 @@ describe('Node Health Check System', () => {
         name: 'test-node-health',
         hostname: 'test-mock-host',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
 
@@ -217,7 +218,8 @@ describe('Node Health Check System', () => {
         name: 'test-node-fail',
         hostname: 'invalid-host.invalid',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
 
@@ -247,7 +249,8 @@ describe('Node Health Check System', () => {
         name: 'status-update-test',
         hostname: 'test-mock-host',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
 
@@ -275,7 +278,8 @@ describe('Node Health Check System', () => {
         name: 'status-fail-test',
         hostname: 'test-mock-host',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
 

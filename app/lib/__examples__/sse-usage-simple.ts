@@ -9,7 +9,7 @@ import {
   emitJobCreated,
   emitFileDeleted,
   emitSSE
-} from '../services/sse/sse';
+} from '../services/sse/sse.server';
 
 import { 
   createJobEvent,

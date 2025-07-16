@@ -3,7 +3,7 @@
  * Focuses on essential functionality without over-engineering
  */
 
-import { getLogger } from "../core/logger";
+import { getLogger } from "../core/logger/logger.server";
 import type { ZodSchema } from "zod";
 import { createSuccessResponse, createErrorResponse } from "../core/types/api-routes";
 
@@ -20,6 +20,15 @@ export function success<T>(data: T, message?: string): Response {
 export function error(message: string, details?: unknown, status = 400): Response {
   getLogger().error('API error response', 'Routes', { message, details, status });
   return Response.json(createErrorResponse(message, details), { status });
+}
+
+/**
+ * Create error response with intent (for dialog state management)
+ */
+export function errorWithIntent(message: string, intent: string, details?: unknown, status = 400): Response {
+  getLogger().error('API error response with intent', 'Routes', { message, intent, details, status });
+  const response = createErrorResponse(message, details);
+  return Response.json({ ...response, intent }, { status });
 }
 
 /**
@@ -144,9 +153,9 @@ export class ValidationError extends Error {
 /**
  * Handle API errors with proper logging and response
  */
-export function handleApiError(error: unknown, context = 'API'): Response {
+export function handleApiError(error: unknown, context = 'API', intent?: string): Response {
   if (error instanceof ValidationError) {
-    return httpError.validation(error.message, error.details);
+    return intent ? errorWithIntent(error.message, intent, error.details, 422) : httpError.validation(error.message, error.details);
   }
   
   if (error instanceof Error) {
@@ -160,11 +169,11 @@ export function handleApiError(error: unknown, context = 'API'): Response {
       ? 'Internal server error' 
       : error.message;
       
-    return httpError.serverError(message);
+    return intent ? errorWithIntent(message, intent, undefined, 500) : httpError.serverError(message);
   }
   
   getLogger().error(`${context} unknown error`, 'Routes', { error });
-  return httpError.serverError();
+  return intent ? errorWithIntent('Internal server error', intent, undefined, 500) : httpError.serverError();
 }
 
 /**

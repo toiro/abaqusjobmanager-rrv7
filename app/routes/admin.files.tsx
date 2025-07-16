@@ -1,9 +1,6 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
-import { SuccessMessage, ErrorMessage } from "~/components/ui/message";
-import { findAllFiles, findFileById, deleteFileRecord } from "~/lib/core/database";
+import { Button, Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SuccessMessage, ErrorMessage } from "~/components/ui";
+import type { FileRecord, FileWithJobs } from "~/lib/core/types/database";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
 import { formatFileSize } from "~/lib/helpers/utils";
 import type { Route } from "./+types/admin.files";
@@ -14,15 +11,26 @@ import {
   getFormIntent,
   getFormNumber
 } from "~/lib/helpers/api-helpers";
-import { getLogger } from "~/lib/core/logger";
+import { getLogger } from "~/lib/core/logger/logger.server";
+import { useState, useEffect } from "react";
+import { DeleteFileDialog } from "~/components/files/DeleteFileDialog";
+import { useFileSSE, useJobSSE } from "~/hooks/useSSE";
+import { EVENT_TYPES } from "~/lib/services/sse/sse-schemas";
 
 // Simple loader
-export function loader() {
+export async function loader() {
   try {
-    const files = findAllFiles();
-    getLogger().info('Files admin data loaded', 'Routes', { filesCount: files.length });
+    const { findAllFilesWithJobs } = await import("~/lib/core/database/server-operations");
+    const { getLogger } = await import("~/lib/core/logger/logger.server");
+    
+    const files = findAllFilesWithJobs();
+    getLogger().info('Files admin data loaded', 'Routes', { 
+      filesCount: files.length,
+      totalJobReferences: files.reduce((sum: number, file: any) => sum + file.referencingJobs.length, 0)
+    });
     return { files };
   } catch (error) {
+    const { getLogger } = await import("~/lib/core/logger/logger.server");
     getLogger().error('Failed to load files', 'Routes', { error });
     return { files: [] };
   }
@@ -33,6 +41,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
   try {
     const formData = await request.formData();
     const intent = getFormIntent(formData);
+    const { getLogger } = await import("~/lib/core/logger/logger.server");
     
     getLogger().info('Files admin action called', 'Routes', { 
       intent,
@@ -41,6 +50,8 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
     });
     
     if (intent === "delete-file") {
+      const { findFileById, deleteFileRecord } = await import("~/lib/core/database/server-operations");
+      
       const fileId = getFormNumber(formData, "fileId");
       
       getLogger().info('Deleting file', 'Routes', { fileId });
@@ -62,10 +73,11 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
       // File deleted successfully
       
       getLogger().info('File deleted successfully', 'Routes', { fileId });
-      return success(
-        { fileId },
-        SUCCESS_MESSAGES.FILE_DELETED
-      );
+      return Response.json({
+        success: SUCCESS_MESSAGES.FILE_DELETED,
+        intent: "delete-file",
+        fileId
+      });
     }
     
     return error(ERROR_MESSAGES.INVALID_ACTION);
@@ -74,8 +86,123 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
   }
 }
 
-export default function FilesAdmin({ loaderData, actionData }: Route.ComponentProps) {
-  const { files } = loaderData;
+export default function FilesAdmin({ loaderData: { files: initialFiles }, actionData }: Route.ComponentProps) {
+  // Dialog states
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<FileWithJobs | null>(null);
+  
+  // Real-time file data state
+  const [files, setFiles] = useState<FileWithJobs[]>(initialFiles);
+  
+  // Update files when loader data changes
+  useEffect(() => {
+    setFiles(initialFiles);
+  }, [initialFiles]);
+  
+  // SSE connection for real-time file updates
+  const fileSSEResult = useFileSSE((event) => {
+    if (!event.data) return;
+    
+    const eventData = event.data as any;
+    
+    switch (event.type) {
+      case EVENT_TYPES.FILE_CREATED:
+        // For new files, we might need to reload the full file list
+        // For now, we'll just reload the page to get the new file
+        window.location.reload();
+        break;
+        
+      case EVENT_TYPES.FILE_UPDATED:
+        if (eventData.fileId) {
+          setFiles(prevFiles => 
+            prevFiles.map(file => 
+              file.id === eventData.fileId 
+                ? {
+                    ...file,
+                    original_name: eventData.fileName || file.original_name,
+                    file_size: eventData.fileSize || file.file_size,
+                    mime_type: eventData.mimeType || file.mime_type,
+                    uploaded_by: eventData.uploadedBy || file.uploaded_by
+                  }
+                : file
+            )
+          );
+        }
+        break;
+        
+      case EVENT_TYPES.FILE_DELETED:
+        if (eventData.fileId) {
+          setFiles(prevFiles => prevFiles.filter(file => file.id !== eventData.fileId));
+        }
+        break;
+    }
+  });
+
+  // SSE connection for real-time job updates (affects job status in file references)
+  const jobSSEResult = useJobSSE((event) => {
+    if (!event.data) return;
+    
+    const eventData = event.data as any;
+    
+    switch (event.type) {
+      case EVENT_TYPES.JOB_STATUS_CHANGED:
+      case EVENT_TYPES.JOB_UPDATED:
+        if (eventData.jobId) {
+          setFiles(prevFiles => 
+            prevFiles.map(file => ({
+              ...file,
+              referencingJobs: file.referencingJobs.map(job => 
+                job.jobId === eventData.jobId
+                  ? {
+                      ...job,
+                      jobStatus: eventData.status || eventData.jobStatus || job.jobStatus,
+                      jobName: eventData.name || eventData.jobName || job.jobName,
+                      jobOwner: eventData.owner || eventData.jobOwner || job.jobOwner
+                    }
+                  : job
+              )
+            }))
+          );
+        }
+        break;
+        
+      case EVENT_TYPES.JOB_DELETED:
+        if (eventData.jobId) {
+          setFiles(prevFiles => 
+            prevFiles.map(file => ({
+              ...file,
+              referencingJobs: file.referencingJobs.filter(job => job.jobId !== eventData.jobId)
+            }))
+          );
+        }
+        break;
+        
+      case EVENT_TYPES.JOB_CREATED:
+        // If a new job references a file, we should update the file's job references
+        if (eventData.fileId) {
+          setFiles(prevFiles => 
+            prevFiles.map(file => 
+              file.id === eventData.fileId
+                ? {
+                    ...file,
+                    referencingJobs: [
+                      ...file.referencingJobs,
+                      {
+                        jobId: eventData.jobId,
+                        jobName: eventData.name || eventData.jobName,
+                        jobStatus: eventData.status || eventData.jobStatus || 'pending',
+                        jobOwner: eventData.owner || eventData.jobOwner,
+                        createdAt: eventData.createdAt || new Date().toISOString()
+                      }
+                    ]
+                  }
+                : file
+            )
+          );
+        }
+        break;
+    }
+  });
 
   // Handle action results - type as any for React Router v7 compatibility
   const actionResult = actionData as any;
@@ -85,6 +212,13 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
   // Calculate file statistics
   const totalFiles = files.length;
   const totalSize = files.reduce((sum, file) => sum + file.file_size, 0);
+  const totalJobReferences = files.reduce((sum, file) => sum + file.referencingJobs.length, 0);
+  
+  // Handle delete file dialog
+  const handleDeleteFile = (file: FileWithJobs) => {
+    setSelectedFile(file);
+    setShowDeleteDialog(true);
+  };
 
   return (
     <AdminLayout title="File Management">
@@ -92,7 +226,7 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
         <div>
           <h1 className="text-3xl font-bold">File Management</h1>
           <p className="text-gray-600 mt-2">
-            {totalFiles} files • {formatFileSize(totalSize)} total
+            {totalFiles} files • {formatFileSize(totalSize)} total • {totalJobReferences} job references
           </p>
         </div>
       </div>
@@ -113,6 +247,7 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
               <TableHead>Size</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Uploaded By</TableHead>
+              <TableHead>Job References</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -131,25 +266,45 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
                 </TableCell>
                 <TableCell>{file.uploaded_by || 'Unknown'}</TableCell>
                 <TableCell>
+                  {file.referencingJobs.length > 0 ? (
+                    <div className="space-y-1">
+                      {file.referencingJobs.map((job: any, index: number) => (
+                        <div key={job.jobId} className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={
+                                job.jobStatus === 'completed' ? 'default' :
+                                job.jobStatus === 'running' ? 'secondary' :
+                                job.jobStatus === 'failed' ? 'destructive' :
+                                'outline'
+                              }
+                              className="text-xs"
+                            >
+                              {job.jobStatus}
+                            </Badge>
+                            <span className="font-medium">{job.jobName}</span>
+                          </div>
+                          <div className="text-gray-500 mt-1">
+                            Owner: {job.jobOwner}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-sm">No references</span>
+                  )}
+                </TableCell>
+                <TableCell>
                   {file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Unknown'}
                 </TableCell>
                 <TableCell>
-                  <form method="post" className="inline">
-                    <input type="hidden" name="intent" value="delete-file" />
-                    <input type="hidden" name="fileId" value={file.id} />
-                    <Button
-                      type="submit"
-                      variant="destructive"
-                      size="sm"
-                      onClick={(e) => {
-                        if (!confirm(`Are you sure you want to delete "${file.original_name}"?`)) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </form>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteFile(file)}
+                  >
+                    Delete
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -162,6 +317,30 @@ export default function FilesAdmin({ loaderData, actionData }: Route.ComponentPr
           <p>No files found.</p>
         </div>
       )}
+
+      {/* SSE Connection Status */}
+      <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${fileSSEResult.isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <span>
+            Files: {fileSSEResult.isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${jobSSEResult.isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <span>
+            Jobs: {jobSSEResult.isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
+
+      {/* Delete File Dialog */}
+      <DeleteFileDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        file={selectedFile}
+        actionData={actionData}
+      />
     </AdminLayout>
   );
 }

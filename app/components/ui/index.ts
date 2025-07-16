@@ -42,3 +42,12 @@ export {
   LoadingOverlay,
   type LoadingProps
 } from "./loading"
+export {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "./dialog"
+export { FileUpload } from "./file-upload"

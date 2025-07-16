@@ -57,7 +57,10 @@ export const EVENT_TYPES = {
   PING: 'ping',
   CONNECTED: 'connected',
   DISCONNECTED: 'disconnected',
-  ERROR: 'error'
+  ERROR: 'error',
+  
+  // License events
+  LICENSE_USAGE_UPDATED: 'license_usage_updated'
 } as const;
 
 /**
@@ -124,6 +127,28 @@ export function createSystemEvent<T = unknown>(type: string, data?: T): SSEEvent
 }
 
 /**
+ * License usage data structure for real-time updates
+ */
+export interface LicenseUsageData {
+  totalTokens: number;
+  usedTokens: number;
+  availableTokens: number;
+  runningJobs: Array<{
+    id: number;
+    name: string;
+    cpu_cores: number;
+    tokens: number;
+  }>;
+}
+
+/**
+ * Helper function for license usage update events
+ */
+export function createLicenseUsageUpdateEvent(data: LicenseUsageData): SSEEvent<LicenseUsageData> {
+  return createSystemEvent(EVENT_TYPES.LICENSE_USAGE_UPDATED, data);
+}
+
+/**
  * Check if a string is a valid channel
  */
 export function isValidChannel(channel: string): channel is SSEChannel {
@@ -141,6 +166,7 @@ export interface JobEventData {
   userId?: number;
   cpuCores?: number;
   priority?: string;
+  fileId?: number;
 }
 
 export interface FileEventData {
@@ -156,7 +182,9 @@ export interface NodeEventData {
   nodeName?: string;
   hostname?: string;
   sshPort?: number;
-  maxCpuCores?: number;
+  cpuCoresLimit?: number;
+  licenseTokenLimit?: number;
+  status?: string;
   isActive?: boolean;
 }
 

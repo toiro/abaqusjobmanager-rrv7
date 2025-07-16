@@ -17,3 +17,5 @@ sqlite/*.db*
 
 #playwright tmp
 tmp/
+
+test-results/

@@ -6,8 +6,8 @@ import {
   updateLicenseConfig,
   getAvailableLicenseTokens,
   hasAvailableLicenseTokens
-} from "../license-config";
-import { getDatabase } from "../../../core/database/connection";
+} from "../license-config.server";
+import { getDatabase } from "../../../core/database/connection.server";
 import { initializeTestDatabase } from "../../../core/database/test-setup";
 
 // Initialize test database

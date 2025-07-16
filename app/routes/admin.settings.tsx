@@ -1,9 +1,5 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Badge } from "~/components/ui/badge";
-import { SuccessMessage, ErrorMessage } from "~/components/ui/message";
+import { Button, Input, Label, Badge, SuccessMessage, ErrorMessage } from "~/components/ui";
 import type { Route } from "./+types/admin.settings";
 
 export function loader() {

@@ -1,7 +1,6 @@
 import type { MetaFunction } from "react-router";
 import { useState } from "react";
-import { Button } from "~/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { Button, Card, CardHeader, CardTitle, CardContent } from "~/components/ui";
 import { SystemStatusBar } from "~/components/ui/SystemStatusBar";
 import { TestLayout } from "~/components/layout/TestLayout";
 
@@ -45,10 +44,18 @@ export default function TestSSE() {
   };
 
   const handleLicenseUpdate = () => {
-    const newUsage = Math.floor(Math.random() * 12) + 1;
-    sendTestEvent('license_update', { 
-      used: newUsage, 
-      total: 12
+    const totalTokens = 50;
+    const usedTokens = Math.floor(Math.random() * totalTokens) + 1;
+    const availableTokens = totalTokens - usedTokens;
+    
+    sendTestEvent('license_usage_updated', {
+      totalTokens,
+      usedTokens,
+      availableTokens,
+      runningJobs: [
+        { id: 1, name: 'Test Job 1', cpu_cores: 4, tokens: 8 },
+        { id: 2, name: 'Test Job 2', cpu_cores: 2, tokens: 5 }
+      ]
     });
   };
 
@@ -109,7 +116,7 @@ export default function TestSSE() {
                 className="w-full"
                 disabled={isLoading !== null}
               >
-                {isLoading === 'license_update' ? 'Sending...' : 'Send License Update'}
+                {isLoading === 'license_usage_updated' ? 'Sending...' : 'Send License Update'}
               </Button>
               
               <Button 

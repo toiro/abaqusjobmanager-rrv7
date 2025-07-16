@@ -11,15 +11,9 @@ import {
 
 /**
  * Initialize LogTape with simplified configuration
+ * Server-only function - will not be included in client bundles
  */
 export async function initializeLogger(): Promise<void> {
-  const isServer = typeof window === 'undefined';
-  
-  // Only initialize LogTape on server side
-  if (!isServer) {
-    console.warn('LogTape initialization skipped on client side');
-    return;
-  }
   
   try {
     const sinks: Record<string, any> = {
@@ -51,7 +45,7 @@ export async function initializeLogger(): Promise<void> {
     };
     
     // Optional file logging for server
-    if (isServer && process.env.LOG_FILE_ENABLED === 'true') {
+    if (process.env.LOG_FILE_ENABLED === 'true') {
       const fs = await import('fs');
       const path = await import('path');
       
@@ -89,8 +83,8 @@ export async function initializeLogger(): Promise<void> {
 
     const rootLogger = getLogger("abaqus-job-manager");
     rootLogger.info("Logger initialized", {
-      environment: isServer ? "server" : "client",
-      fileLogging: isServer && process.env.LOG_FILE_ENABLED === 'true',
+      environment: "server",
+      fileLogging: process.env.LOG_FILE_ENABLED === 'true',
       logLevel: getLogLevel()
     });
 
@@ -102,8 +96,16 @@ export async function initializeLogger(): Promise<void> {
 
 /**
  * Get log level from environment with fallback
+ * Safely checks for server environment before accessing process.env
  */
 function getLogLevel(): LogLevel {
+  // Check if we're in a server environment
+  if (typeof window !== 'undefined') {
+    // Client side - return default level
+    return 'info';
+  }
+  
+  // Server side - can safely access process.env
   const envLevel = process.env.LOG_LEVEL?.toLowerCase();
   switch (envLevel) {
     case 'error': return 'error';
@@ -121,5 +123,5 @@ function getLogLevel(): LogLevel {
 export const config = {
   categoryName: 'abaqus-job-manager' as const,
   logLevel: getLogLevel(),
-  isServer: typeof window === 'undefined'
+  isServer: true  // Always true in server-only context
 };

@@ -1,5 +1,6 @@
 /**
- * Database connection management
+ * Server-only database connection
+ * This file will NOT be included in client bundles
  */
 
 import { Database } from "bun:sqlite";

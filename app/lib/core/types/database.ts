@@ -1,6 +1,12 @@
 /**
- * Database Type Definitions
+ * Database Type Definitions - SINGLE SOURCE OF TRUTH
  * Core entity schemas and types for the application
+ * 
+ * 🚨 IMPORTANT FOR CLAUDE: This file is the Single Source of Truth for all entity definitions.
+ * DO NOT modify this file without explicit user permission.
+ * All Job, Node, User, FileRecord, and JobLog type definitions MUST reference this file.
+ * When encountering type errors, modify the consuming code to match these definitions,
+ * NOT the other way around.
  */
 
 import { z } from 'zod';
@@ -29,8 +35,9 @@ export const NodeSchema = z.object({
   name: z.string().min(1),
   hostname: z.string().min(1),
   ssh_port: z.number().min(1).max(65535).default(22),
-  max_cpu_cores: z.number().min(1),
-  status: z.enum(['available', 'busy', 'unavailable']).default('unavailable').optional(),
+  license_token_limit: z.number().min(1),
+  cpu_cores_limit: z.number().min(1),
+  status: z.enum(['available', 'unavailable']).default('unavailable').optional(),
   is_active: z.union([z.boolean(), z.number().int()]).transform(val => {
     if (typeof val === 'number') {
       return val === 1;

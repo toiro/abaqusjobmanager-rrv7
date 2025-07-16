@@ -7,7 +7,7 @@ import { createAdaptiveScheduler, type AdaptiveTaskResult } from './adaptive-sch
 import { findAllNodes, updateNodeStatus } from "~/lib/core/database/node-operations";
 import { testNodeConnection, updateNodeStatusAfterHealthCheck } from '../node-health/node-health-check';
 import type { NodeConfig } from '../node-health/node-health-check';
-import { getLogger } from '../../core/logger';
+import { getLogger } from '../../core/logger/logger.server';
 
 export interface HealthCheckConfig {
   /** Normal check interval in minutes (default: 5) */

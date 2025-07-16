@@ -1,6 +1,9 @@
 import * as React from "react";
 import { cn } from "~/lib/helpers/utils";
 import { FILE_MESSAGES } from "~/lib/messages";
+import { useValidationErrorState } from "~/components/shared/useErrorState";
+import { ErrorDisplay } from "~/components/shared/ErrorDisplay";
+import { extractFileExtension, formatBytesToHumanReadable } from "~/utils/formatting";
 
 export interface FileUploadProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onFileSelect?: (file: File | null) => void;
@@ -13,8 +16,8 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
     const inputRef = React.useRef<HTMLInputElement>(null);
     const actualRef = ref || inputRef;
     const [dragActive, setDragActive] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
     const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+    const { errorState, validateAndSet, clearError } = useValidationErrorState<File>();
 
     const validateFile = (file: File): string | null => {
       // Check file size
@@ -23,7 +26,7 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
       }
 
       // Check file type
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const fileExtension = extractFileExtension(file.name);
       if (!acceptedTypes.includes(fileExtension)) {
         return FILE_MESSAGES.FILE_TYPE_INVALID;
       }
@@ -37,23 +40,21 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
     };
 
     const handleFileSelect = (file: File) => {
-      const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
+      const isValid = validateAndSet(file, validateFile, (validFile) => {
+        setSelectedFile(validFile);
+        onFileSelect?.(validFile);
+        
+        // Update the input element's files property
+        if (actualRef && 'current' in actualRef && actualRef.current) {
+          const dt = new DataTransfer();
+          dt.items.add(validFile);
+          actualRef.current.files = dt.files;
+        }
+      });
+
+      if (!isValid) {
         setSelectedFile(null);
         onFileSelect?.(null);
-        return;
-      }
-
-      setError(null);
-      setSelectedFile(file);
-      onFileSelect?.(file);
-      
-      // Update the input element's files property
-      if (actualRef && 'current' in actualRef && actualRef.current) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        actualRef.current.files = dt.files;
       }
     };
 
@@ -83,13 +84,7 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
       }
     };
 
-    const formatFileSize = (bytes: number): string => {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
+    // File size formatting now uses readable abstraction (formatBytesToHumanReadable)
 
     return (
       <div className="w-full">
@@ -97,7 +92,7 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
           className={cn(
             "relative border-2 border-dashed rounded-lg p-6 transition-colors",
             dragActive ? "border-primary bg-primary/10" : "border-gray-300",
-            error ? "border-red-500" : "",
+            errorState ? "border-red-500" : "",
             className
           )}
           onDragEnter={handleDrag}
@@ -124,7 +119,7 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
                 </div>
                 <div>
                   <p className="font-medium text-sm">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                  <p className="text-xs text-gray-500">{formatBytesToHumanReadable(selectedFile.size)}</p>
                 </div>
               </div>
             ) : (
@@ -136,15 +131,20 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
                 </div>
                 <div>
                   <p className="text-sm font-medium">{FILE_MESSAGES.DRAG_DROP}</p>
-                  <p className="text-xs text-gray-500">Max size: {formatFileSize(maxSize)}</p>
+                  <p className="text-xs text-gray-500">Max size: {formatBytesToHumanReadable(maxSize)}</p>
                 </div>
               </div>
             )}
           </div>
         </div>
         
-        {error && (
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+        {errorState && (
+          <ErrorDisplay 
+            error={errorState} 
+            variant="minimal"
+            onRetry={() => clearError()}
+            className="mt-2"
+          />
         )}
       </div>
     );

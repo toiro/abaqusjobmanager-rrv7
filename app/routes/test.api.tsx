@@ -1,10 +1,6 @@
 import type { MetaFunction } from "react-router";
 import { useState } from "react";
-import { Button } from "~/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Select } from "~/components/ui/select";
+import { Button, Card, CardHeader, CardTitle, CardContent, CardDescription, Input, Label, Select } from "~/components/ui";
 import { TestLayout } from "~/components/layout/TestLayout";
 
 export const meta: MetaFunction = () => {
@@ -193,7 +189,7 @@ export default function TestAPI() {
               <h4 className="font-semibold mt-4">Sample Request Bodies:</h4>
               <div className="bg-muted p-3 rounded-lg font-mono text-xs">
                 <p><strong>Test Events:</strong></p>
-                <pre>{"{"}"eventType": "license_update", "data": {"{"}"used": 5, "total": 12{"}"}{"}"}{"}"}</pre>
+                <pre>{"{"}"eventType": "license_usage_updated", "data": {"{"}"totalTokens": 50, "usedTokens": 25, "availableTokens": 25{"}"}{"}"}{"}"}</pre>
                 
                 <p className="mt-2"><strong>Job Creation:</strong></p>
                 <pre>{"{"}"name": "Test Job", "cpu_cores": 4, "priority": "normal"{"}"}</pre>

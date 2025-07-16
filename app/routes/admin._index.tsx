@@ -1,15 +1,16 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
-import { Badge } from "~/components/ui/badge";
-import { 
-  findAllJobs, findJobsByStatus,
-  findAllUsers, findActiveUsers,
-  findAllNodes, findAvailableNodes,
-  findAllFiles
-} from "~/lib/core/database";
+import { Badge } from "~/components/ui";
 import type { Route } from "./+types/admin._index";
 
-export function loader() {
+export async function loader() {
   // Auth is handled by parent route (admin.tsx)
+  const { 
+    findAllJobs, findJobsByStatus,
+    findAllUsers, findActiveUsers,
+    findAllNodes, findAvailableNodes,
+    findAllFiles
+  } = await import("~/lib/core/database/server-operations");
+  
   const stats = {
     jobs: {
       total: findAllJobs().length,

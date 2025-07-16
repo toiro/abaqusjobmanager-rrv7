@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.events";
-import { getLogger } from "~/lib/core/logger";
-import { emitSystemEvent } from "~/lib/services/sse/sse";
-import { getSSEEventEmitter } from "~/lib/services/sse/sse-event-emitter";
+import { getLogger } from "~/lib/core/logger/logger.server";
+import { emitSystemEvent } from "~/lib/services/sse/sse.server";
+import { getSSEEventEmitter } from "~/lib/services/sse/sse-event-emitter.server";
 import { isValidChannel, type SSEChannel, type SSEEvent } from "~/lib/services/sse/sse-schemas";
 
 export async function loader({ request }: Route.LoaderArgs) {

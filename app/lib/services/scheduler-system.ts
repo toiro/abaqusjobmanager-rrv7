@@ -3,7 +3,7 @@
  * Central initialization and management of all system schedulers
  */
 
-import { getLogger } from '../core/logger';
+import { getLogger } from '../core/logger/logger.server';
 import { SchedulerRegistry, createSchedulerMonitor } from './scheduler';
 import { defaultHealthCheckScheduler } from './scheduler/health-check-scheduler';
 import { sseCleanupScheduler } from './sse/sse-cleanup-scheduler';

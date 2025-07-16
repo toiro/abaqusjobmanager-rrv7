@@ -3,8 +3,8 @@
  * Periodically cleans up dead listeners and empty event sets
  */
 
-import { getSSEEventEmitter } from './sse-event-emitter';
-import { getLogger } from '../../core/logger';
+import { getSSEEventEmitter } from './sse-event-emitter.server';
+import { getLogger } from '../../core/logger/logger.server';
 import { createCleanupScheduler } from '../scheduler';
 
 /**

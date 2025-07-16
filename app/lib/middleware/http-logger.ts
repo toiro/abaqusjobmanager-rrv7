@@ -4,7 +4,7 @@
  */
 
 import type { MiddlewareHandler } from 'hono';
-import { getLogger } from '~/lib/core/logger';
+import { getLogger } from '~/lib/core/logger/logger.server';
 
 export interface HttpLogData {
   method: string;

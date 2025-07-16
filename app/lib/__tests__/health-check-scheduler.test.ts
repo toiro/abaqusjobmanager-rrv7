@@ -107,7 +107,8 @@ describe('Health Check Scheduler System', () => {
         name: 'test-node-1',
         hostname: 'localhost',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
       
@@ -115,7 +116,8 @@ describe('Health Check Scheduler System', () => {
         name: 'test-node-2', 
         hostname: 'invalid-host.invalid',
         ssh_port: 22,
-        max_cpu_cores: 8,
+        cpu_cores_limit: 8,
+        license_token_limit: 8,
         is_active: true
       });
       
@@ -179,7 +181,8 @@ describe('Health Check Scheduler System', () => {
         name: 'error-test-node',
         hostname: 'localhost',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
       
@@ -211,7 +214,8 @@ describe('Health Check Scheduler System', () => {
         name: 'stats-test-success',
         hostname: 'localhost',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
       
@@ -219,7 +223,8 @@ describe('Health Check Scheduler System', () => {
         name: 'stats-test-failure',
         hostname: 'invalid.invalid',
         ssh_port: 22,
-        max_cpu_cores: 4,
+        cpu_cores_limit: 4,
+        license_token_limit: 4,
         is_active: true
       });
       

@@ -3,7 +3,7 @@
  * Focused responsibility: Event emission and listener management only
  */
 
-import { getLogger } from '../../core/logger';
+import { getLogger } from '../../core/logger/logger.server';
 import { SSECleanupManager } from './sse-cleanup-manager';
 import { SSEStatisticsManager, type SSEStats } from './sse-statistics';
 

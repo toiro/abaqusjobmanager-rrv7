@@ -3,7 +3,7 @@
  * Handles cleanup of dead listeners and empty event sets
  */
 
-import { getLogger } from '../../core/logger';
+import { getLogger } from '../../core/logger/logger.server';
 
 export class SSECleanupManager {
   private readonly logger = getLogger();

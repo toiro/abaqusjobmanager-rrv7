@@ -4,7 +4,11 @@
  */
 
 import { useEffect, useCallback, useState, useRef } from 'react';
-import { getLogger } from '~/lib/core/logger';
+// Development-only debug helpers
+const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+const debugLog = (message: string, data?: any) => {
+  if (isDev) console.debug(`[SSE Debug] ${message}`, data || '');
+};
 import { 
   validateSSEEvent,
   SSE_CHANNELS,
@@ -89,7 +93,7 @@ export function useSSE<T = unknown>(
   // 5. Client-side mounting detection
   useEffect(() => {
     setIsMounted(true);
-    getLogger().debug('useSSE mounted on client-side', `useSSE:${channel}`);
+    debugLog(`useSSE mounted for channel: ${channel}`);
   }, [channel]);
 
   // Disconnect function
@@ -106,12 +110,12 @@ export function useSSE<T = unknown>(
     
     setIsConnected(false);
     setConnectionState('disconnected');
-    getLogger().info('SSE connection manually closed', `useSSE:${channel}`);
+    debugLog(`SSE connection manually closed for ${channel}`);
   }, [channel]);
 
   // Reconnect function
   const reconnect = useCallback(() => {
-    getLogger().info('SSE manual reconnection initiated', `useSSE:${channel}`);
+    debugLog(`SSE manual reconnection initiated for ${channel}`);
     reconnectAttemptsRef.current = 0;
     
     // Clean up existing connection first
@@ -139,7 +143,7 @@ export function useSSE<T = unknown>(
     // Create connection directly in useEffect to avoid dependency issues
     const sseUrl = `/api/events?channel=${encodeURIComponent(channel)}`;
     
-    getLogger().info('Establishing SSE connection', `useSSE:${channel}`, { url: sseUrl });
+    debugLog(`Establishing SSE connection for useSSE:${channel}`, { url: sseUrl });
     setConnectionState('connecting');
     
     try {
@@ -151,7 +155,7 @@ export function useSSE<T = unknown>(
         setIsConnected(true);
         setConnectionState('connected');
         reconnectAttemptsRef.current = 0;
-        getLogger().info('SSE connection established', `useSSE:${channel}`);
+        debugLog(`SSE connection established for useSSE:${channel}`);
         onConnectRef.current?.();
       };
       
@@ -161,7 +165,7 @@ export function useSSE<T = unknown>(
           const validatedEvent = validateSSEEvent(rawData);
           
           if (validatedEvent) {
-            getLogger().debug('SSE event received', `useSSE:${channel}`, { 
+            debugLog(`SSE event received for useSSE:${channel}`, { 
               type: validatedEvent.type 
             });
             
@@ -169,12 +173,12 @@ export function useSSE<T = unknown>(
             setLastEvent(typedEvent);
             onEventRef.current(typedEvent);
           } else {
-            getLogger().error('Invalid SSE event received', `useSSE:${channel}`, {
+            console.error(`[SSE Error] Invalid SSE event received for useSSE:${channel}`, {
               rawData
             });
           }
         } catch (error) {
-          getLogger().error('Failed to parse SSE event data', `useSSE:${channel}`, {
+          console.error(`[SSE Error] Failed to parse SSE event data for useSSE:${channel}`, {
             error: error instanceof Error ? error.message : 'Unknown error',
             rawData: event.data
           });
@@ -182,7 +186,7 @@ export function useSSE<T = unknown>(
       };
       
       eventSource.onerror = (error: Event) => {
-        getLogger().error('SSE connection error', `useSSE:${channel}`, { error });
+        console.error(`[SSE Error] SSE connection error for useSSE:${channel}`, { error });
         setIsConnected(false);
         setConnectionState('error');
         onErrorRef.current?.(error);
@@ -190,11 +194,11 @@ export function useSSE<T = unknown>(
         // Auto-reconnect logic
         if (autoReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
-          getLogger().info(`SSE reconnection attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`, `useSSE:${channel}`);
+          debugLog(`SSE reconnection attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts} for useSSE:${channel}`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (eventSourceRef.current === null) {
-              getLogger().info('SSE attempting reconnection', `useSSE:${channel}`);
+              debugLog(`SSE attempting reconnection for useSSE:${channel}`);
               const reconnectUrl = `/api/events?channel=${encodeURIComponent(channel)}`;
               setConnectionState('connecting');
               
@@ -208,11 +212,11 @@ export function useSSE<T = unknown>(
                 newEventSource.addEventListener('close', () => {
                   setIsConnected(false);
                   setConnectionState('disconnected');
-                  getLogger().info('SSE connection closed', `useSSE:${channel}`);
+                  debugLog(`SSE connection closed for useSSE:${channel}`);
                   onDisconnectRef.current?.();
                 });
               } catch (reconnectError) {
-                getLogger().error('Failed to create SSE connection during reconnect', `useSSE:${channel}`, {
+                console.error(`[SSE Error] Failed to create SSE connection during reconnect for useSSE:${channel}`, {
                   error: reconnectError instanceof Error ? reconnectError.message : 'Unknown error'
                 });
                 setConnectionState('error');
@@ -226,12 +230,12 @@ export function useSSE<T = unknown>(
       eventSource.addEventListener('close', () => {
         setIsConnected(false);
         setConnectionState('disconnected');
-        getLogger().info('SSE connection closed', `useSSE:${channel}`);
+        debugLog(`SSE connection closed for useSSE:${channel}`);
         onDisconnectRef.current?.();
       });
 
     } catch (error) {
-      getLogger().error('Failed to create SSE connection', `useSSE:${channel}`, {
+      console.error(`[SSE Error] Failed to create SSE connection for useSSE:${channel}`, {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
       setConnectionState('error');
@@ -249,7 +253,7 @@ export function useSSE<T = unknown>(
         reconnectTimeoutRef.current = null;
       }
       
-      getLogger().debug('SSE cleanup completed', `useSSE:${channel}`);
+      debugLog(`SSE cleanup completed for useSSE:${channel}`);
     };
   }, [isMounted, channel]); // Remove handler dependencies to prevent reconnection loops
 

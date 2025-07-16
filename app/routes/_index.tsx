@@ -1,26 +1,18 @@
 import { MainLayout } from "~/components/layout/MainLayout";
-import { Button } from "~/components/ui/button";
+import { Button } from "~/components/ui";
 import { JobTable } from "~/components/jobs/JobTable";
-import { 
-  findAllJobs, createJob, findJobById, updateJob, deleteJob, updateJobStatus,
-  findActiveUsers, findActiveNodes, createFileRecord,
-  type Job 
-} from "~/lib/core/database";
+import type { Job } from "~/lib/core/types/database";
 import { PAGE_TITLES, BUTTONS, SUCCESS_MESSAGES, ERROR_MESSAGES, VALIDATION_MESSAGES } from "~/lib/messages";
 import type { Route } from "./+types/_index";
 import { useState } from "react";
-import { NewJobModal } from "~/components/jobs/NewJobModal";
-import { EditJobModal } from "~/components/jobs/EditJobModal";
+import { NewJobModal, EditJobModal } from "~/components/jobs/JobModal";
 import { DeleteJobDialog } from "~/components/jobs/DeleteJobDialog";
 import { CancelJobDialog } from "~/components/jobs/CancelJobDialog";
-import { promises as fs } from "fs";
-import path from "path";
-import { getLogger } from "~/lib/core/logger";
-import { emitFileCreated } from "~/lib/services/sse/sse";
 import { type FileEventData } from "~/lib/services/sse/sse-schemas";
 import { 
   success,
   error,
+  errorWithIntent,
   handleApiError,
   getFormIntent,
   getFormString,
@@ -29,7 +21,15 @@ import {
 } from "~/lib/helpers/api-helpers";
 
 // Simple loader - no complex type abstractions
-export function loader() {
+export async function loader() {
+  // サーバー専用のデータベース操作をインポート
+  const { 
+    findAllJobs, 
+    findActiveUsers, 
+    findActiveNodes 
+  } = await import("~/lib/core/database/server-operations");
+  const { getLogger } = await import("~/lib/core/logger/logger.server");
+  
   const jobs = findAllJobs();
   const users = findActiveUsers();
   const nodes = findActiveNodes();
@@ -82,18 +82,26 @@ function validateJobStatus(job: Job, allowedStatuses: string[], action: string) 
 
 // Simple action handlers
 async function handleCreateJob(formData: FormData): Promise<Response> {
+  // サーバー専用の操作をインポート
+  const { createJob, createFileRecord } = await import("~/lib/core/database/server-operations");
+  const { getLogger } = await import("~/lib/core/logger/logger.server");
+  const { emitFileCreated } = await import("~/lib/services/sse/server-operations");
+  const { onJobCreated } = await import("~/lib/services/license/license-usage-service.server");
+  const { promises: fs } = await import("fs");
+  const path = await import("path");
+
   // Handle file upload
   const inpFile = formData.get("inp_file") as File;
   if (!inpFile || inpFile.size === 0) {
-    return error(ERROR_MESSAGES.FILE_REQUIRED);
+    return errorWithIntent(ERROR_MESSAGES.FILE_REQUIRED, 'create-job');
   }
 
   // Simple file validation
   if (!inpFile.name.toLowerCase().endsWith('.inp')) {
-    return error(ERROR_MESSAGES.INVALID_FILE_TYPE);
+    return errorWithIntent(ERROR_MESSAGES.INVALID_FILE_TYPE, 'create-job');
   }
   if (inpFile.size > 100 * 1024 * 1024) {
-    return error(ERROR_MESSAGES.FILE_SIZE_EXCEEDED);
+    return errorWithIntent(ERROR_MESSAGES.FILE_SIZE_EXCEEDED, 'create-job');
   }
 
   // Validate job data
@@ -119,7 +127,7 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
   });
   
   // Emit file event
-  const fileEventData: FileEventData = {
+  const fileEventData = {
     fileId,
     fileName: inpFile.name,
     fileSize: inpFile.size,
@@ -138,18 +146,25 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
     cpu_cores: jobData.cpu_cores,
     priority: jobData.priority
   });
+  
+  // Emit license usage update
+  onJobCreated(jobId);
 
   getLogger().info('Job created successfully', 'Routes', { jobId, jobName: jobData.name });
-  return success({ jobId }, SUCCESS_MESSAGES.JOB_CREATED);
+  return success({ jobId, intent: 'create-job' }, SUCCESS_MESSAGES.JOB_CREATED);
 }
 
 async function handleEditJob(formData: FormData): Promise<Response> {
+  // サーバー専用の操作をインポート
+  const { findJobById, updateJob } = await import("~/lib/core/database/server-operations");
+  const { getLogger } = await import("~/lib/core/logger/logger.server");
+
   const job_id = getFormNumber(formData, "job_id");
   const jobData = validateJobData(formData);
   
   const existingJob = findJobById(job_id);
   if (!existingJob) {
-    return error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
+    return errorWithIntent(VALIDATION_MESSAGES.JOB_NOT_FOUND, 'edit-job');
   }
   
   validateJobStatus(existingJob, ['waiting'], 'edit');
@@ -163,57 +178,75 @@ async function handleEditJob(formData: FormData): Promise<Response> {
   });
   
   if (!updateResult) {
-    return error('Failed to update job');
+    return errorWithIntent('Failed to update job', 'edit-job');
   }
   
   getLogger().info('Job updated successfully', 'Routes', { jobId: job_id, jobName: jobData.name });
-  return success({ message: 'Job updated successfully' }, SUCCESS_MESSAGES.JOB_UPDATED);
+  return success({ message: 'Job updated successfully', intent: 'edit-job' }, SUCCESS_MESSAGES.JOB_UPDATED);
 }
 
 async function handleDeleteJob(formData: FormData): Promise<Response> {
+  // サーバー専用の操作をインポート
+  const { findJobById, deleteJob } = await import("~/lib/core/database/server-operations");
+  const { getLogger } = await import("~/lib/core/logger/logger.server");
+  const { onJobDeleted } = await import("~/lib/services/license/license-usage-service.server");
+
   const job_id = getFormNumber(formData, "job_id");
   
   const existingJob = findJobById(job_id);
   if (!existingJob) {
-    return error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
+    return errorWithIntent(VALIDATION_MESSAGES.JOB_NOT_FOUND, 'delete-job');
   }
   
   validateJobStatus(existingJob, ['completed', 'failed', 'missing'], 'delete');
   
   const deleteResult = deleteJob(job_id);
   if (!deleteResult) {
-    return error('Failed to delete job');
+    return errorWithIntent('Failed to delete job', 'delete-job');
   }
   
+  // Emit license usage update
+  onJobDeleted(job_id);
+  
   getLogger().info('Job deleted successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
-  return success({ message: 'Job deleted successfully' }, SUCCESS_MESSAGES.JOB_DELETED);
+  return success({ message: 'Job deleted successfully', intent: 'delete-job' }, SUCCESS_MESSAGES.JOB_DELETED);
 }
 
 async function handleCancelJob(formData: FormData): Promise<Response> {
+  // サーバー専用の操作をインポート
+  const { findJobById, updateJobStatus } = await import("~/lib/core/database/server-operations");
+  const { getLogger } = await import("~/lib/core/logger/logger.server");
+  const { onJobStatusChanged } = await import("~/lib/services/license/license-usage-service.server");
+
   const job_id = getFormNumber(formData, "job_id");
   
   const existingJob = findJobById(job_id);
   if (!existingJob) {
-    return error(VALIDATION_MESSAGES.JOB_NOT_FOUND);
+    return errorWithIntent(VALIDATION_MESSAGES.JOB_NOT_FOUND, 'cancel-job');
   }
   
   validateJobStatus(existingJob, ['waiting', 'starting', 'running'], 'cancel');
   
   const cancelResult = updateJobStatus(job_id, "failed", "Cancelled by user");
   if (!cancelResult) {
-    return error('Failed to cancel job');
+    return errorWithIntent('Failed to cancel job', 'cancel-job');
   }
   
+  // Emit license usage update for status change
+  onJobStatusChanged(job_id, existingJob.status, "failed");
+  
   getLogger().info('Job cancelled successfully', 'Routes', { jobId: job_id, jobName: existingJob.name });
-  return success({ message: 'Job cancelled successfully' }, SUCCESS_MESSAGES.JOB_CANCELLED);
+  return success({ message: 'Job cancelled successfully', intent: 'cancel-job' }, SUCCESS_MESSAGES.JOB_CANCELLED);
 }
 
 // Simple action handler - no complex type abstractions
 export async function action({ request }: Route.ActionArgs): Promise<Response> {
+  let intent: string | undefined;
   try {
     const formData = await request.formData();
-    const intent = getFormIntent(formData);
+    intent = getFormIntent(formData);
     
+    const { getLogger } = await import("~/lib/core/logger/logger.server");
     getLogger().info('Job action called', 'Routes', { intent, method: request.method });
     
     switch (intent) {
@@ -229,7 +262,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
         return error(ERROR_MESSAGES.INVALID_ACTION);
     }
   } catch (error) {
-    return handleApiError(error, 'Job Action');
+    return handleApiError(error, 'Job Action', intent);
   }
 }
 
@@ -261,7 +294,7 @@ export default function Index({ loaderData, actionData }: Route.ComponentProps) 
   };
 
   return (
-    <MainLayout title={PAGE_TITLES.JOBS}>
+    <MainLayout title={PAGE_TITLES.JOBS} showSystemStatus={true}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{PAGE_TITLES.JOBS}</h1>
         <Button onClick={() => setShowNewJobModal(true)}>

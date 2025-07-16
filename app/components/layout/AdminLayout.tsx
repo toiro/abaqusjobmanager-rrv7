@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { Button, Badge } from "~/components/ui";
 
 interface AdminLayoutProps {
   children: React.ReactNode;

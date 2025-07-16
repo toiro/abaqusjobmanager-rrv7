@@ -4,7 +4,7 @@
  */
 
 import { findNodeById, updateNodeStatus } from "~/lib/core/database/node-operations";
-import { getLogger } from "../../core/logger";
+import { getLogger } from "../../core/logger/logger.server";
 import { createRemotePwshExecutor } from "../remote-pwsh";
 import path from "path";
 
@@ -63,6 +63,8 @@ interface PowerShellHealthResult {
 export interface HealthCheckConfig {
   testAbaqus?: boolean;
   timeout?: number;
+  checkInterval?: number; // Health check実行間隔（ミリ秒）
+  failureThreshold?: number; // unavailable判定までの連続失敗回数
 }
 
 export interface NodeConfig {
@@ -77,6 +79,47 @@ export interface HealthCheckUpdateResult {
   previousStatus: string;
   newStatus: string;
   error?: string;
+}
+
+// Node失敗カウンター管理
+interface NodeFailureTracker {
+  failureCount: number;
+  lastCheckTime: number;
+  consecutiveFailures: number;
+}
+
+// グローバル失敗カウンター
+const nodeFailureTrackers = new Map<number, NodeFailureTracker>();
+
+/**
+ * Node失敗カウンターをリセット
+ */
+function resetNodeFailureTracker(nodeId: number): void {
+  nodeFailureTrackers.delete(nodeId);
+}
+
+/**
+ * Node失敗カウンターを増加
+ */
+function incrementNodeFailureCount(nodeId: number): number {
+  const tracker = nodeFailureTrackers.get(nodeId) || {
+    failureCount: 0,
+    lastCheckTime: Date.now(),
+    consecutiveFailures: 0
+  };
+  
+  tracker.consecutiveFailures++;
+  tracker.lastCheckTime = Date.now();
+  nodeFailureTrackers.set(nodeId, tracker);
+  
+  return tracker.consecutiveFailures;
+}
+
+/**
+ * Node失敗カウンターを取得
+ */
+function getNodeFailureCount(nodeId: number): number {
+  return nodeFailureTrackers.get(nodeId)?.consecutiveFailures || 0;
 }
 
 /**
@@ -289,7 +332,7 @@ export async function performInitialHealthCheck(nodeId: number): Promise<HealthC
     const connectionResult = await testNodeConnection(nodeConfig, { testAbaqus: true });
     
     // Update node status based on result
-    const updateResult = updateNodeStatusAfterHealthCheck(nodeId, connectionResult);
+    const updateResult = updateNodeStatusAfterHealthCheck(nodeId, connectionResult, { failureThreshold: 1 }); // 初期チェックは1回失敗で unavailable
     
     return {
       success: connectionResult.success,
@@ -316,7 +359,8 @@ export async function performInitialHealthCheck(nodeId: number): Promise<HealthC
  */
 export function updateNodeStatusAfterHealthCheck(
   nodeId: number,
-  healthResult: NodeConnectionResult
+  healthResult: NodeConnectionResult,
+  config: HealthCheckConfig = {}
 ): HealthCheckUpdateResult {
   try {
     const node = findNodeById(nodeId);
@@ -331,18 +375,60 @@ export function updateNodeStatusAfterHealthCheck(
     }
     
     const previousStatus = node.status || 'unavailable';
-    const newStatus = healthResult.success ? 'available' : 'unavailable';
+    const failureThreshold = config.failureThreshold || 3;
     
-    // Update status in database
-    const updateSuccess = updateNodeStatus(nodeId, newStatus);
+    let newStatus = previousStatus;
+    let shouldUpdateStatus = false;
     
-    if (updateSuccess) {
+    if (healthResult.success) {
+      // 成功時: available に設定し、失敗カウンターをリセット
+      newStatus = 'available';
+      resetNodeFailureTracker(nodeId);
+      shouldUpdateStatus = previousStatus !== 'available';
+    } else {
+      // 失敗時: 失敗カウンターを増加
+      const failureCount = incrementNodeFailureCount(nodeId);
+      
+      if (failureCount >= failureThreshold) {
+        // 閾値に達した場合のみ unavailable に変更
+        newStatus = 'unavailable';
+        shouldUpdateStatus = previousStatus !== 'unavailable';
+        
+        // Unavailable になった場合はログに記録
+        if (shouldUpdateStatus) {
+          getLogger().warn('Node marked as unavailable after consecutive failures', 'HealthCheck', {
+            nodeId,
+            hostname: node.hostname,
+            failureCount,
+            failureThreshold,
+            error: healthResult.error
+          });
+        }
+      } else {
+        // 閾値未満の場合は状態変更なし
+        getLogger().debug('Node health check failed but below threshold', 'HealthCheck', {
+          nodeId,
+          hostname: node.hostname,
+          failureCount,
+          failureThreshold
+        });
+      }
+    }
+    
+    // データベース更新（状態が変わる場合のみ）
+    let updateSuccess = true;
+    if (shouldUpdateStatus) {
+      updateSuccess = updateNodeStatus(nodeId, newStatus);
+    }
+    
+    if (shouldUpdateStatus && updateSuccess) {
       getLogger().info('Node status updated after health check', 'HealthCheck', {
         nodeId,
         hostname: node.hostname,
         previousStatus,
         newStatus,
-        healthCheckSuccess: healthResult.success
+        healthCheckSuccess: healthResult.success,
+        failureCount: getNodeFailureCount(nodeId)
       });
     }
     

@@ -4,7 +4,7 @@
  */
 
 import { BaseScheduler, type SchedulerConfig } from './base-scheduler';
-import { getLogger } from '../../core/logger';
+import { getLogger } from '../../core/logger/logger.server';
 
 export interface IntervalSchedulerConfig extends SchedulerConfig {
   /** Interval between executions in milliseconds */

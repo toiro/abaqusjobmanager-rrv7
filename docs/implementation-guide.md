@@ -31,6 +31,7 @@
    - API routesの設定
    - サーバーサイドレンダリング対応
    - 開発環境とプロダクション環境の設定
+   - `.server.ts`パターンによるサーバー・クライアント分離
 
 ### Phase 2: API実装
 1. **ジョブ管理API**
@@ -175,6 +176,115 @@ bun run start
    - データベース接続状態
    - ファイルシステム使用量
    - SSH接続状態
+
+## React Router v7 サーバー・クライアント分離パターン
+
+### `.server.ts` ファイル拡張子による分離
+
+React Router v7では、`.server.ts`拡張子を使用してサーバー専用モジュールを定義できます。これにより、ビルド時に自動的にサーバー・クライアント間でコードが分離されます。
+
+#### **基本原則**
+
+1. **サーバー専用処理**: `.server.ts` 拡張子を使用
+   ```typescript
+   // database/connection.server.ts - サーバー専用
+   import { Database } from "bun:sqlite";
+   export function getDatabase() { /* ... */ }
+   ```
+
+2. **クライアント・サーバー共通**: 通常の `.ts` 拡張子
+   ```typescript
+   // types/database.ts - 共通型定義
+   export interface Job { /* ... */ }
+   ```
+
+3. **動的インポート**: サーバー専用モジュールをルートで使用
+   ```typescript
+   // routes/_index.tsx
+   export async function loader() {
+     const { getDatabase } = await import("~/lib/database/connection.server");
+     // サーバー側でのみ実行
+   }
+   ```
+
+#### **適用例: Logger システム**
+
+**BEFORE（環境検出による分離）**:
+```typescript
+// ❌ 複雑で予測不可能
+export function getLogger() {
+  if (typeof window === 'undefined') {
+    // サーバー側処理
+  } else {
+    // クライアント側処理
+  }
+}
+```
+
+**AFTER（.server.tsパターン）**:
+```typescript
+// logger.server.ts - サーバー専用
+export function getLogger(): LoggerInterface {
+  return new AppLogger(); // LogTape使用
+}
+
+// routes/_index.tsx - 使用例
+export async function loader() {
+  const { getLogger } = await import("~/lib/core/logger/logger.server");
+  getLogger().info("サーバー側ログ");
+}
+```
+
+#### **メリット**
+
+1. **ビルド時分離**: 環境検出ロジック不要
+2. **型安全性**: TypeScriptで完全な型チェック
+3. **バンドルサイズ最適化**: クライアントにサーバー専用コードが含まれない
+4. **開発者体験**: IDEでの補完とエラー検出
+5. **パフォーマンス**: 実行時の環境判定が不要
+
+#### **ファイル命名規則**
+
+```
+lib/
+├── database/
+│   ├── connection.server.ts  ← サーバー専用（SQLite、プロセス環境）
+│   ├── types.ts              ← 共通（型定義）
+│   └── utils.ts              ← 共通（ユーティリティ）
+├── logger/
+│   ├── logger.server.ts      ← サーバー専用（LogTape）
+│   ├── types.ts              ← 共通（インターフェース）
+│   └── config.ts             ← サーバー専用
+└── services/
+    ├── sse/
+    │   ├── sse.server.ts     ← サーバー専用（SSE実装）
+    │   └── sse-schemas.ts    ← 共通（型定義）
+    └── license/
+        ├── license-config.server.ts  ← サーバー専用（DB操作）
+        ├── license-config.ts         ← 共通（計算・検証）
+        └── license-validation.ts     ← 共通（バリデーション）
+```
+
+#### **注意事項**
+
+1. **サーバー専用モジュールは直接インポート禁止**
+   ```typescript
+   // ❌ 直接インポートは禁止
+   import { getDatabase } from "~/lib/database/connection.server";
+   
+   // ✅ 動的インポートを使用
+   const { getDatabase } = await import("~/lib/database/connection.server");
+   ```
+
+2. **環境固有の依存関係**
+   - `bun:sqlite`, `fs`, `process.env` → `.server.ts`
+   - React hooks, DOM API → 通常の`.ts/.tsx`
+
+3. **共通コードの分離**
+   - 型定義、バリデーション、計算ロジック → 通常の`.ts`
+   - DB操作、ファイルシステム → `.server.ts`
+
+この分離パターンにより、React Router v7の力を最大限活用し、保守性と型安全性を両立できます。
 
 ## バックアップ・復旧
 

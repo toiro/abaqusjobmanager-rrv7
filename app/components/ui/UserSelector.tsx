@@ -1,6 +1,7 @@
 import { Select } from "./select";
 import { type User } from "~/lib/core/database";
 import { PLACEHOLDERS, SYSTEM_MESSAGES } from "~/lib/messages";
+import { convertUserIdToString } from "~/utils/formatting";
 
 interface UserSelectorProps {
   value?: string;
@@ -41,7 +42,7 @@ export function UserSelector({ value, onValueChange, className, users = [] }: Us
           {PLACEHOLDERS.SELECT_USER}
         </option>
         {users.map((user) => (
-          <option key={user.id} value={user.id?.toString()}>
+          <option key={user.id} value={convertUserIdToString(user.id)}>
             {user.display_name}
           </option>
         ))}

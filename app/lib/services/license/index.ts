@@ -3,14 +3,13 @@
  * Exports for license configuration and calculation functionality
  */
 
+// Client-safe exports
 export {
-  getLicenseConfig,
-  setLicenseServerName,
-  setTotalLicenseTokens,
-  updateLicenseConfig,
-  getCurrentLicenseUsage,
-  getAvailableLicenseTokens,
-  hasAvailableLicenseTokens
+  calculateAvailableLicenseTokens,
+  checkAvailableLicenseTokens,
+  validateServerName,
+  validateTokenCount,
+  DEFAULT_LICENSE_CONFIG
 } from './license-config';
 
 export type {

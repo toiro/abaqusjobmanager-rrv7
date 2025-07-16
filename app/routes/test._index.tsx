@@ -1,7 +1,6 @@
 import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, Button } from "~/components/ui";
 import { TestLayout } from "~/components/layout/TestLayout";
 
 export const meta: MetaFunction = () => {

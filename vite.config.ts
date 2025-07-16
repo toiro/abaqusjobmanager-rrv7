@@ -16,4 +16,11 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
   ],
+  ssr: {
+    noExternal: [],
+    external: ["bun:sqlite", "fs", "path"],
+  },
+  optimizeDeps: {
+    exclude: ["bun:sqlite"]
+  },
 });

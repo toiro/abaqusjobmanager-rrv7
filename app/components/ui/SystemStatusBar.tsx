@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSystemSSE } from '~/hooks/useSSE';
-import type { SSEEvent } from '~/lib/services/sse/sse-schemas';
+import type { SSEEvent, LicenseUsageData } from '~/lib/services/sse/sse-schemas';
+import { getLicenseStatusConfig } from '~/utils/license-status';
 
 interface SystemStatusBarProps {
   initialLicenseUsed?: number;
@@ -29,10 +30,10 @@ export function SystemStatusBar({
     isMounted: sseIsMounted 
   } = useSystemSSE((event: SSEEvent) => {
     // Handle system events for license updates
-    if (event.type === 'license_update') {
-      const data = event.data as { used: number; total: number };
-      setLicenseUsed(data.used);
-      setLicenseTotal(data.total);
+    if (event.type === 'license_usage_updated') {
+      const data = event.data as LicenseUsageData;
+      setLicenseUsed(data.usedTokens);
+      setLicenseTotal(data.totalTokens);
     }
   }, {
     autoReconnect: true,
@@ -83,31 +84,7 @@ export function SystemStatusBar({
     }
   };
 
-  const getLicenseStatusConfig = (used: number, total: number) => {
-    const usage = used / total;
-    if (usage >= 0.9) {
-      return {
-        color: 'text-red-600',
-        bgColor: 'bg-red-50',
-        text: 'License limit reached',
-        urgent: true
-      };
-    } else if (usage >= 0.7) {
-      return {
-        color: 'text-yellow-600',
-        bgColor: 'bg-yellow-50',
-        text: 'License usage high',
-        urgent: false
-      };
-    } else {
-      return {
-        color: 'text-green-600',
-        bgColor: 'bg-green-50',
-        text: 'License available',
-        urgent: false
-      };
-    }
-  };
+  // License status config now uses readable abstraction (moved to utils/license-status.ts)
 
   // Handle SSR vs CSR rendering
   if (!isMounted) {

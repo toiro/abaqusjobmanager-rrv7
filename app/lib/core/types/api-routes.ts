@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 // Note: Using generic route handler interface instead of specific RouteConfig import
-import { getLogger } from '../logger';
+import { getLogger } from '../logger/logger.server';
 
 // Generic API result type
 export type ApiResult<TData, TError = string> = {

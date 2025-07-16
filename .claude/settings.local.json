@@ -16,7 +16,14 @@
       "mcp__playwright__browser_type",
       "Bash(sqlite3:*)",
       "Bash(mv:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(true)",
+      "mcp__playwright__browser_snapshot",
+      "Bash(curl:*)",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_wait_for",
+      "Bash(bunx playwright test:*)",
+      "mcp__playwright__browser_press_key"
     ],
     "deny": [
       "Bash(bun dev)",

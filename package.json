@@ -12,6 +12,11 @@
     "test": "bun test",
     "test:ssh": "bun test tests/integration/ssh-real.test.ts",
     "test:ssh:manual": "bun run scripts/test-ssh-connection.ts",
+    "test:sse": "bunx playwright test tests/sse-focused/ --config=tests/sse-focused/sse-test.config.ts",
+    "test:sse:ui": "bunx playwright test tests/sse-focused/ --config=tests/sse-focused/sse-test.config.ts --ui",
+    "test:sse:debug": "bunx playwright test tests/sse-focused/ --config=tests/sse-focused/sse-test.config.ts --debug",
+    "test:sse:headed": "bunx playwright test tests/sse-focused/ --config=tests/sse-focused/sse-test.config.ts --headed",
+    "test:sse:report": "bunx playwright show-report test-results/sse-html-report",
     "typecheck": "react-router typegen && tsc",
     "db:init": "bun run scripts/init-db.ts",
     "db:reset": "rm -f sqlite/*.db* && bun run db:init",
@@ -37,6 +42,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@react-router/dev": "^7.3.0",
     "@types/bun": "^1.2.4",
     "@types/react": "^19.0.10",

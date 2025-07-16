@@ -115,7 +115,8 @@ describe("Node Operations", () => {
     const nodeData = {
       name: "test-node",
       hostname: "test.example.com",
-      max_cpu_cores: 8,
+      cpu_cores_limit: 8,
+      license_token_limit: 8,
       is_active: true,
       ssh_port: 22
     };
@@ -127,14 +128,15 @@ describe("Node Operations", () => {
     expect(retrievedNode).not.toBeNull();
     expect(retrievedNode?.name).toBe(nodeData.name);
     expect(retrievedNode?.hostname).toBe(nodeData.hostname);
-    expect(retrievedNode?.max_cpu_cores).toBe(nodeData.max_cpu_cores);
+    expect(retrievedNode?.cpu_cores_limit).toBe(nodeData.cpu_cores_limit);
   });
 
   test("should find available nodes", () => {
     const node1 = nodeOps.createNode({
       name: "available-node-1",
       hostname: "node1.example.com",
-      max_cpu_cores: 4,
+      cpu_cores_limit: 4,
+      license_token_limit: 4,
       is_active: true,
       ssh_port: 22
     });
@@ -142,7 +144,8 @@ describe("Node Operations", () => {
     const node2 = nodeOps.createNode({
       name: "available-node-2", 
       hostname: "node2.example.com",
-      max_cpu_cores: 8,
+      cpu_cores_limit: 8,
+      license_token_limit: 8,
       is_active: true,
       ssh_port: 22
     });
@@ -155,18 +158,19 @@ describe("Node Operations", () => {
     const nodeData = {
       name: "status-test-node",
       hostname: "status.example.com",
-      max_cpu_cores: 4,
+      cpu_cores_limit: 4,
+      license_token_limit: 4,
       is_active: true,
       ssh_port: 22
     };
 
     const nodeId = nodeOps.createNode(nodeData);
-    const updated = nodeOps.updateNodeStatus(nodeId, "busy");
+    const updated = nodeOps.updateNodeStatus(nodeId, "available");
     
     expect(updated).toBe(true);
     
     const updatedNode = nodeOps.findNodeById(nodeId);
-    expect(updatedNode?.status).toBe("busy");
+    expect(updatedNode?.status).toBe("available");
   });
 });
 
@@ -322,7 +326,8 @@ describe("Job Operations", () => {
     const nodeId = nodeOps.createNode({
       name: "assign-node",
       hostname: "assign.example.com",
-      max_cpu_cores: 8,
+      cpu_cores_limit: 8,
+      license_token_limit: 8,
       is_active: true,
       ssh_port: 22
     });
