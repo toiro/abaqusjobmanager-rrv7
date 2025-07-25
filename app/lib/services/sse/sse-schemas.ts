@@ -167,6 +167,9 @@ export interface JobEventData {
   cpuCores?: number;
   priority?: string;
   fileId?: number;
+  startTime?: string;
+  endTime?: string;
+  errorMessage?: string;
 }
 
 export interface FileEventData {
@@ -181,6 +184,7 @@ export interface NodeEventData {
   nodeId?: number;
   nodeName?: string;
   hostname?: string;
+  sshUsername?: string;
   sshPort?: number;
   cpuCoresLimit?: number;
   licenseTokenLimit?: number;

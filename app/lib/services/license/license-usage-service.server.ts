@@ -7,7 +7,7 @@ import { getLicenseConfig, getCurrentLicenseUsage } from './license-config.serve
 import { calculateLicenseTokens } from './license-calculator';
 import { type LicenseUsageData, EVENT_TYPES, SSE_CHANNELS } from '../sse/sse-schemas';
 import { emitSSE } from '../sse/sse.server';
-import { getDatabase } from '../../core/database/connection.server';
+import { jobRepository } from '../../core/database/server-operations';
 import { getLogger } from '../../core/logger/logger.server';
 
 /**
@@ -16,32 +16,41 @@ import { getLogger } from '../../core/logger/logger.server';
 export function getLicenseUsageData(): LicenseUsageData {
   try {
     const config = getLicenseConfig();
+
     const usedTokens = getCurrentLicenseUsage();
+
     const availableTokens = config.totalTokens - usedTokens;
 
-    // Get running jobs for detailed breakdown
-    const db = getDatabase();
-    const stmt = db.prepare(`
-      SELECT id, name, cpu_cores 
-      FROM jobs 
-      WHERE status IN ('starting', 'running')
-    `);
-    const runningJobs = stmt.all() as Array<{ id: number; name: string; cpu_cores: number }>;
+    const runningJobs = jobRepository.findJobsByStatuses(['starting', 'running'])
 
     const jobsWithTokens = runningJobs.map(job => ({
-      ...job,
+      id: job.id,
+      name: job.name,
+      cpu_cores: job.cpu_cores,
       tokens: calculateLicenseTokens(job.cpu_cores)
     }));
 
-    return {
+    const result = {
       totalTokens: config.totalTokens,
       usedTokens,
       availableTokens,
       runningJobs: jobsWithTokens
     };
+
+    getLogger().debug('License usage data prepared successfully', 'LicenseUsageService', { 
+      totalTokens: result.totalTokens,
+      usedTokens: result.usedTokens,
+      availableTokens: result.availableTokens,
+      runningJobsCount: result.runningJobs.length
+    });
+
+    return result;
   } catch (error) {
-    getLogger().error('Failed to get license usage data', 'LicenseUsageService', { error });
-    throw new Error(`Failed to get license usage data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    getLogger().error('Failed to get license usage data', 'LicenseUsageService', { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw error;
   }
 }
 

@@ -10,8 +10,8 @@ import type { Route } from "./+types/admin.users";
 
 export async function loader() {
   // Auth is handled by parent route (admin.tsx)
-  const { findAllUsers } = await import("~/lib/core/database/server-operations");
-  const users = findAllUsers();
+  const { userRepository } = await import("~/lib/core/database/server-operations");
+  const users = userRepository.findAllUsers();
   return { users };
 }
 
@@ -21,7 +21,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "create-user") {
     try {
-      const { createUser } = await import("~/lib/core/database/server-operations");
+      const { userRepository } = await import("~/lib/core/database/server-operations");
       
       const userData = {
         display_name: formData.get("display_name") as string,
@@ -39,7 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: "Max concurrent jobs must be between 1 and 50" };
       }
 
-      const userId = createUser(userData);
+      const userId = userRepository.createUser(userData);
       return { success: `User '${userData.display_name}' created successfully`, userId, intent: "create-user" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "create-user" };
@@ -67,7 +67,7 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: "Max concurrent jobs must be between 1 and 50" };
       }
 
-      updateUser(userId, userData);
+      updateUser({ id: userId, ...userData });
       return { success: `User '${userData.display_name}' updated successfully`, intent: "edit-user" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "edit-user" };
@@ -94,7 +94,7 @@ export async function action({ request }: Route.ActionArgs) {
       const isActive = formData.get("isActive") === "true";
       
       // Toggle the status
-      updateUser(userId, { is_active: !isActive });
+      updateUser({ id: userId, is_active: !isActive });
       return { success: "User status updated successfully", intent: "toggle-active" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "toggle-active" };

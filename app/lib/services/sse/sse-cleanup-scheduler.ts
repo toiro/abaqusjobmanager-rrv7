@@ -22,9 +22,14 @@ async function performSSECleanup(): Promise<void> {
   });
 }
 
-// Create SSE cleanup scheduler
-export const sseCleanupScheduler = createCleanupScheduler(
-  'sse-cleanup-scheduler',
-  performSSECleanup,
-  5 // 5 minutes
-);
+/**
+ * Create SSE cleanup scheduler factory function
+ * @param intervalMs Cleanup interval in milliseconds (default: 5 minutes)
+ */
+export function createSSECleanupScheduler(intervalMs: number = 5 * 60 * 1000) {
+  return createCleanupScheduler(
+    'sse-cleanup-scheduler',
+    performSSECleanup,
+    Math.round(intervalMs / (60 * 1000)) // Convert to minutes for createCleanupScheduler
+  );
+}

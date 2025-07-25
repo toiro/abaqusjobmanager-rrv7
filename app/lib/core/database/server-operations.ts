@@ -19,65 +19,20 @@ export {
   logDbSuccess
 } from './db-utils';
 
-// Job operations
-export {
-  createJob,
-  findJobById,
-  findAllJobs,
-  findJobsByStatus,
-  findJobsByUser,
-  findJobsByNode,
-  updateJobStatus,
-  updateJob,
-  deleteJob,
-  assignJobToNode,
-  countUserRunningJobs
-} from './job-operations';
+// Repository-based operations - Martin Fowler Template Method Pattern
+// All database operations now go through Repository instances for consistency
 
-// Node operations
-export {
-  createNode,
-  findNodeById,
-  findAllNodes,
-  findActiveNodes,
-  findAvailableNodes,
-  updateNodeStatus,
-  updateNode,
-  deleteNode,
-  calculateNodeUtilization,
-  countNodeRunningJobs
-} from './node-operations';
+// Repository instances
+export { nodeRepository } from './node-repository';
+export { jobRepository } from './job-repository';
+export { fileRepository } from './file-repository';
+export { userRepository } from './user-repository';
+export { jobLogRepository } from './job-log-repository';
 
-// User operations
-export {
-  createUser,
-  findUserById,
-  findAllUsers,
-  findActiveUsers,
-  updateUser,
-  deleteUser,
-  userExists,
-  findUserByName
-} from './user-operations';
+// Convenience functions that use repositories
+import { fileRepository } from './file-repository';
+import { userRepository } from './user-repository';
 
-// File operations
-export {
-  createFileRecord,
-  findFileById,
-  findAllFiles,
-  findFilesByUploader,
-  updateFileRecord,
-  deleteFile,
-  findFilesByJob,
-  calculateStorageUsage
-} from './file-operations';
-
-// Job log operations
-export {
-  createJobLog,
-  findJobLogById,
-  findJobLogsByJob,
-  findRecentJobLogs,
-  deleteJobLog,
-  deleteJobLogsByJob
-} from './job-log-operations';
+export const findAllFilesWithJobs = () => fileRepository.findAllFilesWithJobs();
+export const updateUser = (data: any) => userRepository.updateUser(data);
+export const deleteUser = (id: number) => userRepository.deleteUser(id);

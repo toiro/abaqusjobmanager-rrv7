@@ -1,9 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import * as jobOps from "../job-operations";
-import * as nodeOps from "../node-operations";
-import * as fileOps from "../file-operations";
-import * as userOps from "../user-operations";
-import * as jobLogOps from "../job-log-operations";
+import { jobRepository, nodeRepository, fileRepository, userRepository, jobLogRepository } from "../server-operations";
 import { getDatabase } from "../connection";
 import { initializeTestDatabase, cleanupTestDatabase } from "../test-setup";
 
@@ -44,10 +40,10 @@ describe("User Operations", () => {
       is_active: true
     };
 
-    const userId = userOps.createUser(userData);
+    const userId = userRepository.createUser(userData);
     expect(userId).toBeGreaterThan(0);
 
-    const retrievedUser = userOps.findUserById(userId);
+    const retrievedUser = userRepository.findUserById(userId);
     expect(retrievedUser).not.toBeNull();
     expect(retrievedUser?.display_name).toBe(userData.display_name);
     expect(retrievedUser?.max_concurrent_jobs).toBe(userData.max_concurrent_jobs);
@@ -61,8 +57,8 @@ describe("User Operations", () => {
       is_active: true
     };
 
-    const userId = userOps.createUser(userData);
-    const foundUser = userOps.findUserByDisplayName(userData.display_name);
+    const userId = userRepository.createUser(userData);
+    const foundUser = userRepository.findUserByDisplayName(userData.display_name);
     
     expect(foundUser).not.toBeNull();
     expect(foundUser?.id).toBe(userId);
@@ -75,9 +71,9 @@ describe("User Operations", () => {
       max_concurrent_jobs: 5,
       is_active: true
     };
-    const userId = userOps.createUser(user);
+    const userId = userRepository.createUser(user);
 
-    const runningJobsCount = userOps.getCurrentJobCount(userId);
+    const runningJobsCount = userRepository.getCurrentJobCount(userId);
     expect(runningJobsCount).toBe(0);
   });
 
@@ -87,9 +83,9 @@ describe("User Operations", () => {
       max_concurrent_jobs: 1,
       is_active: true
     };
-    const userId = userOps.createUser(user);
+    const userId = userRepository.createUser(user);
 
-    const canCreate = userOps.canCreateJob(userId);
+    const canCreate = userRepository.canCreateJob(userId);
     expect(canCreate).toBe(true);
   });
 
@@ -100,12 +96,12 @@ describe("User Operations", () => {
       is_active: true
     };
 
-    const userId = userOps.createUser(userData);
+    const userId = userRepository.createUser(userData);
     
-    const deactivated = userOps.deactivateUser(userId);
+    const deactivated = userRepository.deactivateUser(userId);
     expect(deactivated).toBe(true);
     
-    const activated = userOps.activateUser(userId);
+    const activated = userRepository.activateUser(userId);
     expect(activated).toBe(true);
   });
 });
@@ -121,10 +117,10 @@ describe("Node Operations", () => {
       ssh_port: 22
     };
 
-    const nodeId = nodeOps.createNode(nodeData);
+    const nodeId = nodeRepository.createNode(nodeData);
     expect(nodeId).toBeGreaterThan(0);
 
-    const retrievedNode = nodeOps.findNodeById(nodeId);
+    const retrievedNode = nodeRepository.findNodeById(nodeId);
     expect(retrievedNode).not.toBeNull();
     expect(retrievedNode?.name).toBe(nodeData.name);
     expect(retrievedNode?.hostname).toBe(nodeData.hostname);
@@ -132,7 +128,7 @@ describe("Node Operations", () => {
   });
 
   test("should find available nodes", () => {
-    const node1 = nodeOps.createNode({
+    const node1 = nodeRepository.createNode({
       name: "available-node-1",
       hostname: "node1.example.com",
       cpu_cores_limit: 4,
@@ -141,7 +137,7 @@ describe("Node Operations", () => {
       ssh_port: 22
     });
     
-    const node2 = nodeOps.createNode({
+    const node2 = nodeRepository.createNode({
       name: "available-node-2", 
       hostname: "node2.example.com",
       cpu_cores_limit: 8,
@@ -150,7 +146,7 @@ describe("Node Operations", () => {
       ssh_port: 22
     });
 
-    const availableNodes = nodeOps.findActiveNodes();
+    const availableNodes = nodeRepository.findActiveNodes();
     expect(availableNodes.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -164,12 +160,12 @@ describe("Node Operations", () => {
       ssh_port: 22
     };
 
-    const nodeId = nodeOps.createNode(nodeData);
-    const updated = nodeOps.updateNodeStatus(nodeId, "available");
+    const nodeId = nodeRepository.createNode(nodeData);
+    const updated = nodeRepository.updateNodeStatus(nodeId, "available");
     
     expect(updated).toBe(true);
     
-    const updatedNode = nodeOps.findNodeById(nodeId);
+    const updatedNode = nodeRepository.findNodeById(nodeId);
     expect(updatedNode?.status).toBe("available");
   });
 });
@@ -185,10 +181,10 @@ describe("File Operations", () => {
       uploaded_by: "testuser"
     };
 
-    const fileId = fileOps.createFileRecord(fileData);
+    const fileId = fileRepository.createFileRecord(fileData);
     expect(fileId).toBeGreaterThan(0);
 
-    const retrievedFile = fileOps.findFileById(fileId);
+    const retrievedFile = fileRepository.findFileById(fileId);
     expect(retrievedFile).not.toBeNull();
     expect(retrievedFile?.original_name).toBe(fileData.original_name);
     expect(retrievedFile?.file_size).toBe(fileData.file_size);
@@ -198,13 +194,13 @@ describe("File Operations", () => {
 describe("Job Operations", () => {
   test("should create and retrieve job", () => {
     // Create user and file first
-    const userId = userOps.createUser({
+    const userId = userRepository.createUser({
       display_name: `jobuser_${Date.now()}`,
       max_concurrent_jobs: 5,
       is_active: true
     });
     
-    const fileId = fileOps.createFileRecord({
+    const fileId = fileRepository.createFileRecord({
       original_name: "job.inp",
       stored_name: "job_stored.inp",
       file_path: "/uploads/job_stored.inp", 
@@ -222,10 +218,10 @@ describe("Job Operations", () => {
       priority: "normal" as const
     };
 
-    const jobId = jobOps.createJob(jobData);
+    const jobId = jobRepository.createJob(jobData);
     expect(jobId).toBeGreaterThan(0);
 
-    const retrievedJob = jobOps.findJobById(jobId);
+    const retrievedJob = jobRepository.findJobById(jobId);
     expect(retrievedJob).not.toBeNull();
     expect(retrievedJob?.name).toBe(jobData.name);
     expect(retrievedJob?.status).toBe(jobData.status);
@@ -233,13 +229,13 @@ describe("Job Operations", () => {
 
   test("should find jobs by status", () => {
     // Create user and file first
-    const userId = userOps.createUser({
+    const userId = userRepository.createUser({
       display_name: `statususer_${Date.now()}`,
       max_concurrent_jobs: 5,
       is_active: true
     });
     
-    const fileId = fileOps.createFileRecord({
+    const fileId = fileRepository.createFileRecord({
       original_name: "status.inp",
       stored_name: "status_stored.inp",
       file_path: "/uploads/status_stored.inp",
@@ -248,7 +244,7 @@ describe("Job Operations", () => {
       uploaded_by: "statususer"
     });
 
-    const waitingJob = jobOps.createJob({
+    const waitingJob = jobRepository.createJob({
       name: "waiting-job",
       status: "waiting" as const,
       file_id: fileId,
@@ -257,7 +253,7 @@ describe("Job Operations", () => {
       priority: "normal" as const
     });
 
-    const runningJob = jobOps.createJob({
+    const runningJob = jobRepository.createJob({
       name: "running-job", 
       status: "running" as const,
       file_id: fileId,
@@ -266,8 +262,8 @@ describe("Job Operations", () => {
       priority: "high" as const
     });
 
-    const waitingJobs = jobOps.findJobsByStatus("waiting");
-    const runningJobs = jobOps.findJobsByStatus("running");
+    const waitingJobs = jobRepository.findJobsByStatus("waiting");
+    const runningJobs = jobRepository.findJobsByStatus("running");
 
     expect(waitingJobs.length).toBeGreaterThanOrEqual(1);
     expect(runningJobs.length).toBeGreaterThanOrEqual(1);
@@ -275,13 +271,13 @@ describe("Job Operations", () => {
 
   test("should update job status", () => {
     // Create user and file first
-    const userId = userOps.createUser({
+    const userId = userRepository.createUser({
       display_name: `updateuser_${Date.now()}`,
       max_concurrent_jobs: 5,
       is_active: true
     });
     
-    const fileId = fileOps.createFileRecord({
+    const fileId = fileRepository.createFileRecord({
       original_name: "update.inp",
       stored_name: "update_stored.inp",
       file_path: "/uploads/update_stored.inp",
@@ -290,7 +286,7 @@ describe("Job Operations", () => {
       uploaded_by: "updateuser"
     });
 
-    const jobId = jobOps.createJob({
+    const jobId = jobRepository.createJob({
       name: "update-job",
       status: "waiting" as const,
       file_id: fileId,
@@ -299,22 +295,22 @@ describe("Job Operations", () => {
       priority: "normal" as const
     });
 
-    const updated = jobOps.updateJobStatus(jobId, "running");
+    const updated = jobRepository.updateJobStatus(jobId, "running");
     expect(updated).toBe(true);
 
-    const updatedJob = jobOps.findJobById(jobId);
+    const updatedJob = jobRepository.findJobById(jobId);
     expect(updatedJob?.status).toBe("running");
   });
 
   test("should assign job to node", () => {
     // Create user, file, and node first
-    const userId = userOps.createUser({
+    const userId = userRepository.createUser({
       display_name: `assignuser_${Date.now()}`,
       max_concurrent_jobs: 5,
       is_active: true
     });
     
-    const fileId = fileOps.createFileRecord({
+    const fileId = fileRepository.createFileRecord({
       original_name: "assign.inp",
       stored_name: "assign_stored.inp",
       file_path: "/uploads/assign_stored.inp",
@@ -323,7 +319,7 @@ describe("Job Operations", () => {
       uploaded_by: "assignuser"
     });
 
-    const nodeId = nodeOps.createNode({
+    const nodeId = nodeRepository.createNode({
       name: "assign-node",
       hostname: "assign.example.com",
       cpu_cores_limit: 8,
@@ -332,7 +328,7 @@ describe("Job Operations", () => {
       ssh_port: 22
     });
 
-    const jobId = jobOps.createJob({
+    const jobId = jobRepository.createJob({
       name: "assign-job",
       status: "waiting" as const,
       file_id: fileId,
@@ -341,10 +337,10 @@ describe("Job Operations", () => {
       priority: "normal" as const
     });
 
-    const assigned = jobOps.assignJobToNode(jobId, nodeId);
+    const assigned = jobRepository.assignJobToNode(jobId, nodeId);
     expect(assigned).toBe(true);
 
-    const assignedJob = jobOps.findJobById(jobId);
+    const assignedJob = jobRepository.findJobById(jobId);
     expect(assignedJob?.node_id).toBe(nodeId);
   });
 });
@@ -352,13 +348,13 @@ describe("Job Operations", () => {
 describe("Job Log Operations", () => {
   test("should create and retrieve job logs", () => {
     // Create user and file first
-    const userId = userOps.createUser({
+    const userId = userRepository.createUser({
       display_name: `loguser_${Date.now()}`,
       max_concurrent_jobs: 5,
       is_active: true
     });
     
-    const fileId = fileOps.createFileRecord({
+    const fileId = fileRepository.createFileRecord({
       original_name: "log.inp",
       stored_name: "log_stored.inp",
       file_path: "/uploads/log_stored.inp",
@@ -367,7 +363,7 @@ describe("Job Log Operations", () => {
       uploaded_by: "loguser"
     });
 
-    const jobId = jobOps.createJob({
+    const jobId = jobRepository.createJob({
       name: "log-job",
       status: "waiting" as const,
       file_id: fileId,
@@ -382,10 +378,10 @@ describe("Job Log Operations", () => {
       message: "Test log message"
     };
 
-    const logId = jobLogOps.createJobLog(logData);
+    const logId = jobLogRepository.createJobLog(logData);
     expect(logId).toBeGreaterThan(0);
 
-    const retrievedLog = jobLogOps.findJobLogById(logId);
+    const retrievedLog = jobLogRepository.findJobLogById(logId);
     expect(retrievedLog).not.toBeNull();
     expect(retrievedLog?.message).toBe(logData.message);
     expect(retrievedLog?.log_level).toBe(logData.log_level);

@@ -44,19 +44,39 @@ export class AppLogger implements LoggerInterface {
   }
 
   error(message: string, context?: LogContext, data?: any): void {
-    this.logger.error(message, this.addContext(context, data));
+    const logData = this.addContext(context, data);
+    if (logData) {
+      this.logger.error(message, logData);
+    } else {
+      this.logger.error(message);
+    }
   }
 
   warn(message: string, context?: LogContext, data?: any): void {
-    this.logger.warn(message, this.addContext(context, data));
+    const logData = this.addContext(context, data);
+    if (logData) {
+      this.logger.warn(message, logData);
+    } else {
+      this.logger.warn(message);
+    }
   }
 
   info(message: string, context?: LogContext, data?: any): void {
-    this.logger.info(message, this.addContext(context, data));
+    const logData = this.addContext(context, data);
+    if (logData) {
+      this.logger.info(message, logData);
+    } else {
+      this.logger.info(message);
+    }
   }
 
   debug(message: string, context?: LogContext, data?: any): void {
-    this.logger.debug(message, this.addContext(context, data));
+    const logData = this.addContext(context, data);
+    if (logData) {
+      this.logger.debug(message, logData);
+    } else {
+      this.logger.debug(message);
+    }
   }
 
   /**
@@ -97,10 +117,18 @@ export class AppLogger implements LoggerInterface {
   private addContext(context?: LogContext, data?: any): any {
     if (!context && !data) return undefined;
     
-    return {
-      ...(context && { context }),
-      ...data
-    };
+    // Flatten the data structure for LogTape
+    const result: any = {};
+    
+    if (context) {
+      result.context = context;
+    }
+    
+    if (data && typeof data === 'object') {
+      Object.assign(result, data);
+    }
+    
+    return Object.keys(result).length > 0 ? result : undefined;
   }
 }
 

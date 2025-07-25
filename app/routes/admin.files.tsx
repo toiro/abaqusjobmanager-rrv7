@@ -1,6 +1,6 @@
 import { AdminLayout } from "~/components/layout/AdminLayout";
 import { Button, Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SuccessMessage, ErrorMessage } from "~/components/ui";
-import type { FileRecord, FileWithJobs } from "~/lib/core/types/database";
+import type { FileWithJobs } from "~/lib/core/database";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
 import { formatFileSize } from "~/lib/helpers/utils";
 import type { Route } from "./+types/admin.files";
@@ -11,7 +11,6 @@ import {
   getFormIntent,
   getFormNumber
 } from "~/lib/helpers/api-helpers";
-import { getLogger } from "~/lib/core/logger/logger.server";
 import { useState, useEffect } from "react";
 import { DeleteFileDialog } from "~/components/files/DeleteFileDialog";
 import { useFileSSE, useJobSSE } from "~/hooks/useSSE";
@@ -50,20 +49,20 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
     });
     
     if (intent === "delete-file") {
-      const { findFileById, deleteFileRecord } = await import("~/lib/core/database/server-operations");
+      const { fileRepository } = await import("~/lib/core/database/server-operations");
       
       const fileId = getFormNumber(formData, "fileId");
       
       getLogger().info('Deleting file', 'Routes', { fileId });
       
       // Check if file exists
-      const existingFile = findFileById(fileId);
+      const existingFile = fileRepository.findFileById(fileId);
       if (!existingFile) {
         return error('File not found');
       }
       
       // Delete file from database
-      const deleteSuccess = deleteFileRecord(fileId);
+      const deleteSuccess = fileRepository.deleteFile(fileId);
       if (!deleteSuccess) {
         return error('Failed to delete file from database');
       }

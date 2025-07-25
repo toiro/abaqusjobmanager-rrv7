@@ -4,7 +4,7 @@
  */
 
 import { createAdaptiveScheduler, type AdaptiveTaskResult } from './adaptive-scheduler';
-import { findAllNodes, updateNodeStatus } from "~/lib/core/database/node-operations";
+import { nodeRepository } from "~/lib/core/database/server-operations";
 import { testNodeConnection, updateNodeStatusAfterHealthCheck } from '../node-health/node-health-check';
 import type { NodeConfig } from '../node-health/node-health-check';
 import { getLogger } from '../../core/logger/logger.server';
@@ -27,7 +27,10 @@ export interface HealthCheckConfig {
 /**
  * Create a modern health check scheduler using the new foundation
  */
-export function createNodeHealthCheckScheduler(config: HealthCheckConfig = {}) {
+export function createHealthCheckScheduler(intervalMs: number = 30000) {
+  const config: HealthCheckConfig = {
+    normalIntervalMinutes: Math.round(intervalMs / (60 * 1000)) // Convert ms to minutes
+  };
   const finalConfig = {
     normalIntervalMinutes: config.normalIntervalMinutes ?? 5,
     minIntervalSeconds: config.minIntervalSeconds ?? 30,
@@ -51,7 +54,7 @@ export function createNodeHealthCheckScheduler(config: HealthCheckConfig = {}) {
   const healthCheckTask = async (): Promise<AdaptiveTaskResult> => {
     try {
       // Get all active nodes
-      const activeNodes = findAllNodes().filter(node => node.is_active);
+      const activeNodes = nodeRepository.findAllNodes().filter(node => node.is_active);
       
       if (activeNodes.length === 0) {
         getLogger().debug('No active nodes found for health check', 'HealthCheckScheduler');
@@ -228,60 +231,10 @@ export function createNodeHealthCheckScheduler(config: HealthCheckConfig = {}) {
       maxIntervalMs: finalConfig.maxIntervalMinutes! * 60 * 1000,
       executeImmediately: true,
       maxExecutionTime: 5 * 60 * 1000, // 5 minutes max
-      autoStart: false // Don't auto-start for legacy compatibility
+      autoStart: false // Manual start for controlled initialization
     }
   );
 
   return scheduler;
 }
 
-/**
- * Legacy HealthCheckScheduler wrapper for backward compatibility
- */
-export class HealthCheckScheduler {
-  private static instances: HealthCheckScheduler[] = [];
-  private scheduler: ReturnType<typeof createNodeHealthCheckScheduler>;
-
-  constructor(config: any = {}) {
-    // Convert legacy config to new format
-    const newConfig: HealthCheckConfig = {
-      normalIntervalMinutes: config.normalInterval ? config.normalInterval / 60000 : 5,
-      minIntervalSeconds: config.recoveryInterval ? config.recoveryInterval / 1000 : 30,
-      maxIntervalMinutes: config.failureInterval ? config.failureInterval / 60000 : 30,
-      enableAbaqusTest: config.enableAbaqusTest ?? true
-    };
-
-    this.scheduler = createNodeHealthCheckScheduler(newConfig);
-    
-    // Register this instance
-    HealthCheckScheduler.instances.push(this);
-    
-    getLogger().info('Legacy HealthCheckScheduler created with new foundation', 'HealthCheckScheduler', {
-      config: newConfig
-    });
-  }
-
-  start(): void {
-    this.scheduler.start();
-  }
-
-  stop(): void {
-    this.scheduler.stop();
-  }
-
-  isRunning(): boolean {
-    return this.scheduler.isRunning();
-  }
-
-  getStats() {
-    return this.scheduler.getStats();
-  }
-
-  static stopAll(): void {
-    HealthCheckScheduler.instances.forEach(scheduler => scheduler.stop());
-    getLogger().info('All legacy health check schedulers stopped', 'HealthCheckScheduler');
-  }
-}
-
-// Default health check scheduler instance
-export const defaultHealthCheckScheduler = createNodeHealthCheckScheduler();

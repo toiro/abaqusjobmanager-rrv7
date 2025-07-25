@@ -5,30 +5,30 @@ import type { Route } from "./+types/admin._index";
 export async function loader() {
   // Auth is handled by parent route (admin.tsx)
   const { 
-    findAllJobs, findJobsByStatus,
-    findAllUsers, findActiveUsers,
-    findAllNodes, findAvailableNodes,
-    findAllFiles
+    jobRepository,
+    userRepository,
+    nodeRepository,
+    fileRepository
   } = await import("~/lib/core/database/server-operations");
   
   const stats = {
     jobs: {
-      total: findAllJobs().length,
-      waiting: findJobsByStatus("waiting").length,
-      running: findJobsByStatus("running").length,
-      completed: findJobsByStatus("completed").length,
-      failed: findJobsByStatus("failed").length,
+      total: jobRepository.findAllJobs().length,
+      waiting: jobRepository.findJobsByStatus("waiting").length,
+      running: jobRepository.findJobsByStatus("running").length,
+      completed: jobRepository.findJobsByStatus("completed").length,
+      failed: jobRepository.findJobsByStatus("failed").length,
     },
     users: {
-      total: findAllUsers().length,
-      active: findActiveUsers().length,
+      total: userRepository.findAllUsers().length,
+      active: userRepository.findActiveUsers().length,
     },
     nodes: {
-      total: findAllNodes().length,
-      available: findAvailableNodes().length,
+      total: nodeRepository.findAllNodes().length,
+      available: nodeRepository.findAvailableNodes().length,
     },
     files: {
-      total: findAllFiles().length,
+      total: fileRepository.findAllFiles().length,
     },
   };
   

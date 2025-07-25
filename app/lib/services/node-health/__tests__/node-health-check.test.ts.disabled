@@ -49,7 +49,7 @@ import {
   type NodeConnectionResult,
   type HealthCheckConfig
 } from '../node-health-check';
-import { findAllNodes, createNode, updateNodeStatus, findNodeById } from "../../../core/database/node-operations";
+import { nodeRepository } from "../../../core/database/server-operations";
 import { getDatabase } from '../../../core/database/connection';
 import { initializeTestDatabase } from "../../../core/database/test-setup";
 
@@ -187,7 +187,7 @@ describe('Node Health Check System', () => {
   describe('performInitialHealthCheck', () => {
     it('should update node status to available on successful check', async () => {
       // Create a test node
-      const nodeId = createNode({
+      const nodeId = nodeRepository.createNode({
         name: 'test-node-health',
         hostname: 'test-mock-host',
         ssh_port: 22,
@@ -197,7 +197,7 @@ describe('Node Health Check System', () => {
       });
 
       // Initial status should be unavailable
-      let node = findNodeById(nodeId);
+      let node = nodeRepository.findNodeById(nodeId);
       expect(node?.status).toBe('unavailable');
 
       // Perform health check with mock host
@@ -209,12 +209,12 @@ describe('Node Health Check System', () => {
       expect(result.newStatus).toBe('available');
 
       // Verify database was updated
-      node = findNodeById(nodeId);
+      node = nodeRepository.findNodeById(nodeId);
       expect(node?.status).toBe('available');
     });
 
     it('should keep node status as unavailable on failed check', async () => {
-      const nodeId = createNode({
+      const nodeId = nodeRepository.createNode({
         name: 'test-node-fail',
         hostname: 'invalid-host.invalid',
         ssh_port: 22,
@@ -231,7 +231,7 @@ describe('Node Health Check System', () => {
       expect(result.newStatus).toBe('unavailable');
 
       // Verify database status unchanged
-      const node = findNodeById(nodeId);
+      const node = nodeRepository.findNodeById(nodeId);
       expect(node?.status).toBe('unavailable');
     });
 
@@ -245,7 +245,7 @@ describe('Node Health Check System', () => {
 
   describe('updateNodeStatusAfterHealthCheck', () => {
     it('should update status based on health check result', () => {
-      const nodeId = createNode({
+      const nodeId = nodeRepository.createNode({
         name: 'status-update-test',
         hostname: 'test-mock-host',
         ssh_port: 22,
@@ -269,12 +269,12 @@ describe('Node Health Check System', () => {
       expect(result.success).toBe(true);
       expect(result.newStatus).toBe('available');
 
-      const node = findNodeById(nodeId);
+      const node = nodeRepository.findNodeById(nodeId);
       expect(node?.status).toBe('available');
     });
 
     it('should set status to unavailable on failed health check', () => {
-      const nodeId = createNode({
+      const nodeId = nodeRepository.createNode({
         name: 'status-fail-test',
         hostname: 'test-mock-host',
         ssh_port: 22,
@@ -284,7 +284,7 @@ describe('Node Health Check System', () => {
       });
 
       // First set to available
-      updateNodeStatus(nodeId, 'available');
+      nodeRepository.updateNodeStatus(nodeId, 'available');
 
       const healthResult: NodeConnectionResult = {
         success: false,
@@ -301,7 +301,7 @@ describe('Node Health Check System', () => {
       expect(result.success).toBe(true);
       expect(result.newStatus).toBe('unavailable');
 
-      const node = findNodeById(nodeId);
+      const node = nodeRepository.findNodeById(nodeId);
       expect(node?.status).toBe('unavailable');
     });
   });

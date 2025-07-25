@@ -3,38 +3,16 @@
  * This file will NOT be included in client bundles
  */
 
-import { getDatabase } from "../../core/database/connection.server";
+import { jobRepository } from "../../core/database/server-operations";
+import { getSystemConfig, setSystemConfig } from "~/lib/core/database/config-operations";
 import { validateServerName, validateTokenCount } from './license-validation';
+import { calculateLicenseTokens } from './license-calculator';
 
 export interface LicenseConfig {
   serverName: string;
   totalTokens: number;
 }
 
-/**
- * Simple system configuration functions
- * Basic implementation for license management
- */
-function getSystemConfig(key: string): string | null {
-  try {
-    const db = getDatabase();
-    const stmt = db.prepare("SELECT value FROM system_config WHERE key = ?");
-    const result = stmt.get(key) as { value: string } | undefined;
-    return result?.value || null;
-  } catch {
-    return null;
-  }
-}
-
-function setSystemConfig(key: string, value: string): void {
-  try {
-    const db = getDatabase();
-    const stmt = db.prepare("INSERT OR REPLACE INTO system_config (key, value) VALUES (?, ?)");
-    stmt.run(key, value);
-  } catch {
-    // Ignore errors for now
-  }
-}
 
 /**
  * Get current license configuration
@@ -82,16 +60,7 @@ export function updateLicenseConfig(config: LicenseConfig): void {
  */
 export function getCurrentLicenseUsage(): number {
   try {
-    const db = getDatabase();
-    const stmt = db.prepare(`
-      SELECT cpu_cores FROM jobs 
-      WHERE status IN ('starting', 'running')
-    `);
-    const runningJobs = stmt.all() as { cpu_cores: number }[];
-    
-    // Import license calculator to compute tokens for each job
-    const { calculateLicenseTokens } = require('../license-calculator');
-    
+    const runningJobs = jobRepository.findJobsByStatuses(['starting', 'running'])
     return runningJobs.reduce((total, job) => {
       return total + calculateLicenseTokens(job.cpu_cores);
     }, 0);

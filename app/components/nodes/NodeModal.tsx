@@ -34,6 +34,7 @@ export function NodeModal({
   // Form state
   const [name, setName] = useState("");
   const [hostname, setHostname] = useState("");
+  const [sshUsername, setSshUsername] = useState("");
   const [sshPort, setSshPort] = useState("22");
   const [maxCpuCores, setMaxCpuCores] = useState("4");
   const [isActive, setIsActive] = useState(true);
@@ -48,6 +49,7 @@ export function NodeModal({
       if (isEditMode && node) {
         setName(node.name);
         setHostname(node.hostname);
+        setSshUsername(node.ssh_username || "");
         setSshPort(node.ssh_port?.toString() || "22");
         setMaxCpuCores(node.cpu_cores_limit?.toString() || "4");
         setIsActive(node.is_active ?? true);
@@ -55,6 +57,7 @@ export function NodeModal({
         // Reset for create mode
         setName("");
         setHostname("");
+        setSshUsername("");
         setSshPort("22");
         setMaxCpuCores("4");
         setIsActive(true);
@@ -67,6 +70,7 @@ export function NodeModal({
     if (!isOpen) {
       setName("");
       setHostname("");
+      setSshUsername("");
       setSshPort("22");
       setMaxCpuCores("4");
       setIsActive(true);
@@ -77,6 +81,7 @@ export function NodeModal({
   // Validation
   const isFormValid = name.trim().length >= 2 && 
                      hostname.trim().length >= 3 && 
+                     sshUsername.trim().length >= 1 &&
                      parseInt(sshPort) > 0 && parseInt(sshPort) <= 65535 &&
                      parseInt(maxCpuCores) >= 1 && parseInt(maxCpuCores) <= 128;
 
@@ -131,6 +136,24 @@ export function NodeModal({
           required
           minLength={3}
         />
+      </div>
+
+      {/* SSH Username */}
+      <div className="space-y-2">
+        <Label htmlFor="ssh-username">SSH Username</Label>
+        <Input
+          id="ssh-username"
+          name="ssh_username"
+          type="text"
+          value={sshUsername}
+          onChange={(e) => setSshUsername(e.target.value)}
+          placeholder="e.g., admin, user, abaqus"
+          required
+          minLength={1}
+        />
+        <p className="text-sm text-muted-foreground">
+          Username for SSH connection to the node
+        </p>
       </div>
 
       {/* SSH Port */}

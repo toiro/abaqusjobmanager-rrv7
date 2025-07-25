@@ -13,8 +13,10 @@ CREATE TABLE IF NOT EXISTS nodes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT UNIQUE NOT NULL,
   hostname TEXT NOT NULL,
+  ssh_username TEXT NOT NULL,
   ssh_port INTEGER DEFAULT 22,
-  max_cpu_cores INTEGER NOT NULL,
+  cpu_cores_limit INTEGER NOT NULL,
+  license_token_limit INTEGER NOT NULL,
   status TEXT DEFAULT 'unavailable' CHECK (status IN ('available', 'unavailable')),
   is_active BOOLEAN DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -41,7 +43,8 @@ CREATE TABLE IF NOT EXISTS files (
   file_size INTEGER NOT NULL,
   checksum TEXT,
   uploaded_by TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Jobs table

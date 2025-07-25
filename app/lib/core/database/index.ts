@@ -12,35 +12,46 @@ export type {
   User,
   FileRecord,
   JobLog,
+  // Create types
+  CreateJob,
+  CreateNode,
+  CreateUser,
+  CreateFileRecord,
+  CreateJobLog,
+  // Persisted types
+  PersistedJob,
+  PersistedNode,
+  PersistedUser,
+  PersistedFileRecord,
+  PersistedJobLog,
+  // Update types
+  UpdateJob,
+  UpdateNode,
+  UpdateUser,
+  UpdateFileRecord,
+  // Schemas
   JobSchema,
   NodeSchema,
   UserSchema,
   FileRecordSchema,
-  JobLogSchema
+  JobLogSchema,
+  CreateJobSchema,
+  CreateNodeSchema,
+  CreateUserSchema,
+  CreateFileRecordSchema,
+  CreateJobLogSchema,
+  PersistedJobSchema,
+  PersistedNodeSchema,
+  PersistedUserSchema,
+  PersistedFileRecordSchema,
+  PersistedJobLogSchema,
+  UpdateJobSchema,
+  UpdateNodeSchema,
+  UpdateUserSchema,
+  UpdateFileRecordSchema
 } from '../types/database';
 
-// Operation input/output types for type safety
+// Extended types 
 export type {
-  CreateJobInput,
-  UpdateJobInput
-} from './job-operations';
-
-export type {
-  CreateNodeInput,
-  UpdateNodeInput
-} from './node-operations';
-
-export type {
-  CreateUserInput,
-  UpdateUserInput
-} from './user-operations';
-
-export type {
-  CreateFileInput,
-  UpdateFileInput,
   FileWithJobs
-} from './file-operations';
-
-export type {
-  CreateJobLogInput
-} from './job-log-operations';
+} from './file-repository';

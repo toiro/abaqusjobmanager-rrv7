@@ -12,8 +12,8 @@ import type { Route } from "./+types/admin.nodes";
 
 export async function loader() {
   // Auth is handled by parent route (admin.tsx)
-  const { findAllNodes } = await import("~/lib/core/database/server-operations");
-  const nodes = findAllNodes();
+  const { nodeRepository } = await import("~/lib/core/database/server-operations");
+  const nodes = nodeRepository.findAllNodes();
   return { nodes };
 }
 
@@ -23,11 +23,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "create-node") {
     try {
-      const { createNode } = await import("~/lib/core/database/server-operations");
+      const { nodeRepository } = await import("~/lib/core/database/server-operations");
       
       const nodeData = {
         name: formData.get("name") as string,
         hostname: formData.get("hostname") as string,
+        ssh_username: formData.get("ssh_username") as string,
         ssh_port: Number(formData.get("ssh_port")) || 22,
         cpu_cores_limit: Number(formData.get("cpu_cores_limit")),
         license_token_limit: Number(formData.get("license_token_limit")) || Number(formData.get("cpu_cores_limit")),
@@ -35,8 +36,8 @@ export async function action({ request }: Route.ActionArgs) {
       };
 
       // Basic validation
-      if (!nodeData.name || !nodeData.hostname || !nodeData.cpu_cores_limit) {
-        return { error: "Name, hostname, and CPU cores are required", intent: "create-node" };
+      if (!nodeData.name || !nodeData.hostname || !nodeData.ssh_username || !nodeData.cpu_cores_limit) {
+        return { error: "Name, hostname, SSH username, and CPU cores are required", intent: "create-node" };
       }
 
       if (nodeData.ssh_port < 1 || nodeData.ssh_port > 65535) {
@@ -47,7 +48,56 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: "CPU cores must be between 1 and 128", intent: "create-node" };
       }
 
-      const nodeId = createNode(nodeData);
+      const nodeId = nodeRepository.createNode(nodeData);
+      
+      // Perform initial health check for the newly created node
+      try {
+        const { performInitialHealthCheck } = await import("~/lib/services/node-health/node-health-check");
+        
+        // 非同期で初期ヘルスチェックを実行（ユーザーを待たせない）
+        performInitialHealthCheck(nodeId).then(async (healthResult) => {
+          const { getLogger } = await import("~/lib/core/logger/logger.server");
+          const logger = getLogger();
+          
+          if (healthResult.success) {
+            logger.info('Initial health check completed for new node', 'AdminNodes', {
+              nodeId,
+              nodeName: nodeData.name,
+              hostname: nodeData.hostname,
+              previousStatus: healthResult.previousStatus,
+              newStatus: healthResult.newStatus
+            });
+          } else {
+            logger.warn('Initial health check failed for new node', 'AdminNodes', {
+              nodeId,
+              nodeName: nodeData.name,
+              hostname: nodeData.hostname,
+              error: healthResult.error
+            });
+          }
+        }).catch(async (error) => {
+          const { getLogger } = await import("~/lib/core/logger/logger.server");
+          const logger = getLogger();
+          
+          logger.error('Failed to perform initial health check for new node', 'AdminNodes', {
+            nodeId,
+            nodeName: nodeData.name,
+            hostname: nodeData.hostname,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        });
+      } catch (healthCheckError) {
+        // ヘルスチェックの失敗はノード作成成功には影響しない
+        const { getLogger } = await import("~/lib/core/logger/logger.server");
+        const logger = getLogger();
+        
+        logger.warn('Initial health check setup failed for new node', 'AdminNodes', {
+          nodeId,
+          nodeName: nodeData.name,
+          error: healthCheckError instanceof Error ? healthCheckError.message : 'Unknown error'
+        });
+      }
+      
       return { success: `Node '${nodeData.name}' created successfully`, nodeId, intent: "create-node" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "create-node" };
@@ -56,12 +106,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "update-status") {
     try {
-      const { updateNodeStatus } = await import("~/lib/core/database/server-operations");
+      const { nodeRepository } = await import("~/lib/core/database/server-operations");
       
       const nodeId = Number(formData.get("nodeId"));
       const status = formData.get("status") as Node["status"];
       
-      updateNodeStatus(nodeId, status);
+      nodeRepository.updateNodeStatus(nodeId, status);
       return { success: SUCCESS_MESSAGES.NODE_UPDATED, intent: "update-status" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "update-status" };
@@ -70,15 +120,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "toggle-active") {
     try {
-      const { activateNode, deactivateNode } = await import("~/lib/core/database/server-operations");
+      const { nodeRepository } = await import("~/lib/core/database/server-operations");
       
       const nodeId = Number(formData.get("nodeId"));
       const isActive = formData.get("isActive") === "true";
       
       if (isActive) {
-        deactivateNode(nodeId);
+        nodeRepository.deactivateNode(nodeId);
       } else {
-        activateNode(nodeId);
+        nodeRepository.activateNode(nodeId);
       }
       
       return { success: "Node status updated successfully", intent: "toggle-active" };
@@ -89,12 +139,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "edit-node") {
     try {
-      const { updateNode } = await import("~/lib/core/database/server-operations");
+      const { nodeRepository } = await import("~/lib/core/database/server-operations");
       
       const nodeId = Number(formData.get("node_id"));
       const nodeData = {
         name: formData.get("name") as string,
         hostname: formData.get("hostname") as string,
+        ssh_username: formData.get("ssh_username") as string,
         ssh_port: Number(formData.get("ssh_port")) || 22,
         cpu_cores_limit: Number(formData.get("cpu_cores_limit")),
         license_token_limit: Number(formData.get("license_token_limit")) || Number(formData.get("cpu_cores_limit")),
@@ -102,8 +153,8 @@ export async function action({ request }: Route.ActionArgs) {
       };
 
       // Basic validation
-      if (!nodeData.name || !nodeData.hostname || !nodeData.cpu_cores_limit) {
-        return { error: "Name, hostname, and CPU cores are required", intent: "edit-node" };
+      if (!nodeData.name || !nodeData.hostname || !nodeData.ssh_username || !nodeData.cpu_cores_limit) {
+        return { error: "Name, hostname, SSH username, and CPU cores are required", intent: "edit-node" };
       }
 
       if (nodeData.ssh_port < 1 || nodeData.ssh_port > 65535) {
@@ -114,7 +165,7 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: "CPU cores must be between 1 and 128", intent: "edit-node" };
       }
 
-      updateNode(nodeId, nodeData);
+      nodeRepository.updateNode({ id: nodeId, ...nodeData });
       return { success: `Node '${nodeData.name}' updated successfully`, intent: "edit-node" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "edit-node" };
@@ -123,13 +174,56 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "delete-node") {
     try {
-      const { deleteNode } = await import("~/lib/core/database/server-operations");
+      const { nodeRepository } = await import("~/lib/core/database/server-operations");
       
       const nodeId = Number(formData.get("node_id"));
-      deleteNode(nodeId);
+      nodeRepository.deleteNode(nodeId);
       return { success: "Node deleted successfully", intent: "delete-node" };
     } catch (error) {
       return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "delete-node" };
+    }
+  }
+
+  if (intent === "health-check") {
+    try {
+      const { performInitialHealthCheck } = await import("~/lib/services/node-health/node-health-check");
+      const { nodeRepository } = await import("~/lib/core/database/server-operations");
+      
+      const nodeId = Number(formData.get("node_id"));
+      const node = nodeRepository.findNodeById(nodeId);
+      
+      if (!node) {
+        return { error: "Node not found", intent: "health-check" };
+      }
+      
+      // 非同期でヘルスチェックを実行
+      performInitialHealthCheck(nodeId).then(async (healthResult) => {
+        const { getLogger } = await import("~/lib/core/logger/logger.server");
+        const logger = getLogger();
+        
+        logger.info('Manual health check completed', 'AdminNodes', {
+          nodeId,
+          nodeName: node.name,
+          hostname: node.hostname,
+          success: healthResult.success,
+          previousStatus: healthResult.previousStatus,
+          newStatus: healthResult.newStatus,
+          error: healthResult.error
+        });
+      }).catch(async (error) => {
+        const { getLogger } = await import("~/lib/core/logger/logger.server");
+        const logger = getLogger();
+        
+        logger.error('Manual health check failed', 'AdminNodes', {
+          nodeId,
+          nodeName: node.name,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      });
+      
+      return { success: `Health check initiated for node '${node.name}'`, intent: "health-check" };
+    } catch (error) {
+      return { error: ERROR_MESSAGES.UNKNOWN_ERROR, intent: "health-check" };
     }
   }
 
@@ -174,6 +268,7 @@ export default function NodesAdmin({ loaderData: { nodes: initialNodes }, action
                     status: eventData.status || node.status,
                     name: eventData.nodeName || node.name,
                     hostname: eventData.hostname || node.hostname,
+                    ssh_username: eventData.sshUsername || node.ssh_username,
                     ssh_port: eventData.sshPort || node.ssh_port,
                     cpu_cores_limit: eventData.cpuCoresLimit || node.cpu_cores_limit,
                     license_token_limit: eventData.licenseTokenLimit || node.license_token_limit,
@@ -269,6 +364,7 @@ export default function NodesAdmin({ loaderData: { nodes: initialNodes }, action
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Hostname</TableHead>
+                  <TableHead>SSH User</TableHead>
                   <TableHead>SSH Port</TableHead>
                   <TableHead>CPU Cores</TableHead>
                   <TableHead>Status</TableHead>
@@ -282,6 +378,7 @@ export default function NodesAdmin({ loaderData: { nodes: initialNodes }, action
                   <TableRow key={node.id}>
                     <TableCell className="font-medium">{node.name}</TableCell>
                     <TableCell className="font-mono text-sm">{node.hostname}</TableCell>
+                    <TableCell className="font-mono text-sm">{node.ssh_username}</TableCell>
                     <TableCell>{node.ssh_port || 22}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
@@ -302,6 +399,21 @@ export default function NodesAdmin({ loaderData: { nodes: initialNodes }, action
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        <Form method="post" style={{ display: 'inline' }}>
+                          <input type="hidden" name="intent" value="health-check" />
+                          <input type="hidden" name="node_id" value={node.id} />
+                          <Button 
+                            type="submit"
+                            variant="ghost" 
+                            size="sm"
+                            className="text-blue-600"
+                            title="Run health check"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                          </Button>
+                        </Form>
                         <Button 
                           variant="ghost" 
                           size="sm"

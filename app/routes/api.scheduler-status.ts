@@ -4,7 +4,7 @@
  */
 
 import type { Route } from "./+types/api.scheduler-status";
-import { getSchedulerSystemStatus } from "~/lib/services/scheduler-system";
+import { getSchedulerSystemStatus } from "~/lib/services/scheduler/scheduler-system";
 import { SchedulerRegistry } from "~/lib/services/scheduler";
 import { createSuccessResponse, createErrorResponse } from "~/lib/core/types/api-routes";
 import { authenticateAdmin } from "~/lib/services/auth/auth";

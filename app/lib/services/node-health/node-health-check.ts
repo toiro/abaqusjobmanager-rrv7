@@ -3,10 +3,18 @@
  * SSH接続テストとAbaqus環境確認を行う機能
  */
 
-import { findNodeById, updateNodeStatus } from "~/lib/core/database/node-operations";
+import { nodeRepository } from "~/lib/core/database/server-operations";
+import type { Node, PersistedNode } from "~/lib/core/types/database";
 import { getLogger } from "../../core/logger/logger.server";
-import { createRemotePwshExecutor } from "../remote-pwsh";
+import { createNodeExecutor } from "../remote-pwsh/node-executor";
 import path from "path";
+
+// Configuration type for node connections
+export interface NodeConfig {
+  hostname: string;
+  ssh_port: number;
+  username: string;
+}
 
 // Types for health check results
 export interface NodeConnectionResult {
@@ -67,11 +75,6 @@ export interface HealthCheckConfig {
   failureThreshold?: number; // unavailable判定までの連続失敗回数
 }
 
-export interface NodeConfig {
-  hostname: string;
-  ssh_port: number;
-  username: string;
-}
 
 export interface HealthCheckUpdateResult {
   success: boolean;
@@ -127,7 +130,7 @@ function getNodeFailureCount(nodeId: number): number {
  * TDD Refactor: Implement actual SSH connection testing using remote-pwsh
  */
 export async function testNodeConnection(
-  nodeConfig: NodeConfig,
+  node: Node | PersistedNode,
   config: HealthCheckConfig = {}
 ): Promise<NodeConnectionResult> {
   const startTime = Date.now();
@@ -135,15 +138,16 @@ export async function testNodeConnection(
   try {
 
     // Get PowerShell script path
-    const scriptPath = path.join(process.cwd(), "resources", "ps-scripts", "node-health-check.ps1");
+    const scriptPath = path.join(process.cwd(), "resources", "ps-scripts", "nodeHealthCheck.ps1");
 
     // For localhost or test mock hosts, simulate actual connection testing with mock
-    if (nodeConfig.hostname === 'localhost' || nodeConfig.hostname === 'test-mock-host') {
+    if (node.hostname === 'localhost' || node.hostname === 'test-mock-host') {
       // Validate port range even for localhost
-      if (nodeConfig.ssh_port <= 0 || nodeConfig.ssh_port > 65535) {
+      const sshPort = node.ssh_port || 22;
+      if (sshPort <= 0 || sshPort > 65535) {
         return {
           success: false,
-          hostname: nodeConfig.hostname,
+          hostname: node.hostname,
           connectionTime: Date.now() - startTime,
           error: 'Invalid port',
           tests: {
@@ -160,7 +164,7 @@ export async function testNodeConnection(
       
       const result: NodeConnectionResult = {
         success: true,
-        hostname: nodeConfig.hostname,
+        hostname: node.hostname,
         connectionTime: Date.now() - startTime,
         tests: {
           sshConnection: { success: true },
@@ -190,11 +194,7 @@ export async function testNodeConnection(
 
     const connectionPromise = new Promise<NodeConnectionResult>(async (resolve, reject) => {
       try {
-        const executor = createRemotePwshExecutor({
-          host: nodeConfig.hostname,
-          user: nodeConfig.username,
-          scriptPath: scriptPath
-        });
+        const executor = createNodeExecutor(node, scriptPath);
 
         const result = await executor.invokeAsync();
         
@@ -236,14 +236,14 @@ export async function testNodeConnection(
           } catch (parseError) {
             // Fallback if JSON parsing fails
             getLogger().error('Failed to parse PowerShell JSON response', 'HealthCheck', {
-              hostname: nodeConfig.hostname,
+              hostname: node.hostname,
               stdout: result.stdout,
               parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error'
             });
             
             resolve({
               success: false,
-              hostname: nodeConfig.hostname,
+              hostname: node.hostname,
               connectionTime,
               error: 'Failed to parse PowerShell response',
               tests: {
@@ -259,7 +259,7 @@ export async function testNodeConnection(
         } else {
           resolve({
             success: false,
-            hostname: nodeConfig.hostname,
+            hostname: node.hostname,
             connectionTime,
             error: `Command failed with exit code ${result.returnCode}`,
             tests: {
@@ -281,15 +281,15 @@ export async function testNodeConnection(
     const connectionTime = Date.now() - startTime;
     
     getLogger().error('SSH connection test failed', 'HealthCheck', {
-      hostname: nodeConfig.hostname,
-      port: nodeConfig.ssh_port,
-      username: nodeConfig.username,
+      hostname: node.hostname,
+      port: node.ssh_port,
+      username: node.ssh_username,
       error: error instanceof Error ? error.message : 'Unknown error'
     });
     
     return {
       success: false,
-      hostname: nodeConfig.hostname,
+      hostname: node.hostname,
       connectionTime,
       error: error instanceof Error ? error.message : 'Unknown error',
       tests: {
@@ -308,7 +308,7 @@ export async function testNodeConnection(
 export async function performInitialHealthCheck(nodeId: number): Promise<HealthCheckUpdateResult> {
   try {
     // Get node from database
-    const node = findNodeById(nodeId);
+    const node = nodeRepository.findNodeById(nodeId);
     if (!node) {
       return {
         success: false,
@@ -321,15 +321,8 @@ export async function performInitialHealthCheck(nodeId: number): Promise<HealthC
     
     const previousStatus = node.status || 'unavailable';
     
-    // Prepare node config for connection test
-    const nodeConfig: NodeConfig = {
-      hostname: node.hostname,
-      ssh_port: node.ssh_port || 22,
-      username: 'abaqus' // Default username for Abaqus nodes
-    };
-    
     // Perform connection test
-    const connectionResult = await testNodeConnection(nodeConfig, { testAbaqus: true });
+    const connectionResult = await testNodeConnection(node, { testAbaqus: true });
     
     // Update node status based on result
     const updateResult = updateNodeStatusAfterHealthCheck(nodeId, connectionResult, { failureThreshold: 1 }); // 初期チェックは1回失敗で unavailable
@@ -363,7 +356,7 @@ export function updateNodeStatusAfterHealthCheck(
   config: HealthCheckConfig = {}
 ): HealthCheckUpdateResult {
   try {
-    const node = findNodeById(nodeId);
+    const node = nodeRepository.findNodeById(nodeId);
     if (!node) {
       return {
         success: false,
@@ -418,7 +411,7 @@ export function updateNodeStatusAfterHealthCheck(
     // データベース更新（状態が変わる場合のみ）
     let updateSuccess = true;
     if (shouldUpdateStatus) {
-      updateSuccess = updateNodeStatus(nodeId, newStatus);
+      updateSuccess = nodeRepository.updateNodeStatus(nodeId, newStatus);
     }
     
     if (shouldUpdateStatus && updateSuccess) {

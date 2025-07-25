@@ -12,14 +12,14 @@ type Params = {
   "/api/test-events": {};
   "/test": {};
   "/api/events": {};
-  "/test/sse": {};
   "/test/api": {};
+  "/test/sse": {};
   "/test/ui": {};
   "/admin": {};
   "/admin/settings": {};
-  "/admin/nodes": {};
   "/admin/files": {};
   "/admin/login": {};
+  "/admin/nodes": {};
   "/admin/users": {};
   "/*": {
     "*": string;

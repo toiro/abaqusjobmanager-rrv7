@@ -8,7 +8,6 @@ import { useState } from "react";
 import { NewJobModal, EditJobModal } from "~/components/jobs/JobModal";
 import { DeleteJobDialog } from "~/components/jobs/DeleteJobDialog";
 import { CancelJobDialog } from "~/components/jobs/CancelJobDialog";
-import { type FileEventData } from "~/lib/services/sse/sse-schemas";
 import { 
   success,
   error,
@@ -24,15 +23,15 @@ import {
 export async function loader() {
   // サーバー専用のデータベース操作をインポート
   const { 
-    findAllJobs, 
-    findActiveUsers, 
-    findActiveNodes 
+    jobRepository, 
+    userRepository, 
+    nodeRepository 
   } = await import("~/lib/core/database/server-operations");
   const { getLogger } = await import("~/lib/core/logger/logger.server");
   
-  const jobs = findAllJobs();
-  const users = findActiveUsers();
-  const nodes = findActiveNodes();
+  const jobs = jobRepository.findAllJobs();
+  const users = userRepository.findActiveUsers();
+  const nodes = nodeRepository.findActiveNodes();
   
   getLogger().info('Jobs page data loaded', 'Routes', { 
     jobsCount: jobs.length, 
@@ -83,9 +82,9 @@ function validateJobStatus(job: Job, allowedStatuses: string[], action: string) 
 // Simple action handlers
 async function handleCreateJob(formData: FormData): Promise<Response> {
   // サーバー専用の操作をインポート
-  const { createJob, createFileRecord } = await import("~/lib/core/database/server-operations");
+  const { jobRepository, fileRepository } = await import("~/lib/core/database/server-operations");
   const { getLogger } = await import("~/lib/core/logger/logger.server");
-  const { emitFileCreated } = await import("~/lib/services/sse/server-operations");
+  const { emitFileCreated } = await import("~/lib/services/sse/sse.server");
   const { onJobCreated } = await import("~/lib/services/license/license-usage-service.server");
   const { promises: fs } = await import("fs");
   const path = await import("path");
@@ -117,7 +116,7 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
   await fs.writeFile(filePath, fileBuffer);
 
   // Create file record
-  const fileId = createFileRecord({
+  const fileId = fileRepository.createFile({
     original_name: inpFile.name,
     stored_name: storedName,
     file_path: filePath,
@@ -137,7 +136,7 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
   emitFileCreated(fileEventData);
   
   // Create job
-  const jobId = createJob({
+  const jobId = jobRepository.createJob({
     name: jobData.name,
     status: "waiting" as const,
     file_id: fileId,
@@ -156,20 +155,21 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
 
 async function handleEditJob(formData: FormData): Promise<Response> {
   // サーバー専用の操作をインポート
-  const { findJobById, updateJob } = await import("~/lib/core/database/server-operations");
+  const { jobRepository } = await import("~/lib/core/database/server-operations");
   const { getLogger } = await import("~/lib/core/logger/logger.server");
 
   const job_id = getFormNumber(formData, "job_id");
   const jobData = validateJobData(formData);
   
-  const existingJob = findJobById(job_id);
+  const existingJob = jobRepository.findJobById(job_id);
   if (!existingJob) {
     return errorWithIntent(VALIDATION_MESSAGES.JOB_NOT_FOUND, 'edit-job');
   }
   
   validateJobStatus(existingJob, ['waiting'], 'edit');
   
-  const updateResult = updateJob(job_id, {
+  const updateResult = jobRepository.updateJob({
+    id: job_id,
     name: jobData.name,
     user_id: jobData.user_id,
     node_id: jobData.node_id,
@@ -187,20 +187,20 @@ async function handleEditJob(formData: FormData): Promise<Response> {
 
 async function handleDeleteJob(formData: FormData): Promise<Response> {
   // サーバー専用の操作をインポート
-  const { findJobById, deleteJob } = await import("~/lib/core/database/server-operations");
+  const { jobRepository } = await import("~/lib/core/database/server-operations");
   const { getLogger } = await import("~/lib/core/logger/logger.server");
   const { onJobDeleted } = await import("~/lib/services/license/license-usage-service.server");
 
   const job_id = getFormNumber(formData, "job_id");
   
-  const existingJob = findJobById(job_id);
+  const existingJob = jobRepository.findJobById(job_id);
   if (!existingJob) {
     return errorWithIntent(VALIDATION_MESSAGES.JOB_NOT_FOUND, 'delete-job');
   }
   
   validateJobStatus(existingJob, ['completed', 'failed', 'missing'], 'delete');
   
-  const deleteResult = deleteJob(job_id);
+  const deleteResult = jobRepository.deleteJob(job_id);
   if (!deleteResult) {
     return errorWithIntent('Failed to delete job', 'delete-job');
   }
@@ -214,20 +214,20 @@ async function handleDeleteJob(formData: FormData): Promise<Response> {
 
 async function handleCancelJob(formData: FormData): Promise<Response> {
   // サーバー専用の操作をインポート
-  const { findJobById, updateJobStatus } = await import("~/lib/core/database/server-operations");
+  const { jobRepository } = await import("~/lib/core/database/server-operations");
   const { getLogger } = await import("~/lib/core/logger/logger.server");
   const { onJobStatusChanged } = await import("~/lib/services/license/license-usage-service.server");
 
   const job_id = getFormNumber(formData, "job_id");
   
-  const existingJob = findJobById(job_id);
+  const existingJob = jobRepository.findJobById(job_id);
   if (!existingJob) {
     return errorWithIntent(VALIDATION_MESSAGES.JOB_NOT_FOUND, 'cancel-job');
   }
   
   validateJobStatus(existingJob, ['waiting', 'starting', 'running'], 'cancel');
   
-  const cancelResult = updateJobStatus(job_id, "failed", "Cancelled by user");
+  const cancelResult = jobRepository.updateJobStatus(job_id, "failed", "Cancelled by user");
   if (!cancelResult) {
     return errorWithIntent('Failed to cancel job', 'cancel-job');
   }

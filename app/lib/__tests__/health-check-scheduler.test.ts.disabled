@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import {
-  HealthCheckScheduler
+  createHealthCheckScheduler
 } from '../services/scheduler/health-check-scheduler';
-import { findAllNodes, createNode, findNodeById, updateNodeStatus } from "../core/database/node-operations";
-import { getDatabase } from '../core/database/connection';
+import { nodeRepository } from "../core/database/server-operations";
+import { getDatabase } from '../core/database/connection.server';
 import { initializeTestDatabase } from '../core/database/test-setup';
 
 // Mock the entire nodeHealthCheck module
@@ -27,7 +27,7 @@ mock.module('../services/node-health/node-health-check', () => ({
   updateNodeStatusAfterHealthCheck: mock((nodeId: number, result: any) => {
     // Actually update the node status in the database for testing
     const newStatus = result.success ? 'available' : 'unavailable';
-    const updateSuccess = updateNodeStatus(nodeId, newStatus);
+    const updateSuccess = nodeRepository.updateNodeStatus(nodeId, newStatus);
     return {
       success: updateSuccess,
       nodeId,
@@ -103,16 +103,17 @@ describe('Health Check Scheduler System', () => {
 
     it('should perform health checks for all nodes', async () => {
       // Create test nodes
-      const node1Id = createNode({
+      const node1Id = nodeRepository.createNode({
         name: 'test-node-1',
         hostname: 'localhost',
+        ssh_username: 'testuser',
         ssh_port: 22,
         cpu_cores_limit: 4,
         license_token_limit: 4,
         is_active: true
       });
       
-      const node2Id = createNode({
+      const node2Id = nodeRepository.createNode({
         name: 'test-node-2', 
         hostname: 'invalid-host.invalid',
         ssh_port: 22,
@@ -164,8 +165,8 @@ describe('Health Check Scheduler System', () => {
       expect(stats.totalExecutions).toBeGreaterThan(0);
       
       // Verify that nodes were checked
-      const node1 = findNodeById(node1Id);
-      const node2 = findNodeById(node2Id);
+      const node1 = nodeRepository.findNodeById(node1Id);
+      const node2 = nodeRepository.findNodeById(node2Id);
       
       expect(node1?.status).toBe('available');
       expect(node2?.status).toBe('unavailable');
@@ -177,7 +178,7 @@ describe('Health Check Scheduler System', () => {
         throw new Error('Scheduler test error');
       });
       
-      const nodeId = createNode({
+      const nodeId = nodeRepository.createNode({
         name: 'error-test-node',
         hostname: 'localhost',
         ssh_port: 22,
@@ -205,12 +206,12 @@ describe('Health Check Scheduler System', () => {
       expect(stats.totalExecutions).toBeGreaterThan(0);
       
       // Node should remain unavailable on error
-      const node = findNodeById(nodeId);
+      const node = nodeRepository.findNodeById(nodeId);
       expect(node?.status).toBe('unavailable');
     });
 
     it('should track statistics correctly', async () => {
-      const node1Id = createNode({
+      const node1Id = nodeRepository.createNode({
         name: 'stats-test-success',
         hostname: 'localhost',
         ssh_port: 22,
@@ -219,7 +220,7 @@ describe('Health Check Scheduler System', () => {
         is_active: true
       });
       
-      const node2Id = createNode({
+      const node2Id = nodeRepository.createNode({
         name: 'stats-test-failure',
         hostname: 'invalid.invalid',
         ssh_port: 22,

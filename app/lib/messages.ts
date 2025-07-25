@@ -344,8 +344,6 @@ export const CONFIRMATION_MESSAGES = {
   UNSAVED_CHANGES: "You have unsaved changes. Are you sure you want to leave?",
 } as const;
 
-// Alias for backward compatibility
-export const CONFIRM_MESSAGES = CONFIRMATION_MESSAGES;
 
 // Time Formats
 export const TIME_FORMATS = {

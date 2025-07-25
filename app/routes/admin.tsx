@@ -1,4 +1,4 @@
-import { Outlet, redirect } from "react-router";
+import { Outlet } from "react-router";
 import { requireAdminAuth } from "~/lib/services/auth/auth";
 import type { Route } from "./+types/admin";
 

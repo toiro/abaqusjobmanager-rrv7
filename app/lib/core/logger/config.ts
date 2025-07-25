@@ -27,7 +27,7 @@ export async function initializeLogger(): Promise<void> {
         
         let output = `${timestamp} ${level} ${category} ${message}`;
         
-        // For error level, show additional context if available
+        // Show additional context if available for all levels
         // LogTape passes additional data directly in the record, not in extra
         const additionalData = { ...record };
         delete additionalData.timestamp;
@@ -35,9 +35,15 @@ export async function initializeLogger(): Promise<void> {
         delete additionalData.category; 
         delete additionalData.message;
         
-        if (record.level === 'error' && Object.keys(additionalData).length > 0) {
-          const contextStr = JSON.stringify(additionalData, null, 2);
-          output += `\nContext: ${contextStr}`;
+        if (Object.keys(additionalData).length > 0) {
+          // For cleaner output, format context on same line for non-error levels
+          if (record.level === 'error') {
+            const contextStr = JSON.stringify(additionalData, null, 2);
+            output += `\nContext: ${contextStr}`;
+          } else {
+            const contextStr = JSON.stringify(additionalData);
+            output += ` ${contextStr}`;
+          }
         }
         
         console.log(output);
