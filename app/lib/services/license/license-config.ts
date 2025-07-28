@@ -4,8 +4,8 @@
  */
 
 export interface LicenseConfig {
-  serverName: string;
-  totalTokens: number;
+	serverName: string;
+	totalTokens: number;
 }
 
 /**
@@ -13,8 +13,8 @@ export interface LicenseConfig {
  * Used for client-side calculations when server data is not available
  */
 export const DEFAULT_LICENSE_CONFIG: LicenseConfig = {
-  serverName: 'localhost',
-  totalTokens: 50
+	serverName: "localhost",
+	totalTokens: 50,
 };
 
 /**
@@ -25,17 +25,24 @@ export const DEFAULT_LICENSE_CONFIG: LicenseConfig = {
 /**
  * Calculate available license tokens from given config and usage
  */
-export function calculateAvailableLicenseTokens(config: LicenseConfig, currentUsage: number): number {
-  return Math.max(0, config.totalTokens - currentUsage);
+export function calculateAvailableLicenseTokens(
+	config: LicenseConfig,
+	currentUsage: number,
+): number {
+	return Math.max(0, config.totalTokens - currentUsage);
 }
 
 /**
  * Check if there are enough license tokens available
  */
-export function checkAvailableLicenseTokens(config: LicenseConfig, currentUsage: number, requiredTokens: number): boolean {
-  const available = calculateAvailableLicenseTokens(config, currentUsage);
-  return available >= requiredTokens;
+export function checkAvailableLicenseTokens(
+	config: LicenseConfig,
+	currentUsage: number,
+	requiredTokens: number,
+): boolean {
+	const available = calculateAvailableLicenseTokens(config, currentUsage);
+	return available >= requiredTokens;
 }
 
 // Re-export validation functions from shared module
-export { validateServerName, validateTokenCount } from './license-validation';
+export { validateServerName, validateTokenCount } from "./license-validation";

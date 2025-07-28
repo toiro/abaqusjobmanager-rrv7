@@ -10,6 +10,7 @@ type Params = {
   "/": {};
   "/api/scheduler-status": {};
   "/api/test-events": {};
+  "/api/settings": {};
   "/test": {};
   "/api/events": {};
   "/test/api": {};

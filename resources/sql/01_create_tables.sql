@@ -1,9 +1,8 @@
--- System configuration table
-CREATE TABLE IF NOT EXISTS system_config (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key TEXT UNIQUE NOT NULL,
-  value TEXT NOT NULL,
-  description TEXT,
+-- JSON-based settings table
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL CHECK (json_valid(value)),
+  schema_version INTEGER NOT NULL DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -25,8 +24,7 @@ CREATE TABLE IF NOT EXISTS nodes (
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  display_name TEXT UNIQUE NOT NULL CHECK (length(display_name) >= 2),
+  id TEXT PRIMARY KEY (length(id) >= 2),
   max_concurrent_jobs INTEGER NOT NULL DEFAULT 1,
   is_active BOOLEAN DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -52,10 +50,10 @@ CREATE TABLE IF NOT EXISTS jobs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('waiting', 'starting', 'running', 'completed', 'failed', 'missing')),
-  node_id INTEGER,
-  file_id INTEGER NOT NULL,
-  user_id INTEGER NOT NULL,
+  node_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
   cpu_cores INTEGER NOT NULL,
+  file_id INTEGER UNIQUE,
   priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
   start_time DATETIME,
   end_time DATETIME,

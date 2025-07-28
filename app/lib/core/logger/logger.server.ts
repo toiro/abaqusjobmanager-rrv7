@@ -3,22 +3,14 @@
  * This file will NOT be included in client bundles
  */
 
-import type { LoggerInterface } from './types';
-import { AppLogger } from './logger';
-
-// Singleton instance for server-side
-let _loggerInstance: AppLogger | null = null;
+import { getLogger as getLogTapeLogger } from "@logtape/logtape";
 
 /**
  * Get the server-side logger instance
+ * Only supports "app" and "http" categories
  */
-export function getLogger(): LoggerInterface {
-  if (!_loggerInstance) {
-    _loggerInstance = new AppLogger();
-  }
-  return _loggerInstance;
+export function getLogger(category: "app" | "http" = "app") {
+	return getLogTapeLogger(category);
 }
 
-// Re-export types and utilities
-export type { LoggerInterface, LogContext } from './types';
-export { initializeLogger } from './config';
+export { initializeLogger } from "./config";

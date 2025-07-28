@@ -4,228 +4,257 @@
  */
 
 import { BaseRepository } from "./base-repository";
-import { 
-  FileRecordSchema, 
-  PersistedFileRecordSchema,
-  UpdateFileRecordSchema,
-  type FileRecord,
-  type CreateFileRecord,
-  type PersistedFileRecord,
-  type UpdateFileRecord
+import { selectQuery, safeDbOperation } from "./db-utils";
+import {
+	FileRecordSchema,
+	PersistedFileRecordSchema,
+	UpdateFileRecordSchema,
+	type FileRecord,
+	type CreateFileRecord,
+	type PersistedFileRecord,
+	type UpdateFileRecord,
 } from "../types/database";
-import { emitFileCreated, emitFileUpdated, emitFileDeleted } from "../../services/sse/sse.server";
+import {
+	emitFileCreated,
+	emitFileUpdated,
+	emitFileDeleted,
+} from "../../services/sse/sse.server";
 import type { FileEventData } from "../../services/sse/sse-schemas";
 
 /**
- * Extended file type with job references
+ * Extended file type with job reference (1:1 relationship)
+ * Now imported from dedicated type file (1 Type 1 File strategy)
  */
-export interface FileWithJobs extends PersistedFileRecord {
-  referencingJobs: Array<{
-    jobId: number;
-    jobName: string;
-    jobStatus: string;
-    jobOwner: string;
-    createdAt: string;
-  }>;
-}
+import type { FileWithJob } from "./types/file-with-jobs";
+export type { FileWithJob };
 
 /**
  * FileRepository - Template Method Pattern 適用
  */
-export class FileRepository extends BaseRepository<PersistedFileRecord, CreateFileRecord, UpdateFileRecord> {
-  protected readonly tableName = 'files';
-  protected readonly entitySchema = PersistedFileRecordSchema;
-  protected readonly createSchema = FileRecordSchema.omit({ id: true, created_at: true, updated_at: true });
-  protected readonly updateSchema = UpdateFileRecordSchema;
+export class FileRepository extends BaseRepository<
+	PersistedFileRecord,
+	CreateFileRecord,
+	UpdateFileRecord,
+	number
+> {
+	protected readonly tableName = "files";
+	protected readonly entitySchema = PersistedFileRecordSchema;
+	protected readonly createSchema = FileRecordSchema.omit({
+		id: true,
+		created_at: true,
+		updated_at: true,
+	});
+	protected readonly updateSchema = UpdateFileRecordSchema;
 
-  // === Public API Methods ===
+	/**
+	 * Number IDの場合はlastInsertRowidを返す
+	 */
+	protected getIdFromCreateResult(result: any, data: CreateFileRecord): number {
+		return result.lastInsertRowid as number;
+	}
 
-  createFile(data: CreateFileRecord): number {
-    return this.create(data);
-  }
+	// === Public API Methods ===
 
-  findFileById(id: number): PersistedFileRecord | null {
-    return this.findById(id);
-  }
+	createFile(data: CreateFileRecord): number {
+		return this.create(data);
+	}
 
-  findAllFiles(): PersistedFileRecord[] {
-    return this.findAll();
-  }
+	findFileById(id: number): PersistedFileRecord | null {
+		return this.findById(id);
+	}
 
-  updateFile(data: UpdateFileRecord): boolean {
-    return this.update(data);
-  }
+	findAllFiles(): PersistedFileRecord[] {
+		return this.findAll();
+	}
 
-  deleteFile(id: number): boolean {
-    return this.delete(id);
-  }
+	updateFile(data: UpdateFileRecord): boolean {
+		return this.update(data);
+	}
 
-  // === Specialized File Methods ===
+	deleteFile(id: number): boolean {
+		return this.delete(id);
+	}
 
-  findFileByStoredName(storedName: string): PersistedFileRecord | null {
-    const sql = "SELECT * FROM files WHERE stored_name = ?";
-    const results = this.findByCondition(sql, [storedName]);
-    return results.length > 0 ? results[0] : null;
-  }
+	// === Specialized File Methods ===
 
-  findFilesByUploader(uploadedBy: string): PersistedFileRecord[] {
-    const sql = "SELECT * FROM files WHERE uploaded_by = ? ORDER BY created_at DESC";
-    return this.findByCondition(sql, [uploadedBy]);
-  }
+	findFileByStoredName(storedName: string): PersistedFileRecord | null {
+		const sql = "SELECT * FROM files WHERE stored_name = ?";
+		const results = this.findByCondition(sql, [storedName]);
+		return results.length > 0 ? results[0] : null;
+	}
 
-  findFilesByMimeType(mimeType: string): PersistedFileRecord[] {
-    const sql = "SELECT * FROM files WHERE mime_type = ? ORDER BY created_at DESC";
-    return this.findByCondition(sql, [mimeType]);
-  }
+	findFilesByUploader(uploadedBy: string): PersistedFileRecord[] {
+		const sql =
+			"SELECT * FROM files WHERE uploaded_by = ? ORDER BY created_at DESC";
+		return this.findByCondition(sql, [uploadedBy]);
+	}
 
-  findLargeFiles(minSizeBytes: number): PersistedFileRecord[] {
-    const sql = "SELECT * FROM files WHERE file_size >= ? ORDER BY file_size DESC";
-    return this.findByCondition(sql, [minSizeBytes]);
-  }
+	findFilesByMimeType(mimeType: string): PersistedFileRecord[] {
+		const sql =
+			"SELECT * FROM files WHERE mime_type = ? ORDER BY created_at DESC";
+		return this.findByCondition(sql, [mimeType]);
+	}
 
-  getTotalFileSize(): number {
-    const { selectQuery, safeDbOperation } = require("./db-utils");
-    return safeDbOperation(
-      () => {
-        const result = selectQuery(
-          "SELECT SUM(file_size) as total FROM files",
-          [],
-          { parse: (row: any) => ({ total: row.total || 0 }) } as any,
-          true,
-          'Database'
-        ) as { total: number } | null;
-        return result?.total || 0;
-      },
-      'get total file size',
-      0
-    );
-  }
+	findLargeFiles(minSizeBytes: number): PersistedFileRecord[] {
+		const sql =
+			"SELECT * FROM files WHERE file_size >= ? ORDER BY file_size DESC";
+		return this.findByCondition(sql, [minSizeBytes]);
+	}
 
-  getFileCount(): number {
-    const { selectQuery, safeDbOperation } = require("./db-utils");
-    return safeDbOperation(
-      () => {
-        const result = selectQuery(
-          "SELECT COUNT(*) as count FROM files",
-          [],
-          { parse: (row: any) => ({ count: row.count || 0 }) } as any,
-          true,
-          'Database'
-        ) as { count: number } | null;
-        return result?.count || 0;
-      },
-      'get file count',
-      0
-    );
-  }
+	getTotalFileSize(): number {
+		return safeDbOperation(
+			() => {
+				const result = selectQuery(
+					"SELECT SUM(file_size) as total FROM files",
+					[],
+					{ parse: (row: any) => ({ total: row.total || 0 }) } as any,
+					true,
+					"Database",
+				) as { total: number } | null;
+				return result?.total || 0;
+			},
+			"get total file size",
+			0,
+		);
+	}
 
-  findAllFilesWithJobs(): FileWithJobs[] {
-    const { selectQuery, safeDbOperation } = require("./db-utils");
-    return safeDbOperation(
-      () => {
-        // Get all files
-        const files = this.findAllFiles();
-        
-        // For each file, get its referencing jobs
-        return files.map(file => {
-          const jobSql = `
+	getFileCount(): number {
+		return safeDbOperation(
+			() => {
+				const result = selectQuery(
+					"SELECT COUNT(*) as count FROM files",
+					[],
+					{ parse: (row: any) => ({ count: row.count || 0 }) } as any,
+					true,
+					"Database",
+				) as { count: number } | null;
+				return result?.count || 0;
+			},
+			"get file count",
+			0,
+		);
+	}
+
+	findAllFilesWithJobs(): FileWithJob[] {
+		return safeDbOperation(
+			() => {
+				// Get all files
+				const files = this.findAllFiles();
+
+				// For each file, get its referencing job (1:1 relationship)
+				return files.map((file) => {
+					const jobSql = `
             SELECT j.id as jobId, j.name as jobName, j.status as jobStatus, 
-                   u.name as jobOwner, j.created_at
+                   u.display_name as jobOwner, j.created_at
             FROM jobs j
             LEFT JOIN users u ON j.user_id = u.id
             WHERE j.file_id = ?
-            ORDER BY j.created_at DESC
+            LIMIT 1
           `;
-          
-          const referencingJobs = selectQuery(
-            jobSql, 
-            [file.id], 
-            { 
-              parse: (row: any) => ({
-                jobId: row.jobId,
-                jobName: row.jobName,
-                jobStatus: row.jobStatus,
-                jobOwner: row.jobOwner,
-                createdAt: row.created_at
-              })
-            } as any,
-            false,
-            'Database'
-          ) as Array<{
-            jobId: number;
-            jobName: string;
-            jobStatus: string;
-            jobOwner: string;
-            createdAt: string;
-          }>;
 
-          return {
-            ...file,
-            referencingJobs
-          };
-        });
-      },
-      'find all files with jobs',
-      []
-    );
-  }
+					const referencingJobResults = selectQuery(
+						jobSql,
+						[file.id],
+						{
+							parse: (row: any) => ({
+								jobId: row.jobId,
+								jobName: row.jobName,
+								jobStatus: row.jobStatus,
+								jobOwner: row.jobOwner,
+								createdAt: row.created_at,
+							}),
+						} as any,
+						false,
+						"Database",
+					) as Array<{
+						jobId: number;
+						jobName: string;
+						jobStatus: string;
+						jobOwner: string;
+						createdAt: string;
+					}>;
 
-  // === Hook Method Implementations ===
+					return {
+						...file,
+						referencingJob:
+							referencingJobResults.length > 0
+								? referencingJobResults[0]
+								: null,
+					};
+				});
+			},
+			"find all files with jobs",
+			[],
+		);
+	}
 
-  protected afterCreate(id: number, _data: CreateFileRecord): void {
-    const createdFile = this.findFileById(id);
-    if (createdFile) {
-      emitFileCreated(this.fileToEventData(createdFile));
-    }
-  }
+	// === Hook Method Implementations ===
 
-  protected afterUpdate(id: number, _data: UpdateFileRecord): void {
-    const updatedFile = this.findFileById(id);
-    if (updatedFile) {
-      emitFileUpdated(this.fileToEventData(updatedFile));
-    }
-  }
+	protected afterCreate(id: number, _data: CreateFileRecord): void {
+		const createdFile = this.findFileById(id);
+		if (createdFile) {
+			emitFileCreated(this.fileToEventData(createdFile));
+		}
+	}
 
-  protected beforeDelete(id: number): PersistedFileRecord | null {
-    return this.findFileById(id);
-  }
+	protected afterUpdate(id: number, _data: UpdateFileRecord): void {
+		const updatedFile = this.findFileById(id);
+		if (updatedFile) {
+			emitFileUpdated(this.fileToEventData(updatedFile));
+		}
+	}
 
-  protected afterDelete(_id: number, deletedFile?: PersistedFileRecord | null): void {
-    if (deletedFile) {
-      emitFileDeleted(this.fileToEventData(deletedFile));
-    }
-  }
+	protected beforeDelete(id: number): PersistedFileRecord | null {
+		return this.findFileById(id);
+	}
 
-  protected extractLogData(data: CreateFileRecord | UpdateFileRecord): Record<string, any> {
-    if ('original_name' in data && 'file_size' in data) {
-      return { 
-        originalName: data.original_name, 
-        fileSize: data.file_size 
-      };
-    }
-    return {};
-  }
+	protected afterDelete(
+		_id: number,
+		deletedFile?: PersistedFileRecord | null,
+	): void {
+		if (deletedFile) {
+			emitFileDeleted(this.fileToEventData(deletedFile));
+		}
+	}
 
-  // === Private Helper Methods ===
+	protected extractLogData(
+		data: CreateFileRecord | UpdateFileRecord,
+	): Record<string, any> {
+		if ("original_name" in data && "file_size" in data) {
+			return {
+				originalName: data.original_name,
+				fileSize: data.file_size,
+			};
+		}
+		return {};
+	}
 
-  private findByCondition(sql: string, params: any[]): PersistedFileRecord[] {
-    const { selectQuery, safeDbOperation } = require("./db-utils");
-    return safeDbOperation(
-      () => selectQuery(sql, params, this.entitySchema, false, 'Database') as PersistedFileRecord[],
-      `find files by condition`,
-      []
-    );
-  }
+	// === Private Helper Methods ===
 
-  private fileToEventData(file: PersistedFileRecord): FileEventData {
-    return {
-      fileId: file.id,
-      fileName: file.original_name,
-      fileSize: file.file_size,
-      mimeType: file.mime_type || undefined,
-      uploadedBy: file.uploaded_by || undefined
-    };
-  }
+	private findByCondition(sql: string, params: any[]): PersistedFileRecord[] {
+		return safeDbOperation(
+			() =>
+				selectQuery(
+					sql,
+					params,
+					this.entitySchema,
+					false,
+					"Database",
+				) as PersistedFileRecord[],
+			`find files by condition`,
+			[],
+		);
+	}
+
+	private fileToEventData(file: PersistedFileRecord): FileEventData {
+		return {
+			fileId: file.id,
+			fileName: file.original_name,
+			fileSize: file.file_size,
+			mimeType: file.mime_type || undefined,
+			uploadedBy: file.uploaded_by || undefined,
+		};
+	}
 }
 
 // Singleton instance

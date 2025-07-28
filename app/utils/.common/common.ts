@@ -1,3 +1,3 @@
 export function getCommon() {
-  return "common";
+	return "common";
 }

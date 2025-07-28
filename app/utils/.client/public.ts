@@ -1,3 +1,3 @@
 export function getPublic() {
-  return "public";
+	return "public";
 }

@@ -3,80 +3,75 @@
  * Practical examples for the new simplified SSE system
  */
 
-import { 
-  emitJobEvent, 
-  emitFileEvent, 
-  emitJobCreated,
-  emitFileDeleted,
-  emitSSE
-} from '../services/sse/sse.server';
+import {
+	emitJobEvent,
+	emitFileDeleted,
+	emitSSE,
+} from "../services/sse/sse.server";
 
-import { 
-  createJobEvent,
-  createFileEvent,
-  type SSEEvent,
-  type JobEventData,
-  type FileEventData,
-  EVENT_TYPES,
-  SSE_CHANNELS
-} from '../services/sse/sse-schemas';
+import {
+	createJobEvent,
+	createFileEvent,
+	EVENT_TYPES,
+	SSE_CHANNELS,
+} from "../services/sse/sse-schemas";
 
 // Example 1: Basic event emission
 export function emitBasicJobEvent() {
-  emitJobEvent('job_created', {
-    jobId: 123,
-    jobName: 'My Analysis Job',
-    status: 'waiting'
-  });
+	emitJobEvent("job_created", {
+		jobId: 123,
+		jobName: "My Analysis Job",
+		status: "waiting",
+	});
 }
 
 // Example 2: Using typed helpers
 export function emitTypedFileEvent() {
-  emitFileDeleted({
-    fileId: 456,
-    fileName: 'analysis.inp',
-    fileSize: 1024
-  });
+	emitFileDeleted({
+		fileId: 456,
+		fileName: "analysis.inp",
+		fileSize: 1024,
+	});
 }
 
 // Example 3: Generic SSE emission
 export function emitCustomEvent() {
-  emitSSE('custom-channel', 'custom-event', {
-    message: 'Hello World',
-    timestamp: new Date().toISOString()
-  });
+	emitSSE("custom-channel", "custom-event", {
+		message: "Hello World",
+		timestamp: new Date().toISOString(),
+	});
 }
 
 // Example 4: Creating events manually
 export function createCustomEvents() {
-  const jobEvent = createJobEvent('job_status_changed', {
-    jobId: 789,
-    status: 'running'
-  });
-  
-  const fileEvent = createFileEvent('file_uploaded', {
-    fileId: 101,
-    fileName: 'new-file.inp'
-  });
-  
-  console.log('Created events:', { jobEvent, fileEvent });
+	const jobEvent = createJobEvent("job_status_changed", {
+		jobId: 789,
+		status: "running",
+	});
+
+	const fileEvent = createFileEvent("file_uploaded", {
+		fileId: 101,
+		fileName: "new-file.inp",
+	});
+
+	console.log("Created events:", { jobEvent, fileEvent });
 }
 
 // Example 5: Event type constants usage
 export function useEventConstants() {
-  emitJobEvent(EVENT_TYPES.JOB_CREATED, {
-    jobId: 999,
-    jobName: 'Constant Event Job'
-  });
-  
-  emitSSE(SSE_CHANNELS.SYSTEM, EVENT_TYPES.PING, {
-    message: 'System health check'
-  });
+	emitJobEvent(EVENT_TYPES.JOB_CREATED, {
+		jobId: 999,
+		jobName: "Constant Event Job",
+	});
+
+	emitSSE(SSE_CHANNELS.SYSTEM, EVENT_TYPES.PING, {
+		message: "System health check",
+	});
 }
 
 // Example 6: Component usage pattern
 export function componentUsageExample() {
-  /*
+	/*
   In a React component:
   
   import { useSSE } from '~/hooks/useSSE';

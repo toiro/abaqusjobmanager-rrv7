@@ -6,31 +6,32 @@
 import { useNavigation } from "react-router";
 
 export function useFormSubmission(intent: string) {
-  const navigation = useNavigation();
-  
-  const isSubmitting = navigation.state === "submitting" && 
-    navigation.formMethod === "POST" &&
-    navigation.formData?.get("intent") === intent;
+	const navigation = useNavigation();
 
-  return {
-    isSubmitting,
-    navigation
-  };
+	const isSubmitting =
+		navigation.state === "submitting" &&
+		navigation.formMethod === "POST" &&
+		navigation.formData?.get("intent") === intent;
+
+	return {
+		isSubmitting,
+		navigation,
+	};
 }
 
 // Specific hooks for common intents
 export function useJobCancelSubmission() {
-  return useFormSubmission("cancel-job");
+	return useFormSubmission("cancel-job");
 }
 
 export function useJobDeleteSubmission() {
-  return useFormSubmission("delete-job");
+	return useFormSubmission("delete-job");
 }
 
 export function useJobCreateSubmission() {
-  return useFormSubmission("create-job");
+	return useFormSubmission("create-job");
 }
 
 export function useJobEditSubmission() {
-  return useFormSubmission("edit-job");
+	return useFormSubmission("edit-job");
 }

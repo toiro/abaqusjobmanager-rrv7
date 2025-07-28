@@ -19,7 +19,8 @@
  * bun run scripts/test-ssh-connection.ts -h 192.168.1.100 -u abaqus -p 22 --abaqus --verbose
  */
 
-import { testNodeConnection, type NodeConfig, type HealthCheckConfig } from '../app/lib/services/node-health/node-health-check';
+// TODO: Re-implement this import after health check integration with new scheduler system
+// import { testNodeConnection, type NodeConfig, type HealthCheckConfig } from '../app/server/scheduling-tasks/node-health/node-health-check';
 import { parseArgs } from 'util';
 
 interface CLIArgs {
@@ -79,94 +80,99 @@ async function main() {
     process.exit(1);
   }
 
-  const nodeConfig: NodeConfig = {
-    hostname: args.host,
-    ssh_port: parseInt(args.port || '22'),
-    username: args.user
-  };
+  // TODO: Temporarily disabled - needs reimplementation with new scheduler system
+  console.log('⚠️  This script is temporarily disabled during scheduler system migration');
+  console.log('   It will be restored when health check functionality is integrated with the new system');
+  process.exit(0);
 
-  const healthConfig: HealthCheckConfig = {
-    testAbaqus: args.abaqus || false,
-    timeout: parseInt(args.timeout || '30000')
-  };
+  // const nodeConfig: NodeConfig = {
+  //   hostname: args.host,
+  //   ssh_port: parseInt(args.port || '22'),
+  //   username: args.user
+  // };
 
-  console.log('🚀 Starting SSH connection test...\n');
+  // const healthConfig: HealthCheckConfig = {
+  //   testAbaqus: args.abaqus || false,
+  //   timeout: parseInt(args.timeout || '30000')
+  // };
+
+  // console.log('🚀 Starting SSH connection test...\n');
   
-  if (args.verbose) {
-    console.log('📋 Configuration:');
-    console.log(`   Host: ${nodeConfig.hostname}`);
-    console.log(`   Port: ${nodeConfig.ssh_port}`);
-    console.log(`   User: ${nodeConfig.username}`);
-    console.log(`   Timeout: ${healthConfig.timeout}ms`);
-    console.log(`   Test Abaqus: ${healthConfig.testAbaqus ? 'Yes' : 'No'}`);
-    console.log('');
-  }
+  // if (args.verbose) {
+  //   console.log('📋 Configuration:');
+  //   console.log(`   Host: ${nodeConfig.hostname}`);
+  //   console.log(`   Port: ${nodeConfig.ssh_port}`);
+  //   console.log(`   User: ${nodeConfig.username}`);
+  //   console.log(`   Timeout: ${healthConfig.timeout}ms`);
+  //   console.log(`   Test Abaqus: ${healthConfig.testAbaqus ? 'Yes' : 'No'}`);
+  //   console.log('');
+  // }
 
-  const startTime = Date.now();
+  // const startTime = Date.now();
   
-  try {
-    console.log(`🔗 Connecting to ${nodeConfig.username}@${nodeConfig.hostname}:${nodeConfig.ssh_port}...`);
+  // try {
+  //   console.log(`🔗 Connecting to ${nodeConfig.username}@${nodeConfig.hostname}:${nodeConfig.ssh_port}...`);
     
-    const result = await testNodeConnection(nodeConfig, healthConfig);
-    const totalTime = Date.now() - startTime;
-    
-    console.log('\n📊 Test Results:');
-    console.log('================');
-    
-    if (result.success) {
-      console.log('✅ Overall Status: SUCCESS');
-    } else {
-      console.log('❌ Overall Status: FAILED');
-    }
-    
-    console.log(`⏱️  Total Time: ${totalTime}ms`);
-    console.log(`🔗 Connection Time: ${result.connectionTime}ms`);
-    console.log(`🖥️  Remote Hostname: ${result.hostname}`);
-    
-    if (result.error) {
-      console.log(`❌ Error: ${result.error}`);
-    }
-    
-    console.log('\n🔍 Test Details:');
-    console.log('================');
-    
-    // SSH Connection Test
-    console.log(`SSH Connection: ${result.tests.sshConnection.success ? '✅ SUCCESS' : '❌ FAILED'}`);
-    if (result.tests.sshConnection.error) {
-      console.log(`  Error: ${result.tests.sshConnection.error}`);
-    }
-    
-    // Basic Commands Test
-    if (result.tests.basicCommands) {
-      console.log(`Basic Commands: ${result.tests.basicCommands.success ? '✅ SUCCESS' : '❌ FAILED'}`);
-      if (args.verbose && result.tests.basicCommands.commands) {
-        console.log(`  Executed: ${result.tests.basicCommands.commands.join(', ')}`);
-      }
-      if (result.tests.basicCommands.error) {
-        console.log(`  Error: ${result.tests.basicCommands.error}`);
-      }
-    }
-    
-    // Abaqus Environment Test
-    if (result.tests.abaqusEnvironment) {
-      console.log(`Abaqus Environment: ${result.tests.abaqusEnvironment.success ? '✅ AVAILABLE' : '❌ NOT AVAILABLE'}`);
-      if (result.tests.abaqusEnvironment.version) {
-        console.log(`  Version: ${result.tests.abaqusEnvironment.version}`);
-      }
-      if (result.tests.abaqusEnvironment.error) {
-        console.log(`  Error: ${result.tests.abaqusEnvironment.error}`);
-      }
-    }
-    
-    console.log('\n🎉 Test completed successfully!');
-    process.exit(0);
-    
-  } catch (error) {
-    const totalTime = Date.now() - startTime;
-    console.log(`\n❌ Test failed after ${totalTime}ms:`);
-    console.error(error instanceof Error ? error.message : 'Unknown error');
-    process.exit(1);
-  }
+  //   const result = await testNodeConnection(nodeConfig, healthConfig);
+  //   const totalTime = Date.now() - startTime;
+  //   
+  //   console.log('\n📊 Test Results:');
+  //   console.log('================');
+  //   
+  //   if (result.success) {
+  //     console.log('✅ Overall Status: SUCCESS');
+  //   } else {
+  //     console.log('❌ Overall Status: FAILED');
+  //   }
+  //   
+  //   console.log(`⏱️  Total Time: ${totalTime}ms`);
+  //   console.log(`🔗 Connection Time: ${result.connectionTime}ms`);
+  //   console.log(`🖥️  Remote Hostname: ${result.hostname}`);
+  //   
+  //   if (result.error) {
+  //     console.log(`❌ Error: ${result.error}`);
+  //   }
+  //   
+  //   console.log('\n🔍 Test Details:');
+  //   console.log('================');
+  //   
+  //   // SSH Connection Test
+  //   console.log(`SSH Connection: ${result.tests.sshConnection.success ? '✅ SUCCESS' : '❌ FAILED'}`);
+  //   if (result.tests.sshConnection.error) {
+  //     console.log(`  Error: ${result.tests.sshConnection.error}`);
+  //   }
+  //   
+  //   // Basic Commands Test
+  //   if (result.tests.basicCommands) {
+  //     console.log(`Basic Commands: ${result.tests.basicCommands.success ? '✅ SUCCESS' : '❌ FAILED'}`);
+  //     if (args.verbose && result.tests.basicCommands.commands) {
+  //       console.log(`  Executed: ${result.tests.basicCommands.commands.join(', ')}`);
+  //     }
+  //     if (result.tests.basicCommands.error) {
+  //       console.log(`  Error: ${result.tests.basicCommands.error}`);
+  //     }
+  //   }
+  //   
+  //   // Abaqus Environment Test
+  //   if (result.tests.abaqusEnvironment) {
+  //     console.log(`Abaqus Environment: ${result.tests.abaqusEnvironment.success ? '✅ AVAILABLE' : '❌ NOT AVAILABLE'}`);
+  //     if (result.tests.abaqusEnvironment.version) {
+  //       console.log(`  Version: ${result.tests.abaqusEnvironment.version}`);
+  //     }
+  //     if (result.tests.abaqusEnvironment.error) {
+  //       console.log(`  Error: ${result.tests.abaqusEnvironment.error}`);
+  //     }
+  //   }
+  //   
+  //   console.log('\n🎉 Test completed successfully!');
+  //   process.exit(0);
+  //   
+  // } catch (error) {
+  //   const totalTime = Date.now() - startTime;
+  //   console.log(`\n❌ Test failed after ${totalTime}ms:`);
+  //   console.error(error instanceof Error ? error.message : String(error));
+  //   process.exit(1);
+  // }
 }
 
 main().catch((error) => {

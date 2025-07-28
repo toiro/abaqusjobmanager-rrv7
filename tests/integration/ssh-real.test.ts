@@ -2,16 +2,18 @@
  * Real SSH Integration Tests
  * 
  * これらのテストは実際のSSH接続を行います。
- * テスト接続先情報は環境変数で指定してください：
+ * デフォルトでラボサーバー (10.9.88.17, user: lab) を使用します。
  * 
- * TEST_SSH_HOST=hostname
- * TEST_SSH_PORT=port
- * TEST_SSH_USER=username
+ * 環境変数でオーバーライド可能：
+ * TEST_SSH_HOST=hostname (default: 10.9.88.17)
+ * TEST_SSH_PORT=port (default: 22)
+ * TEST_SSH_USER=username (default: lab)
  * TEST_SSH_PASSWORD=password (optional)
  * TEST_SSH_TIMEOUT=30000 (optional, default: 30000ms)
  * 
  * 実行例:
- * TEST_SSH_HOST=192.168.1.100 TEST_SSH_USER=abaqus bun test tests/integration/ssh-real.test.ts
+ * bun test tests/integration/ssh-real.test.ts  # デフォルト値使用
+ * TEST_SSH_HOST=192.168.1.100 TEST_SSH_USER=abaqus bun test tests/integration/ssh-real.test.ts  # カスタム値
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
@@ -26,13 +28,10 @@ interface TestSSHConfig {
   timeout: number;
 }
 
-function getTestConfig(): TestSSHConfig | null {
-  const hostname = process.env.TEST_SSH_HOST;
-  const username = process.env.TEST_SSH_USER;
-  
-  if (!hostname || !username) {
-    return null;
-  }
+function getTestConfig(): TestSSHConfig {
+  // デフォルト値として成功したラボサーバーの設定を使用
+  const hostname = process.env.TEST_SSH_HOST || '10.9.88.17';
+  const username = process.env.TEST_SSH_USER || 'lab';
   
   return {
     hostname,
@@ -44,32 +43,24 @@ function getTestConfig(): TestSSHConfig | null {
 }
 
 describe('Real SSH Integration Tests', () => {
-  let testConfig: TestSSHConfig;
+  // テスト設定を事前に取得
+  const testConfig = getTestConfig();
   
   beforeAll(() => {
-    const config = getTestConfig();
-    
-    if (!config) {
-      console.log('Skipping SSH integration tests - no connection info provided');
-      console.log('To run these tests, set environment variables:');
-      console.log('  TEST_SSH_HOST=hostname');
-      console.log('  TEST_SSH_USER=username');
-      console.log('  TEST_SSH_PORT=22 (optional)');
-      console.log('  TEST_SSH_PASSWORD=password (optional)');
-      console.log('  TEST_SSH_TIMEOUT=30000 (optional)');
-      return;
-    }
-    
-    testConfig = config;
     console.log(`Running SSH tests against: ${testConfig.username}@${testConfig.hostname}:${testConfig.port}`);
+    
+    // 環境変数が使用されているかデフォルト値かを表示
+    const usingDefaults = !process.env.TEST_SSH_HOST && !process.env.TEST_SSH_USER;
+    if (usingDefaults) {
+      console.log('Using default lab server configuration (10.9.88.17, user: lab)');
+      console.log('Override with environment variables if needed: TEST_SSH_HOST, TEST_SSH_USER');
+    } else {
+      console.log('Using custom configuration from environment variables');
+    }
   });
 
   describe('SSH Connection Tests', () => {
     test('should successfully connect and execute basic commands', async () => {
-      if (!testConfig) {
-        console.log('⏭️  Skipping - no SSH config provided');
-        return;
-      }
 
       const nodeConfig: NodeConfig = {
         hostname: testConfig.hostname,
@@ -103,13 +94,9 @@ describe('Real SSH Integration Tests', () => {
         expect(result.tests.basicCommands.commands).toContain('whoami');
         expect(result.tests.basicCommands.commands).toContain('Get-Location');
       }
-    }, testConfig?.timeout || 30000);
+    }, testConfig.timeout);
 
     test('should test Abaqus environment detection', async () => {
-      if (!testConfig) {
-        console.log('⏭️  Skipping - no SSH config provided');
-        return;
-      }
 
       const nodeConfig: NodeConfig = {
         hostname: testConfig.hostname,
@@ -145,13 +132,9 @@ describe('Real SSH Integration Tests', () => {
           console.log(`❌ Abaqus not detected: ${result.tests.abaqusEnvironment.error}`);
         }
       }
-    }, testConfig?.timeout || 30000);
+    }, testConfig.timeout);
 
     test('should handle PowerShell script execution and JSON parsing', async () => {
-      if (!testConfig) {
-        console.log('⏭️  Skipping - no SSH config provided');
-        return;
-      }
 
       const nodeConfig: NodeConfig = {
         hostname: testConfig.hostname,
@@ -183,15 +166,11 @@ describe('Real SSH Integration Tests', () => {
         expect(Array.isArray(result.tests.basicCommands.commands)).toBe(true);
         expect(result.tests.basicCommands.commands.length).toBeGreaterThan(0);
       }
-    }, testConfig?.timeout || 30000);
+    }, testConfig.timeout);
   });
 
   describe('Error Handling Tests', () => {
     test('should handle invalid port gracefully', async () => {
-      if (!testConfig) {
-        console.log('⏭️  Skipping - no SSH config provided');
-        return;
-      }
 
       const nodeConfig: NodeConfig = {
         hostname: testConfig.hostname,
@@ -211,10 +190,6 @@ describe('Real SSH Integration Tests', () => {
     });
 
     test('should handle connection timeout', async () => {
-      if (!testConfig) {
-        console.log('⏭️  Skipping - no SSH config provided');
-        return;
-      }
 
       // Use a non-routable IP address (TEST-NET-1)
       const nodeConfig: NodeConfig = {
@@ -238,7 +213,6 @@ describe('Real SSH Integration Tests', () => {
   });
 });
 
-// Export helper for manual testing
 export function createTestConfig(hostname: string, username: string, port: number = 22): NodeConfig {
   return { hostname, ssh_port: port, username };
 }

@@ -1,50 +1,63 @@
 /**
- * Abaqus Job Execution Services
- * 
- * Abaqusジョブ実行に関する統合サービス
- * 本物とMockを環境に応じて自動切り替え
+ * Abaqus Job Execution Engine
+ *
+ * Complete Abaqus job execution system with:
+ * - Serial file transfer queue management
+ * - Pure Abaqus execution with hook-based integration
+ * - High-level job orchestration
+ * - Type-safe interfaces
  */
 
-// メインジョブ実行クラス
-export { AbaqusJobRunner } from './abaqus-job-runner.server';
-export { MockAbaqusJobRunner } from './mock-abaqus-job-runner.server';
-export type { JobExecutionResult } from './abaqus-job-runner.server';
+// Type definitions
+export type {
+	// File Transfer Types
+	NodeConnection,
+	TransferOptions,
+	TransferResult,
+	TransferError,
+	FileTransferHooks,
+	// Abaqus Execution Types
+	AbaqusExecutionOptions,
+	AbaqusExecutionResult,
+	AbaqusProgress,
+	AbaqusExecutionContext,
+	AbaqusExecutionError,
+	AbaqusExecutionHooks,
+	// Job Execution Types
+	JobExecutionResult,
+	JobExecutionHooks,
+} from "./types";
 
-// ファクトリー（推奨）
-export { 
-  AbaqusJobRunnerFactory,
-  type IAbaqusJobRunner 
-} from './abaqus-job-runner-factory.server';
-export type { JobRunnerConfig } from './abaqus-job-runner-factory.server';
-
-// ジョブ実行スケジューラー
-export { 
-  JobExecutionScheduler,
-  createJobExecutionScheduler 
-} from './job-execution-scheduler.server';
-export type { JobExecutionSchedulerConfig } from './job-execution-scheduler.server';
+// Core Components
+export { SerialJobQueue } from "./serial-job-queue";
+export {
+	executeTransfer,
+	sendDirectory,
+	receiveDirectory,
+	getFileTransferQueue,
+} from "./file-transfer-service";
+export { executeAbaqus } from "./abaqus-executor";
+export { AbaqusJobExecutor } from "./abaqus-job-executor";
 
 /**
  * 使用例:
- * 
- * // 推奨: Factoryを使用（環境に応じて自動切り替え）
- * const runner = AbaqusJobRunnerFactory.getInstance();
- * const result = await runner.executeJob(job, node);
- * 
- * // 手動でMock指定
- * const mockRunner = AbaqusJobRunnerFactory.getInstance({
- *   forceMock: true,
- *   mockConfig: { errorRate: 0.1 }
- * });
- * 
- * // 自動スケジューラー（サーバー起動時）
- * const scheduler = createJobExecutionScheduler({
- *   checkIntervalSeconds: 30,
- *   maxConcurrentJobs: 3
- * });
- * 
- * // 環境変数での制御:
- * // ENABLE_JOB_EXECUTION=true  - ジョブ実行機能を有効化
- * // USE_MOCK_ABAQUS=true      - 強制的にMockを使用
- * // USE_MOCK_ABAQUS=false     - 強制的に本物を使用
+ *
+ * ```typescript
+ * import {
+ *   createAbaqusJobExecutor,
+ *   getFileTransferService,
+ *   getAbaqusExecutor
+ * } from '~/lib/services/abaqus';
+ *
+ * // 高レベル実行 (推奨)
+ * const executor = createAbaqusJobExecutor();
+ * const result = await executor.executeJob(request, hooks);
+ *
+ * // 低レベル実行 (テスト・デバッグ用)
+ * const fileService = getFileTransferService();
+ * const taskId = await fileService.sendDirectory(options, 10, hooks);
+ *
+ * const abaqusExecutor = getAbaqusExecutor();
+ * const result = await abaqusExecutor.execute(options, nodeConnection, hooks);
+ * ```
  */

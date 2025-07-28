@@ -1,3 +1,3 @@
 export function getSecret() {
-  return "secret";
+	return "secret";
 }

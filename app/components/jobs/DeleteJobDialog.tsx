@@ -7,33 +7,38 @@ import { useJobDeleteSubmission } from "./shared/useFormSubmission";
 import { JobStatusRules } from "./shared/JobStatusUtils";
 
 interface DeleteJobDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  job: Job | null;
-  actionData?: {
-    success?: boolean;
-    message?: string;
-    error?: string;
-  };
+	isOpen: boolean;
+	onClose: () => void;
+	job: Job | null;
+	actionData?: {
+		success?: boolean;
+		message?: string;
+		error?: string;
+	};
 }
 
 // This component is kept for backward compatibility but should be replaced with direct JobActionDialog usage
-export function DeleteJobDialog({ isOpen, onClose, job, actionData }: DeleteJobDialogProps) {
-  const { isSubmitting } = useJobDeleteSubmission();
+export function DeleteJobDialog({
+	isOpen,
+	onClose,
+	job,
+	actionData,
+}: DeleteJobDialogProps) {
+	const { isSubmitting } = useJobDeleteSubmission();
 
-  if (!job) return null;
+	if (!job) return null;
 
-  const canDelete = JobStatusRules.canDelete(job.status);
+	const canDelete = JobStatusRules.canDelete(job.status);
 
-  return (
-    <JobActionDialog
-      isOpen={isOpen}
-      onClose={onClose}
-      job={job}
-      actionType="delete"
-      isSubmitting={isSubmitting}
-      canPerformAction={canDelete}
-      actionData={actionData}
-    />
-  );
+	return (
+		<JobActionDialog
+			isOpen={isOpen}
+			onClose={onClose}
+			job={job}
+			actionType="delete"
+			isSubmitting={isSubmitting}
+			canPerformAction={canDelete}
+			actionData={actionData}
+		/>
+	);
 }

@@ -4,15 +4,15 @@
  */
 
 import { BaseRepository } from "./base-repository";
-import { 
-  JobLogSchema, 
-  CreateJobLogSchema,
-  PersistedJobLogSchema,
-  type JobLog,
-  type CreateJobLog,
-  type PersistedJobLog
+import {
+	JobLogSchema,
+	CreateJobLogSchema,
+	PersistedJobLogSchema,
+	type JobLog,
+	type CreateJobLog,
+	type PersistedJobLog,
 } from "../types/database";
-import { executeQuery } from "./db-utils";
+import { executeQuery, selectQuery, safeDbOperation } from "./db-utils";
 
 // JobLog doesn't have updates, so we use CreateJobLog as UpdateJobLog
 type UpdateJobLogInput = CreateJobLog;
@@ -21,162 +21,203 @@ type UpdateJobLogInput = CreateJobLog;
  * JobLogRepository - Template Method Pattern 適用
  * Note: JobLogs are typically write-only (no updates), but we include update capability for completeness
  */
-export class JobLogRepository extends BaseRepository<PersistedJobLog, CreateJobLog, UpdateJobLogInput> {
-  protected readonly tableName = 'job_logs';
-  protected readonly entitySchema = PersistedJobLogSchema;
-  protected readonly createSchema = CreateJobLogSchema;
-  protected readonly updateSchema = JobLogSchema.omit({ id: true, created_at: true }).partial();
+export class JobLogRepository extends BaseRepository<
+	PersistedJobLog,
+	CreateJobLog,
+	UpdateJobLogInput,
+	number
+> {
+	protected readonly tableName = "job_logs";
+	protected readonly entitySchema = PersistedJobLogSchema;
+	protected readonly createSchema = CreateJobLogSchema;
+	protected readonly updateSchema = JobLogSchema.omit({
+		id: true,
+		created_at: true,
+	}).partial();
 
-  // === Public API Methods ===
+	/**
+	 * Number IDの場合はlastInsertRowidを返す
+	 */
+	protected getIdFromCreateResult(result: any, data: CreateJobLog): number {
+		return result.lastInsertRowid as number;
+	}
 
-  createJobLog(data: CreateJobLog): number {
-    return this.create(data);
-  }
+	// === Public API Methods ===
 
-  findJobLogById(id: number): PersistedJobLog | null {
-    return this.findById(id);
-  }
+	createJobLog(data: CreateJobLog): number {
+		return this.create(data);
+	}
 
-  findAllJobLogs(): PersistedJobLog[] {
-    return this.findAll('created_at ASC'); // JobLogs usually ordered chronologically
-  }
+	findJobLogById(id: number): PersistedJobLog | null {
+		return this.findById(id);
+	}
 
-  updateJobLog(data: CreateJobLog & { id: number }): boolean {
-    const { id, ...updateData } = data;
-    return this.update({ ...updateData, id } as UpdateJobLogInput & { id: number });
-  }
+	findAllJobLogs(): PersistedJobLog[] {
+		return this.findAll("created_at ASC"); // JobLogs usually ordered chronologically
+	}
 
-  deleteJobLog(id: number): boolean {
-    return this.delete(id);
-  }
+	updateJobLog(data: CreateJobLog & { id: number }): boolean {
+		const { id, ...updateData } = data;
+		return this.update({ ...updateData, id } as UpdateJobLogInput & {
+			id: number;
+		});
+	}
 
-  // === Specialized JobLog Methods ===
+	deleteJobLog(id: number): boolean {
+		return this.delete(id);
+	}
 
-  findJobLogsByJobId(jobId: number): PersistedJobLog[] {
-    const sql = "SELECT * FROM job_logs WHERE job_id = ? ORDER BY created_at ASC";
-    return this.findByCondition(sql, [jobId]);
-  }
+	// === Specialized JobLog Methods ===
 
-  findJobLogsByLevel(jobId: number, level: JobLog['log_level']): PersistedJobLog[] {
-    const sql = "SELECT * FROM job_logs WHERE job_id = ? AND log_level = ? ORDER BY created_at ASC";
-    return this.findByCondition(sql, [jobId, level]);
-  }
+	findJobLogsByJobId(jobId: number): PersistedJobLog[] {
+		const sql =
+			"SELECT * FROM job_logs WHERE job_id = ? ORDER BY created_at ASC";
+		return this.findByCondition(sql, [jobId]);
+	}
 
-  findRecentJobLogs(jobId: number, limit: number = 100): PersistedJobLog[] {
-    const sql = "SELECT * FROM job_logs WHERE job_id = ? ORDER BY created_at DESC LIMIT ?";
-    return this.findByCondition(sql, [jobId, limit]);
-  }
+	findJobLogsByLevel(
+		jobId: number,
+		level: JobLog["log_level"],
+	): PersistedJobLog[] {
+		const sql =
+			"SELECT * FROM job_logs WHERE job_id = ? AND log_level = ? ORDER BY created_at ASC";
+		return this.findByCondition(sql, [jobId, level]);
+	}
 
-  deleteJobLogs(jobId: number): boolean {
-    try {
-      const result = executeQuery("DELETE FROM job_logs WHERE job_id = ?", [jobId]);
-      
-      if (result.success) {
-        const { logDbSuccess } = require("./db-utils");
-        logDbSuccess('Job logs deleted', { jobId, deletedCount: result.result.changes });
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      const { handleDbError } = require("./db-utils");
-      handleDbError(error, 'delete job logs', { jobId });
-      return false;
-    }
-  }
+	findRecentJobLogs(jobId: number, limit: number = 100): PersistedJobLog[] {
+		const sql =
+			"SELECT * FROM job_logs WHERE job_id = ? ORDER BY created_at DESC LIMIT ?";
+		return this.findByCondition(sql, [jobId, limit]);
+	}
 
-  deleteOldJobLogs(daysOld: number = 30): number {
-    try {
-      const sql = `
+	deleteJobLogs(jobId: number): boolean {
+		try {
+			const result = executeQuery("DELETE FROM job_logs WHERE job_id = ?", [
+				jobId,
+			]);
+
+			if (result.success) {
+				const { logDbSuccess } = require("./db-utils");
+				logDbSuccess("Job logs deleted", {
+					jobId,
+					deletedCount: result.result.changes,
+				});
+				return true;
+			}
+
+			return false;
+		} catch (error) {
+			const { handleDbError } = require("./db-utils");
+			handleDbError(error, "delete job logs", { jobId });
+			return false;
+		}
+	}
+
+	deleteOldJobLogs(daysOld: number = 30): number {
+		try {
+			const sql = `
         DELETE FROM job_logs 
         WHERE created_at < datetime('now', '-${daysOld} days')
       `;
-      
-      const result = executeQuery(sql, []);
-      
-      if (result.success) {
-        const deletedCount = result.result.changes;
-        const { logDbSuccess } = require("./db-utils");
-        logDbSuccess('Old job logs deleted', { daysOld, deletedCount });
-        return deletedCount;
-      }
-      
-      return 0;
-    } catch (error) {
-      const { handleDbError } = require("./db-utils");
-      handleDbError(error, 'delete old job logs', { daysOld });
-      return 0;
-    }
-  }
 
-  countJobLogs(jobId: number): number {
-    try {
-      const { selectQuery } = require("./db-utils");
-      const result = selectQuery(
-        "SELECT COUNT(*) as count FROM job_logs WHERE job_id = ?",
-        [jobId],
-        JobLogSchema.pick({ id: true }).extend({ count: JobLogSchema.shape.id }),
-        true,
-        'Database'
-      ) as { count: number } | null;
-      
-      return result?.count || 0;
-    } catch (error) {
-      const { handleDbError } = require("./db-utils");
-      handleDbError(error, 'count job logs', { jobId });
-      return 0;
-    }
-  }
+			const result = executeQuery(sql, []);
 
-  // === Hook Method Implementations ===
+			if (result.success) {
+				const deletedCount = result.result.changes;
+				const { logDbSuccess } = require("./db-utils");
+				logDbSuccess("Old job logs deleted", { daysOld, deletedCount });
+				return deletedCount;
+			}
 
-  protected afterCreate(id: number, data: CreateJobLog): void {
-    // JobLogs typically don't emit SSE events for individual log entries
-    // to avoid flooding the client. However, you could emit job-specific events here
-    // if needed for real-time log monitoring
-    
-    // Optional: Emit SSE event for critical log levels
-    if (data.log_level === 'error') {
-      // Could emit a job-specific error event here
-      // emitJobLogError({ jobId: data.job_id, logId: id, message: data.message });
-    }
-  }
+			return 0;
+		} catch (error) {
+			const { handleDbError } = require("./db-utils");
+			handleDbError(error, "delete old job logs", { daysOld });
+			return 0;
+		}
+	}
 
-  protected afterUpdate(_id: number, _data: UpdateJobLogInput): void {
-    // JobLogs are typically immutable after creation, so updates are rare
-    // No SSE events needed for updates
-  }
+	countJobLogs(jobId: number): number {
+		try {
+			const { selectQuery } = require("./db-utils");
+			const result = selectQuery(
+				"SELECT COUNT(*) as count FROM job_logs WHERE job_id = ?",
+				[jobId],
+				JobLogSchema.pick({ id: true }).extend({
+					count: JobLogSchema.shape.id,
+				}),
+				true,
+				"Database",
+			) as { count: number } | null;
 
-  protected beforeDelete(id: number): PersistedJobLog | null {
-    return this.findJobLogById(id);
-  }
+			return result?.count || 0;
+		} catch (error) {
+			const { handleDbError } = require("./db-utils");
+			handleDbError(error, "count job logs", { jobId });
+			return 0;
+		}
+	}
 
-  protected afterDelete(_id: number, _deletedJobLog?: PersistedJobLog | null): void {
-    // No SSE events needed for individual job log deletions
-    // Bulk deletions are handled in the specialized methods above
-  }
+	// === Hook Method Implementations ===
 
-  protected extractLogData(data: CreateJobLog | UpdateJobLogInput): Record<string, any> {
-    if ('job_id' in data && 'log_level' in data) {
-      return { 
-        jobId: data.job_id, 
-        level: data.log_level,
-        message: data.message?.substring(0, 100) // Truncate long messages for logs
-      };
-    }
-    return {};
-  }
+	protected afterCreate(id: number, data: CreateJobLog): void {
+		// JobLogs typically don't emit SSE events for individual log entries
+		// to avoid flooding the client. However, you could emit job-specific events here
+		// if needed for real-time log monitoring
 
-  // === Private Helper Methods ===
+		// Optional: Emit SSE event for critical log levels
+		if (data.log_level === "error") {
+			// Could emit a job-specific error event here
+			// emitJobLogError({ jobId: data.job_id, logId: id, message: data.message });
+		}
+	}
 
-  private findByCondition(sql: string, params: any[]): PersistedJobLog[] {
-    const { selectQuery, safeDbOperation } = require("./db-utils");
-    return safeDbOperation(
-      () => selectQuery(sql, params, this.entitySchema, false, 'Database') as PersistedJobLog[],
-      `find job logs by condition`,
-      []
-    );
-  }
+	protected afterUpdate(_id: number, _data: UpdateJobLogInput): void {
+		// JobLogs are typically immutable after creation, so updates are rare
+		// No SSE events needed for updates
+	}
+
+	protected beforeDelete(id: number): PersistedJobLog | null {
+		return this.findJobLogById(id);
+	}
+
+	protected afterDelete(
+		_id: number,
+		_deletedJobLog?: PersistedJobLog | null,
+	): void {
+		// No SSE events needed for individual job log deletions
+		// Bulk deletions are handled in the specialized methods above
+	}
+
+	protected extractLogData(
+		data: CreateJobLog | UpdateJobLogInput,
+	): Record<string, any> {
+		if ("job_id" in data && "log_level" in data) {
+			return {
+				jobId: data.job_id,
+				level: data.log_level,
+				message: data.message?.substring(0, 100), // Truncate long messages for logs
+			};
+		}
+		return {};
+	}
+
+	// === Private Helper Methods ===
+
+	private findByCondition(sql: string, params: any[]): PersistedJobLog[] {
+		return safeDbOperation(
+			() =>
+				selectQuery(
+					sql,
+					params,
+					this.entitySchema,
+					false,
+					"Database",
+				) as PersistedJobLog[],
+			`find job logs by condition`,
+			[],
+		);
+	}
 }
 
 // Singleton instance

@@ -1,12 +1,14 @@
 /**
  * Scheduler Status API Endpoint
- * Provides comprehensive scheduler system monitoring
+ * 新Schedulerシステム対応版
  */
 
 import type { Route } from "./+types/api.scheduler-status";
-import { getSchedulerSystemStatus } from "~/lib/services/scheduler/scheduler-system";
-import { SchedulerRegistry } from "~/lib/services/scheduler";
-import { createSuccessResponse, createErrorResponse } from "~/lib/core/types/api-routes";
+import { getSchedulerSystem } from "~/server/controller/scheduler-system";
+import {
+	createSuccessResponse,
+	createErrorResponse,
+} from "~/lib/core/types/api-routes";
 import { authenticateAdmin } from "~/lib/services/auth/auth";
 
 /**
@@ -14,51 +16,57 @@ import { authenticateAdmin } from "~/lib/services/auth/auth";
  * Returns comprehensive scheduler system status
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  try {
-    // Require admin authentication
-    const authResult = await authenticateAdmin(request);
-    if (!authResult || !('success' in authResult) || !authResult.success) {
-      return createErrorResponse('Unauthorized', 401);
-    }
+	try {
+		// Require admin authentication
+		const authResult = await authenticateAdmin(request);
+		if (!authResult || !("success" in authResult) || !authResult.success) {
+			return createErrorResponse("Unauthorized", 401);
+		}
 
-    // Get comprehensive scheduler status
-    const systemStatus = getSchedulerSystemStatus();
-    const allSchedulers = SchedulerRegistry.getAll();
-    
-    // Get detailed health information
-    const schedulerHealth = allSchedulers.map(scheduler => ({
-      name: scheduler.getStats().name,
-      health: scheduler.getHealth(),
-      stats: scheduler.getStats(),
-      isRunning: scheduler.isRunning()
-    }));
+		// Get new scheduler system status
+		const schedulerSystem = getSchedulerSystem();
+		const systemStatus = schedulerSystem.getStatus();
 
-    // Calculate system health summary
-    const healthSummary = {
-      totalSchedulers: allSchedulers.length,
-      healthyCount: schedulerHealth.filter(s => s.health.status === 'healthy').length,
-      degradedCount: schedulerHealth.filter(s => s.health.status === 'degraded').length,
-      unhealthyCount: schedulerHealth.filter(s => s.health.status === 'unhealthy').length,
-      stoppedCount: schedulerHealth.filter(s => s.health.status === 'stopped').length,
-      overallHealth: calculateOverallHealth(schedulerHealth)
-    };
+		// Calculate health summary
+		const schedulers = Object.entries(systemStatus.schedulers);
+		const totalSchedulers = schedulers.length;
+		const runningCount = schedulers.filter(([_, s]) => s.running).length;
+		const enabledCount = schedulers.filter(([_, s]) => s.enabled).length;
 
-    const response = {
-      timestamp: new Date().toISOString(),
-      system: systemStatus.system,
-      summary: healthSummary,
-      schedulers: schedulerHealth,
-      registry: SchedulerRegistry.getOverallStats()
-    };
+		const healthSummary = {
+			totalSchedulers,
+			enabledCount,
+			runningCount,
+			stoppedCount: enabledCount - runningCount,
+			overallHealth: calculateOverallHealth(runningCount, enabledCount),
+		};
 
-    return createSuccessResponse(response);
+		const response = {
+			timestamp: new Date().toISOString(),
+			system: {
+				initialized: systemStatus.initialized,
+				type: "new-scheduler-system",
+			},
+			summary: healthSummary,
+			schedulers: schedulers.map(([name, scheduler]) => ({
+				name,
+				enabled: scheduler.enabled,
+				running: scheduler.running,
+				stats: scheduler.stats,
+				health: {
+					status: scheduler.enabled
+						? scheduler.running
+							? "healthy"
+							: "stopped"
+						: "disabled",
+				},
+			})),
+		};
 
-  } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-    return createErrorResponse(
-      'Failed to get scheduler status',
-      500
-    );
-  }
+		return createSuccessResponse(response);
+	} catch (error) {
+		return createErrorResponse("Failed to get scheduler status", 500);
+	}
 }
 
 /**
@@ -66,113 +74,136 @@ export async function loader({ request }: Route.LoaderArgs) {
  * Control scheduler operations (start/stop/restart)
  */
 export async function action({ request }: Route.ActionArgs) {
-  try {
-    // Require admin authentication
-    const authResult = await authenticateAdmin(request);
-    if (!authResult || !('success' in authResult) || !authResult.success) {
-      return createErrorResponse('Unauthorized', 401);
-    }
+	try {
+		// Require admin authentication
+		const authResult = await authenticateAdmin(request);
+		if (!authResult || !("success" in authResult) || !authResult.success) {
+			return createErrorResponse("Unauthorized", 401);
+		}
 
-    const body = await request.json();
-    const { action: schedulerAction, schedulerName } = body;
+		const body = await request.json();
+		const { action: schedulerAction, schedulerName } = body;
 
-    if (!schedulerAction) {
-      return createErrorResponse('Missing action parameter', 400);
-    }
+		if (!schedulerAction) {
+			return createErrorResponse("Missing action parameter", 400);
+		}
 
-    switch (schedulerAction) {
-      case 'stop-all':
-        await SchedulerRegistry.stopAll();
-        return createSuccessResponse({ 
-          message: 'All schedulers stopped',
-          timestamp: new Date().toISOString()
-        });
+		const schedulerSystem = getSchedulerSystem();
 
-      case 'get-scheduler': {
-        if (!schedulerName) {
-          return createErrorResponse('Missing schedulerName parameter', 400);
-        }
-        
-        const scheduler = SchedulerRegistry.getByName(schedulerName);
-        if (!scheduler) {
-          return createErrorResponse(`Scheduler '${schedulerName}' not found`, 404);
-        }
+		switch (schedulerAction) {
+			case "stop-all":
+				await schedulerSystem.stop();
+				return createSuccessResponse({
+					message: "All schedulers stopped",
+					timestamp: new Date().toISOString(),
+				});
 
-        return createSuccessResponse({
-          name: schedulerName,
-          health: scheduler.getHealth(),
-          stats: scheduler.getStats(),
-          isRunning: scheduler.isRunning()
-        });
-      }
+			case "start-all":
+				await schedulerSystem.start();
+				return createSuccessResponse({
+					message: "All schedulers started",
+					timestamp: new Date().toISOString(),
+				});
 
-      case 'stop-scheduler': {
-        if (!schedulerName) {
-          return createErrorResponse('Missing schedulerName parameter', 400);
-        }
-        
-        const schedulerToStop = SchedulerRegistry.getByName(schedulerName);
-        if (!schedulerToStop) {
-          return createErrorResponse(`Scheduler '${schedulerName}' not found`, 404);
-        }
+			case "get-scheduler": {
+				if (!schedulerName) {
+					return createErrorResponse("Missing schedulerName parameter", 400);
+				}
 
-        await schedulerToStop.stop();
-        return createSuccessResponse({ 
-          message: `Scheduler '${schedulerName}' stopped`,
-          timestamp: new Date().toISOString()
-        });
-      }
+				const scheduler = getSchedulerByName(schedulerSystem, schedulerName);
+				if (!scheduler) {
+					return createErrorResponse(
+						`Scheduler '${schedulerName}' not found`,
+						404,
+					);
+				}
 
-      case 'start-scheduler': {
-        if (!schedulerName) {
-          return createErrorResponse('Missing schedulerName parameter', 400);
-        }
-        
-        const schedulerToStart = SchedulerRegistry.getByName(schedulerName);
-        if (!schedulerToStart) {
-          return createErrorResponse(`Scheduler '${schedulerName}' not found`, 404);
-        }
+				return createSuccessResponse({
+					name: schedulerName,
+					running: scheduler.isRunning(),
+					stats: scheduler.getStats(),
+					health: {
+						status: scheduler.isRunning() ? "healthy" : "stopped",
+					},
+				});
+			}
 
-        schedulerToStart.start();
-        return createSuccessResponse({ 
-          message: `Scheduler '${schedulerName}' started`,
-          timestamp: new Date().toISOString()
-        });
-      }
+			case "stop-scheduler": {
+				if (!schedulerName) {
+					return createErrorResponse("Missing schedulerName parameter", 400);
+				}
 
-      default:
-        return createErrorResponse(`Unknown action: ${schedulerAction}`, 400);
-    }
+				const scheduler = getSchedulerByName(schedulerSystem, schedulerName);
+				if (!scheduler) {
+					return createErrorResponse(
+						`Scheduler '${schedulerName}' not found`,
+						404,
+					);
+				}
 
-  } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
-    return createErrorResponse(
-      'Failed to execute scheduler action',
-      500
-    );
-  }
+				await scheduler.stop();
+				return createSuccessResponse({
+					message: `Scheduler '${schedulerName}' stopped`,
+					timestamp: new Date().toISOString(),
+				});
+			}
+
+			case "start-scheduler": {
+				if (!schedulerName) {
+					return createErrorResponse("Missing schedulerName parameter", 400);
+				}
+
+				const scheduler = getSchedulerByName(schedulerSystem, schedulerName);
+				if (!scheduler) {
+					return createErrorResponse(
+						`Scheduler '${schedulerName}' not found`,
+						404,
+					);
+				}
+
+				scheduler.start();
+				return createSuccessResponse({
+					message: `Scheduler '${schedulerName}' started`,
+					timestamp: new Date().toISOString(),
+				});
+			}
+
+			default:
+				return createErrorResponse(`Unknown action: ${schedulerAction}`, 400);
+		}
+	} catch (error) {
+		return createErrorResponse("Failed to execute scheduler action", 500);
+	}
 }
 
 /**
- * Calculate overall system health based on individual scheduler health
+ * Calculate overall system health
  */
-function calculateOverallHealth(schedulerHealth: any[]): 'healthy' | 'degraded' | 'unhealthy' | 'stopped' {
-  if (schedulerHealth.length === 0) return 'stopped';
-  
-  const stoppedCount = schedulerHealth.filter(s => s.health.status === 'stopped').length;
-  const unhealthyCount = schedulerHealth.filter(s => s.health.status === 'unhealthy').length;
-  const degradedCount = schedulerHealth.filter(s => s.health.status === 'degraded').length;
-  
-  // If all schedulers are stopped
-  if (stoppedCount === schedulerHealth.length) return 'stopped';
-  
-  // If any scheduler is unhealthy
-  if (unhealthyCount > 0) return 'unhealthy';
-  
-  // If more than half are degraded or stopped
-  if ((degradedCount + stoppedCount) > schedulerHealth.length / 2) return 'degraded';
-  
-  // If any scheduler is degraded
-  if (degradedCount > 0) return 'degraded';
-  
-  return 'healthy';
+function calculateOverallHealth(
+	runningCount: number,
+	enabledCount: number,
+): "healthy" | "degraded" | "stopped" {
+	if (enabledCount === 0) return "stopped";
+	if (runningCount === 0) return "stopped";
+	if (runningCount === enabledCount) return "healthy";
+	return "degraded";
+}
+
+/**
+ * Get scheduler by name from the new system
+ */
+function getSchedulerByName(
+	system: ReturnType<typeof getSchedulerSystem>,
+	name: string,
+) {
+	switch (name) {
+		case "health-check":
+			return system.getHealthCheckScheduler();
+		case "sse-cleanup":
+			return system.getSSECleanupScheduler();
+		case "job-execution":
+			return system.getJobExecutionScheduler();
+		default:
+			return null;
+	}
 }
