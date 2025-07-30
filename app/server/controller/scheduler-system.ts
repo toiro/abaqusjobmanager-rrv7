@@ -5,8 +5,8 @@
  * 既存の破綻したシステムからの完全置き換え
  */
 
-import { getLogger } from "~/lib/core/logger/logger.server";
-import { env } from "~/lib/core/env";
+import { getLogger } from "~/shared/core/logger/logger.server";
+import { env } from "~/shared/core/env";
 import { HealthCheckScheduler } from "~/server/lib/scheduler/health-check-scheduler.server";
 import { SSECleanupScheduler } from "~/server/lib/scheduler/sse-cleanup-scheduler.server";
 import { JobExecutionScheduler } from "~/server/lib/scheduler/job-execution-scheduler.server";

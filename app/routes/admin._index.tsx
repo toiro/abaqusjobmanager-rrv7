@@ -1,11 +1,11 @@
-import { AdminLayout } from "~/components/layout/AdminLayout";
-import { Badge } from "~/components/ui";
+import { AdminLayout } from "~/client/components/layout/AdminLayout";
+import { Badge } from "~/client/components/ui";
 import type { Route } from "./+types/admin._index";
 
 export async function loader() {
 	// Auth is handled by parent route (admin.tsx)
 	const { jobRepository, userRepository, nodeRepository, fileRepository } =
-		await import("~/lib/core/database/index.server");
+		await import("~/shared/core/database/index.server");
 
 	const stats = {
 		jobs: {

@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { requireAdminAuth } from "~/lib/services/auth/auth";
+import { requireAdminAuth } from "~/server/services/auth/auth";
 import type { Route } from "./+types/admin";
 
 export async function loader({ request }: Route.LoaderArgs) {

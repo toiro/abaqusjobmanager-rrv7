@@ -1,20 +1,20 @@
-import { MainLayout } from "~/components/layout/MainLayout";
-import { Button } from "~/components/ui";
-import { JobTable } from "~/components/jobs/JobTable";
-import type { Job } from "~/lib/core/types/database";
+import { MainLayout } from "~/client/components/layout/MainLayout";
+import { Button } from "~/client/components/ui";
+import { JobTable } from "~/client/components/jobs/JobTable";
+import type { Job } from "~/shared/core/types/database";
 import {
 	PAGE_TITLES,
 	BUTTONS,
 	SUCCESS_MESSAGES,
 	ERROR_MESSAGES,
 	VALIDATION_MESSAGES,
-} from "~/lib/messages";
+} from "~/client/constants/messages";
 import type { Route } from "./+types/_index";
 import { useState } from "react";
-import { NewJobModal, EditJobModal } from "~/components/jobs/JobModal";
-import { DeleteJobDialog } from "~/components/jobs/DeleteJobDialog";
-import { CancelJobDialog } from "~/components/jobs/CancelJobDialog";
-import { env } from "~/lib/core/env";
+import { NewJobModal, EditJobModal } from "~/client/components/jobs/JobModal";
+import { DeleteJobDialog } from "~/client/components/jobs/DeleteJobDialog";
+import { CancelJobDialog } from "~/client/components/jobs/CancelJobDialog";
+import { env } from "~/shared/core/env";
 import {
 	success,
 	error,
@@ -24,15 +24,15 @@ import {
 	getFormString,
 	getFormNumber,
 	ValidationError,
-} from "~/lib/helpers/api-helpers";
+} from "~/shared/utils/api-helpers";
 
 // Simple loader - no complex type abstractions
 export async function loader() {
 	// サーバー専用のデータベース操作をインポート
 	const { jobRepository, userRepository, nodeRepository } = await import(
-		"~/lib/core/database/index.server"
+		"~/shared/core/database/index.server"
 	);
-	const { getLogger } = await import("~/lib/core/logger/logger.server");
+	const { getLogger } = await import("~/shared/core/logger/logger.server");
 
 	const jobs = jobRepository.findAllJobs();
 	const users = userRepository.findActiveUsers();
@@ -94,12 +94,12 @@ function validateJobStatus(
 async function handleCreateJob(formData: FormData): Promise<Response> {
 	// サーバー専用の操作をインポート
 	const { jobRepository, fileRepository } = await import(
-		"~/lib/core/database/index.server"
+		"~/shared/core/database/index.server"
 	);
-	const { getLogger } = await import("~/lib/core/logger/logger.server");
-	const { emitFileCreated } = await import("~/lib/services/sse/sse.server");
+	const { getLogger } = await import("~/shared/core/logger/logger.server");
+	const { emitFileCreated } = await import("~/server/services/sse/sse.server");
 	const { onJobCreated } = await import(
-		"~/lib/services/license/license-usage-service.server"
+		"~/server/services/license/license-usage-service.server"
 	);
 	const { promises: fs } = await import("fs");
 	const path = await import("path");
@@ -173,8 +173,8 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
 
 async function handleEditJob(formData: FormData): Promise<Response> {
 	// サーバー専用の操作をインポート
-	const { jobRepository } = await import("~/lib/core/database/index.server");
-	const { getLogger } = await import("~/lib/core/logger/logger.server");
+	const { jobRepository } = await import("~/shared/core/database/index.server");
+	const { getLogger } = await import("~/shared/core/logger/logger.server");
 
 	const job_id = getFormNumber(formData, "job_id");
 	const jobData = validateJobData(formData);
@@ -211,10 +211,10 @@ async function handleEditJob(formData: FormData): Promise<Response> {
 
 async function handleDeleteJob(formData: FormData): Promise<Response> {
 	// サーバー専用の操作をインポート
-	const { jobRepository } = await import("~/lib/core/database/index.server");
-	const { getLogger } = await import("~/lib/core/logger/logger.server");
+	const { jobRepository } = await import("~/shared/core/database/index.server");
+	const { getLogger } = await import("~/shared/core/logger/logger.server");
 	const { onJobDeleted } = await import(
-		"~/lib/services/license/license-usage-service.server"
+		"~/server/services/license/license-usage-service.server"
 	);
 
 	const job_id = getFormNumber(formData, "job_id");
@@ -246,10 +246,10 @@ async function handleDeleteJob(formData: FormData): Promise<Response> {
 
 async function handleCancelJob(formData: FormData): Promise<Response> {
 	// サーバー専用の操作をインポート
-	const { jobRepository } = await import("~/lib/core/database/index.server");
-	const { getLogger } = await import("~/lib/core/logger/logger.server");
+	const { jobRepository } = await import("~/shared/core/database/index.server");
+	const { getLogger } = await import("~/shared/core/logger/logger.server");
 	const { onJobStatusChanged } = await import(
-		"~/lib/services/license/license-usage-service.server"
+		"~/server/services/license/license-usage-service.server"
 	);
 
 	const job_id = getFormNumber(formData, "job_id");
@@ -290,7 +290,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
 		const formData = await request.formData();
 		intent = getFormIntent(formData);
 
-		const { getLogger } = await import("~/lib/core/logger/logger.server");
+		const { getLogger } = await import("~/shared/core/logger/logger.server");
 		getLogger().info("Routes: Job action called", {
 			intent,
 			method: request.method,

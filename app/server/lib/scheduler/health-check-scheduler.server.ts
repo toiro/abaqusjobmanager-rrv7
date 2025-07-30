@@ -6,7 +6,7 @@
  */
 
 import { IntervalScheduler } from "./interval-scheduler.server";
-import { getLogger } from "~/lib/core/logger/logger.server";
+import { getLogger } from "~/shared/core/logger/logger.server";
 
 export class HealthCheckScheduler extends IntervalScheduler {
 	constructor(intervalMs: number = 30000) {

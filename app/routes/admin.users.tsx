@@ -1,4 +1,4 @@
-import { AdminLayout } from "~/components/layout/AdminLayout";
+import { AdminLayout } from "~/client/components/layout/AdminLayout";
 import {
 	Button,
 	Badge,
@@ -10,18 +10,18 @@ import {
 	TableRow,
 	SuccessMessage,
 	ErrorMessage,
-} from "~/components/ui";
-import type { User } from "~/lib/core/types/database";
-import { ERROR_MESSAGES } from "~/lib/messages";
-import { NewUserModal, EditUserModal } from "~/components/users/UserModal";
-import { DeleteUserDialog } from "~/components/users/DeleteUserDialog";
+} from "~/client/components/ui";
+import type { User } from "~/shared/core/types/database";
+import { ERROR_MESSAGES } from "~/client/constants/messages";
+import { NewUserModal, EditUserModal } from "~/client/components/users/UserModal";
+import { DeleteUserDialog } from "~/client/components/users/DeleteUserDialog";
 import { useState } from "react";
 import { Form } from "react-router";
 import type { Route } from "./+types/admin.users";
 
 export async function loader() {
 	// Auth is handled by parent route (admin.tsx)
-	const { userRepository } = await import("~/lib/core/database/index.server");
+	const { userRepository } = await import("~/shared/core/database/index.server");
 	const users = userRepository.findAllUsers();
 	return { users };
 }
@@ -33,7 +33,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "create-user") {
 		try {
 			const { userRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const userData = {
@@ -67,18 +67,17 @@ export async function action({ request }: Route.ActionArgs) {
 
 	if (intent === "edit-user") {
 		try {
-			const { updateUser } = await import("~/lib/core/database/index.server");
+			const { updateUser } = await import("~/shared/core/database/index.server");
 
-			const userId = Number(formData.get("user_id"));
+			const userId = formData.get("user_id") as string;
 			const userData = {
-				display_name: formData.get("display_name") as string,
 				max_concurrent_jobs: Number(formData.get("max_concurrent_jobs")) || 3,
 				is_active: formData.get("is_active") === "true",
 			};
 
 			// Basic validation
-			if (!userData.display_name || userData.display_name.length < 2) {
-				return { error: "Display name must be at least 2 characters" };
+			if (!userId || userId.length < 2) {
+				return { error: "User ID must be at least 2 characters" };
 			}
 
 			if (
@@ -90,7 +89,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 			updateUser({ id: userId, ...userData });
 			return {
-				success: `User '${userData.display_name}' updated successfully`,
+				success: `User '${userId}' updated successfully`,
 				intent: "edit-user",
 			};
 		} catch (error) {
@@ -100,7 +99,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 	if (intent === "delete-user") {
 		try {
-			const { deleteUser } = await import("~/lib/core/database/index.server");
+			const { deleteUser } = await import("~/shared/core/database/index.server");
 
 			const userId = formData.get("user_id") as string;
 			deleteUser(userId);
@@ -112,9 +111,9 @@ export async function action({ request }: Route.ActionArgs) {
 
 	if (intent === "toggle-active") {
 		try {
-			const { updateUser } = await import("~/lib/core/database/index.server");
+			const { updateUser } = await import("~/shared/core/database/index.server");
 
-			const userId = Number(formData.get("userId"));
+			const userId = formData.get("userId") as string;
 			const isActive = formData.get("isActive") === "true";
 
 			// Toggle the status

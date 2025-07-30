@@ -15,8 +15,8 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { AbaqusJobExecutor, type JobExecutionHooks, type JobExecutionResult } from '../../app/lib/services/abaqus';
-import type { PersistedJob, PersistedNode, PersistedFileRecord } from '../../app/lib/core/types/database';
+import { AbaqusJobExecutor, type JobExecutionHooks, type JobExecutionResult } from '../../app/server/services/abaqus';
+import type { PersistedJob, PersistedNode, PersistedFileRecord } from '../../app/shared/core/types/database';
 import { join } from 'path';
 import { existsSync, mkdirSync, copyFileSync, rmSync } from 'fs';
 

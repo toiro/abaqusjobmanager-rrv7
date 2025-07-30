@@ -5,7 +5,7 @@
  * スケジューラー、バックグラウンドタスクの起動
  */
 
-import { getLogger } from "~/lib/core/logger/logger.server";
+import { getLogger } from "~/shared/core/logger/logger.server";
 import {
 	getSchedulerSystem,
 	initializeAndStartSchedulersFromEnvironment,

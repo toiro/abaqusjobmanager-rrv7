@@ -22,10 +22,10 @@ import {
 	TableHead,
 	TableRow,
 	TableCell,
-} from "~/components/ui";
-import { SystemStatusBar } from "~/components/ui/SystemStatusBar";
-import { TestLayout } from "~/components/layout/TestLayout";
-import { MESSAGES } from "~/lib/messages";
+} from "~/client/components/ui";
+import { SystemStatusBar } from "~/client/components/ui/SystemStatusBar";
+import { TestLayout } from "~/client/components/layout/TestLayout";
+import { MESSAGES } from "~/client/constants/messages";
 
 export const meta: MetaFunction = () => {
 	return [

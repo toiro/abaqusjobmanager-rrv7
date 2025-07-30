@@ -1,5 +1,7 @@
 node_modules
 
+.react-router/
+
 /.cache
 /build
 .env
@@ -18,5 +20,7 @@ sqlite/*.db*
 #playwright tmp
 tmp/
 
-results/
+results
 test-results/
+
+.serena/

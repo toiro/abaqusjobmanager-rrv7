@@ -1,4 +1,4 @@
-import { AdminLayout } from "~/components/layout/AdminLayout";
+import { AdminLayout } from "~/client/components/layout/AdminLayout";
 import {
 	Button,
 	Input,
@@ -6,8 +6,8 @@ import {
 	Badge,
 	SuccessMessage,
 	ErrorMessage,
-} from "~/components/ui";
-import { env } from "~/lib/core/env";
+} from "~/client/components/ui";
+import { env } from "~/shared/core/env";
 import type { Route } from "./+types/admin.settings";
 
 export function loader() {

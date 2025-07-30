@@ -17,7 +17,7 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { testNodeConnection, type NodeConfig, type HealthCheckConfig } from '../../app/lib/services/node-health/node-health-check';
+import { testNodeConnection, type NodeConfig, type HealthCheckConfig } from '../../app/server/services/node-health/node-health-check';
 
 // Test configuration from environment variables
 interface TestSSHConfig {
@@ -217,4 +217,4 @@ export function createTestConfig(hostname: string, username: string, port: numbe
   return { hostname, ssh_port: port, username };
 }
 
-export { testNodeConnection } from '../../app/lib/services/node-health/node-health-check';
+export { testNodeConnection } from '../../app/server/services/node-health/node-health-check';

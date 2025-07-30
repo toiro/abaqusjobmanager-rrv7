@@ -7,8 +7,8 @@ import {
 	CardContent,
 	CardDescription,
 	Button,
-} from "~/components/ui";
-import { TestLayout } from "~/components/layout/TestLayout";
+} from "~/client/components/ui";
+import { TestLayout } from "~/client/components/layout/TestLayout";
 
 export const meta: MetaFunction = () => {
 	return [

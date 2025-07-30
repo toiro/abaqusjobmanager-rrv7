@@ -6,9 +6,9 @@ import {
 	CardHeader,
 	CardTitle,
 	CardContent,
-} from "~/components/ui";
-import { SystemStatusBar } from "~/components/ui/SystemStatusBar";
-import { TestLayout } from "~/components/layout/TestLayout";
+} from "~/client/components/ui";
+import { SystemStatusBar } from "~/client/components/ui/SystemStatusBar";
+import { TestLayout } from "~/client/components/layout/TestLayout";
 
 export const meta: MetaFunction = () => {
 	return [

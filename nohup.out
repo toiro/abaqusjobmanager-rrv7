@@ -1,0 +1,117 @@
+   Updating https://github.com/oraios/serena (HEAD)
+Downloading tiktoken (1.1MiB)
+Downloading pydantic-core (1.9MiB)
+Downloading pyright (5.4MiB)
+ Downloading tiktoken
+ Downloading pydantic-core
+    Updated https://github.com/oraios/serena (e37c2af571cededebc8547f5db3024d3b4ddf616)
+   Building serena-agent @ git+https://github.com/oraios/serena@e37c2af571cededebc8547f5db3024d3b4ddf616
+ Downloading pyright
+      Built serena-agent @ git+https://github.com/oraios/serena@e37c2af571cededebc8547f5db3024d3b4ddf616
+Installed 55 packages in 149ms
+INFO  2025-07-30 16:03:00,772 [MainThread] serena.cli:start_mcp_server:159 - Initializing Serena MCP server
+INFO  2025-07-30 16:03:00,772 [MainThread] serena.cli:start_mcp_server:160 - Storing logs in /home/bun/.serena/logs/2025-07-30/mcp_20250730-160300.txt
+INFO  2025-07-30 16:03:00,773 [MainThread] serena.config.serena_config:from_config_file:402 - Serena configuration file not found at /home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/serena_config.docker.yml, autogenerating...
+INFO  2025-07-30 16:03:00,773 [MainThread] serena.config.serena_config:generate_config_file:367 - Auto-generating Serena configuration file in /home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/serena_config.docker.yml
+INFO  2025-07-30 16:03:00,777 [MainThread] serena.config.serena_config:from_config_file:406 - Loading Serena configuration from /home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/serena_config.docker.yml
+INFO  2025-07-30 16:03:00,785 [MainThread] serena.agent:__init__:170 - Serena web dashboard started at http://127.0.0.1:24282/dashboard/index.html
+INFO  2025-07-30 16:03:00,874 [MainThread] serena.agent:__init__:179 - Starting Serena server (version=0.1.3-8354d921-dirty, process id=2690, parent process id=2193)
+INFO  2025-07-30 16:03:00,874 [MainThread] serena.agent:__init__:180 - Configuration file: /home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/serena_config.docker.yml
+INFO  2025-07-30 16:03:00,874 [MainThread] serena.agent:__init__:181 - Available projects: 
+INFO  2025-07-30 16:03:00,874 [MainThread] serena.agent:__init__:182 - Loaded tools (36): read_file, create_text_file, list_dir, find_file, replace_regex, delete_lines, replace_lines, insert_at_line, search_for_pattern, restart_language_server, get_symbols_overview, find_symbol, find_referencing_symbols, replace_symbol_body, insert_after_symbol, insert_before_symbol, write_memory, read_memory, list_memories, delete_memory, execute_shell_command, activate_project, remove_project, switch_modes, get_current_config, check_onboarding_performed, onboarding, think_about_collected_information, think_about_task_adherence, think_about_whether_you_are_done, summarize_changes, prepare_for_new_conversation, initial_instructions, jet_brains_find_symbol, jet_brains_find_referencing_symbols, jet_brains_get_symbols_overview
+INFO  2025-07-30 16:03:00,875 [MainThread] serena.agent:__init__:196 - Number of exposed tools: 33
+INFO  2025-07-30 16:03:00,882 [MainThread] serena.config.serena_config:apply:108 - SerenaAgentMode[name='editing'] excluded 3 tools: replace_lines, insert_at_line, delete_lines
+INFO  2025-07-30 16:03:00,882 [MainThread] serena.agent:_update_active_tools:362 - Active tools (30): activate_project, check_onboarding_performed, create_text_file, delete_memory, execute_shell_command, find_file, find_referencing_symbols, find_symbol, get_current_config, get_symbols_overview, initial_instructions, insert_after_symbol, insert_before_symbol, list_dir, list_memories, onboarding, prepare_for_new_conversation, read_file, read_memory, remove_project, replace_regex, replace_symbol_body, restart_language_server, search_for_pattern, summarize_changes, switch_modes, think_about_collected_information, think_about_task_adherence, think_about_whether_you_are_done, write_memory
+INFO  2025-07-30 16:03:00,885 [MainThread] serena.project:__init__:31 - Parsing all gitignore files in /app
+INFO  2025-07-30 16:03:00,886 [MainThread] serena.project:__init__:33 - Found 1 gitignore files.
+INFO  2025-07-30 16:03:00,888 [MainThread] serena.agent:load_project_from_path_or_name:437 - Added new project app for path /app
+INFO  2025-07-30 16:03:00,889 [MainThread] serena.agent:_activate_project:402 - Activating app at /app
+INFO  2025-07-30 16:03:00,889 [MainThread] serena.config.serena_config:apply:108 - SerenaAgentMode[name='editing'] excluded 3 tools: replace_lines, insert_at_line, delete_lines
+INFO  2025-07-30 16:03:00,889 [MainThread] serena.agent:_update_active_tools:362 - Active tools (30): activate_project, check_onboarding_performed, create_text_file, delete_memory, execute_shell_command, find_file, find_referencing_symbols, find_symbol, get_current_config, get_symbols_overview, initial_instructions, insert_after_symbol, insert_before_symbol, list_dir, list_memories, onboarding, prepare_for_new_conversation, read_file, read_memory, remove_project, replace_regex, replace_symbol_body, restart_language_server, search_for_pattern, summarize_changes, switch_modes, think_about_collected_information, think_about_task_adherence, think_about_whether_you_are_done, write_memory
+INFO  2025-07-30 16:03:00,889 [MainThread] serena.agent:issue_task:381 - Scheduling Task-1[init_language_server]
+INFO  2025-07-30 16:03:00,890 [SerenaAgentExecutor_0] serena.agent:start:329 - Task-1[init_language_server] starting ...
+INFO  2025-07-30 16:03:00,890 [SerenaAgentExecutor_0] serena.agent:start:329 - Language server initialization starting ...
+INFO  2025-07-30 16:03:00,893 [MainThread] serena.cli:start_mcp_server:178 - Starting MCP server …
+INFO  2025-07-30 16:03:00,893 [SerenaAgentExecutor_0] serena.project:create_language_server:270 - Creating language server instance for /app.
+INFO  2025-07-30 16:03:01,002 [MainThread] serena.mcp:server_lifespan:213 - MCP server lifetime setup complete
+  + Exception Group Traceback (most recent call last):
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/bin/serena-mcp-server", line 12, in <module>
+  |     sys.exit(start_mcp_server())
+  |              ^^^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+  |     return self.main(*args, **kwargs)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/click/core.py", line 1363, in main
+  |     rv = self.invoke(ctx)
+  |          ^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+  |     return ctx.invoke(self.callback, **ctx.params)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+  |     return callback(*args, **kwargs)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/serena/cli.py", line 179, in start_mcp_server
+  |     server.run(transport=transport)
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/mcp/server/fastmcp/server.py", line 226, in run
+  |     anyio.run(self.run_stdio_async)
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_core/_eventloop.py", line 74, in run
+  |     return async_backend.run(func, args, {}, backend_options)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2310, in run
+  |     return runner.run(wrapper())
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.11/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.11/asyncio/base_events.py", line 653, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2298, in wrapper
+  |     return await func(*args)
+  |            ^^^^^^^^^^^^^^^^^
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/mcp/server/fastmcp/server.py", line 632, in run_stdio_async
+  |     async with stdio_server() as (read_stream, write_stream):
+  |   File "/usr/lib/python3.11/contextlib.py", line 211, in __aexit__
+  |     await anext(self.gen)
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/mcp/server/stdio.py", line 85, in stdio_server
+  |     async with anyio.create_task_group() as tg:
+  |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/mcp/server/stdio.py", line 63, in stdin_reader
+    |     async for line in stdin:
+    |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_core/_fileio.py", line 83, in __aiter__
+    |     line = await self.readline()
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_core/_fileio.py", line 99, in readline
+    |     return await to_thread.run_sync(self._fp.readline)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/to_thread.py", line 56, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "/home/bun/.cache/uv/archive-v0/iumzQeuIWkLtpFiLtulZx/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    | OSError: [Errno 9] Bad file descriptor
+    +------------------------------------
+INFO  2025-07-30 16:03:01,084 [SerenaAgentExecutor_0] solidlsp:_setup_runtime_dependencies:126 - Typescript Language Server executable not found at /home/bun/.serena/language_servers/static/TypeScriptLanguageServer/ts-lsp/node_modules/.bin/typescript-language-server. Installing...
+INFO  2025-07-30 16:03:01,085 [SerenaAgentExecutor_0] solidlsp:start:329 - Installation of TypeScript language server dependencies starting ...
+INFO  2025-07-30 16:03:01,089 [SerenaAgentExecutor_0] solidlsp.language_servers.common:_run_command:90 - Running command 'npm install --prefix ./ typescript@5.5.4' in '/home/bun/.serena/language_servers/static/TypeScriptLanguageServer/ts-lsp'
+INFO  2025-07-30 16:03:02,570 [SerenaAgentExecutor_0] solidlsp.language_servers.common:_run_command:105 - Command completed successfully
+INFO  2025-07-30 16:03:02,571 [SerenaAgentExecutor_0] solidlsp.language_servers.common:_run_command:90 - Running command 'npm install --prefix ./ typescript-language-server@4.3.3' in '/home/bun/.serena/language_servers/static/TypeScriptLanguageServer/ts-lsp'
+INFO  2025-07-30 16:03:03,202 [SerenaAgentExecutor_0] solidlsp.language_servers.common:_run_command:105 - Command completed successfully
+INFO  2025-07-30 16:03:03,202 [SerenaAgentExecutor_0] solidlsp:stop:336 - Installation of TypeScript language server dependencies completed in 2.118 seconds
+INFO  2025-07-30 16:03:03,204 [SerenaAgentExecutor_0] serena.agent:reset_language_server:554 - Starting the language server for app
+INFO  2025-07-30 16:03:03,204 [SerenaAgentExecutor_0] solidlsp:start:1677 - Starting language server with language typescript for /app
+INFO  2025-07-30 16:03:03,204 [SerenaAgentExecutor_0] solidlsp:_start_server:225 - Starting TypeScript server process
+INFO  2025-07-30 16:03:03,205 [SerenaAgentExecutor_0] solidlsp.ls_handler:start:183 - Starting language server process via command: ['/home/bun/.serena/language_servers/static/TypeScriptLanguageServer/ts-lsp/node_modules/.bin/typescript-language-server', '--stdio']
+INFO  2025-07-30 16:03:03,206 [SerenaAgentExecutor_0] solidlsp:_start_server:229 - Sending initialize request from LSP client to LSP server and awaiting response
+INFO  2025-07-30 16:03:03,264 [LSP-stdout-reader] solidlsp:window_log_message:208 - LSP: window/logMessage: {"type": 3, "message": "Using Typescript version (workspace) 5.8.2 from path "/app/node_modules/typescript/lib/tsserver.js""}
+INFO  2025-07-30 16:03:04,265 [SerenaAgentExecutor_0] solidlsp:_start_server:247 - Timeout waiting for TypeScript server to become ready, proceeding anyway
+INFO  2025-07-30 16:03:04,265 [SerenaAgentExecutor_0] serena.agent:stop:336 - Language server initialization completed in 3.375 seconds
+INFO  2025-07-30 16:03:04,265 [SerenaAgentExecutor_0] serena.agent:stop:336 - Task-1[init_language_server] completed in 3.376 seconds

@@ -1,5 +1,5 @@
-import { Button, Input, Label, ErrorMessage } from "~/components/ui";
-import { validateAdminToken } from "~/lib/services/auth/auth";
+import { Button, Input, Label, ErrorMessage } from "~/client/components/ui";
+import { validateAdminToken } from "~/server/services/auth/auth";
 import type { Route } from "./+types/admin.login";
 import { useState } from "react";
 

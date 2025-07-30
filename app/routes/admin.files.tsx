@@ -1,4 +1,4 @@
-import { AdminLayout } from "~/components/layout/AdminLayout";
+import { AdminLayout } from "~/client/components/layout/AdminLayout";
 import {
 	Button,
 	Badge,
@@ -10,10 +10,10 @@ import {
 	TableRow,
 	SuccessMessage,
 	ErrorMessage,
-} from "~/components/ui";
-import type { FileWithJob } from "~/lib/core/database/types/file-with-jobs";
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
-import { formatFileSize } from "~/lib/helpers/utils";
+} from "~/client/components/ui";
+import type { FileWithJob } from "~/shared/core/database/types/file-with-jobs";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/client/constants/messages";
+import { formatFileSize } from "~/shared/utils/utils";
 import type { Route } from "./+types/admin.files";
 import {
 	success,
@@ -21,19 +21,19 @@ import {
 	handleApiError,
 	getFormIntent,
 	getFormNumber,
-} from "~/lib/helpers/api-helpers";
+} from "~/shared/utils/api-helpers";
 import { useState, useEffect } from "react";
-import { DeleteFileDialog } from "~/components/files/DeleteFileDialog";
-import { useFileSSE, useJobSSE } from "~/hooks/useSSE";
-import { EVENT_TYPES } from "~/lib/services/sse/sse-schemas";
+import { DeleteFileDialog } from "~/client/components/files/DeleteFileDialog";
+import { useFileSSE, useJobSSE } from "~/client/hooks/useSSE";
+import { EVENT_TYPES } from "~/server/services/sse/sse-schemas";
 
 // Simple loader
 export async function loader() {
 	try {
 		const { findAllFilesWithJobs } = await import(
-			"~/lib/core/database/index.server"
+			"~/shared/core/database/index.server"
 		);
-		const { getLogger } = await import("~/lib/core/logger/logger.server");
+		const { getLogger } = await import("~/shared/core/logger/logger.server");
 
 		const files = findAllFilesWithJobs();
 		getLogger().info("Routes: Files admin data loaded", {
@@ -45,7 +45,7 @@ export async function loader() {
 		});
 		return { files };
 	} catch (error) {
-		const { getLogger } = await import("~/lib/core/logger/logger.server");
+		const { getLogger } = await import("~/shared/core/logger/logger.server");
 		getLogger().error("Routes: Failed to load files", { error });
 		return { files: [] };
 	}
@@ -56,7 +56,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
 	try {
 		const formData = await request.formData();
 		const intent = getFormIntent(formData);
-		const { getLogger } = await import("~/lib/core/logger/logger.server");
+		const { getLogger } = await import("~/shared/core/logger/logger.server");
 
 		getLogger().info("Routes: Files admin action called", {
 			intent,
@@ -66,7 +66,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Response> {
 
 		if (intent === "delete-file") {
 			const { fileRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const fileId = getFormNumber(formData, "fileId");

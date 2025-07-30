@@ -72,7 +72,7 @@ PowerShellスクリプトファイル（`.ps1`）は**キャメルケース**を
 
 ### **🎯 エンティティ定義の正定義 (Single Source of Truth)**
 
-**重要: `/app/app/lib/types/database.ts` が全エンティティの正定義**
+**重要: `/app/app/lib/core/types/database.ts` が全エンティティの正定義**
 
 **すべてのJob、Node、User、FileRecord、JobLogの型定義はこのファイルから参照すること。**
 
@@ -83,7 +83,7 @@ PowerShellスクリプトファイル（`.ps1`）は**キャメルケース**を
 
 #### **正定義ファイル構造**
 ```
-/app/app/lib/types/database.ts  <- 🎯 正定義 (Single Source of Truth)
+/app/app/lib/core/types/database.ts  <- 🎯 正定義 (Single Source of Truth)
 ├── JobSchema + Job type        (ジョブ管理)
 ├── NodeSchema + Node type      (実行ノード)  
 ├── UserSchema + User type      (ユーザー管理)
@@ -106,11 +106,15 @@ PowerShellスクリプトファイル（`.ps1`）は**キャメルケース**を
 #### **インポート例**
 ```typescript
 // ✅ 正しい - 正定義から参照
-import { Job, Node, User, JobSchema, NodeSchema } from "~/lib/types/database";
+import { Job, Node, User, JobSchema, NodeSchema } from "~/lib/core/types/database";
 
 // ❌ 間違い - 散らばった定義から参照  
 import { Job } from "~/lib/dbOperations";
 ```
+
+### serena MCP使用ルール
+
+execute_shell_command は readonly な操作に対しては使用しない。
 
 ### Playwright MCP使用ルール
 
@@ -184,6 +188,9 @@ bun run build
 # 本番サーバー起動
 bun run start
 
+# フォーマット実行
+bun run format
+
 # リント実行
 bun run lint
 
@@ -212,29 +219,44 @@ app/
 │   │   └── JobStatusBadge.tsx # ジョブステータス表示
 │   └── input.tsx      # レガシー入力コンポーネント
 ├── lib/               # ライブラリとユーティリティ
-│   ├── database.ts    # SQLite接続管理
-│   ├── dbOperations.ts# データベース操作
 │   ├── messages.ts    # 英語メッセージ定数
-│   ├── utils.ts       # ユーティリティ関数
-│   ├── sse.ts         # SSEイベント発信機能
-│   ├── sse-schemas.ts # SSEイベントのZodスキーマ定義
-│   ├── logger.ts      # 構造化ログシステム
-│   ├── auth.ts        # Bearer認証システム
-│   ├── licenseCalculator.ts # Abaqusライセンス計算
-│   ├── types/         # 型定義ライブラリ
-│   │   ├── database.ts# エンティティ定義 (正定義)
-│   │   └── api-routes.ts # API型安全性
-│   ├── remote-pwsh/   # リモートPowerShell実行ライブラリ
-│   │   ├── index.ts   # エクスポート統合
-│   │   ├── types.ts   # TypeScript型定義
-│   │   ├── executor.ts# メイン実行エンジン
-│   │   ├── events.ts  # イベント管理システム
-│   │   ├── process.ts # プロセス制御
-│   │   └── environment.ts # 環境設定
+│   ├── core/          # コアライブラリ
+│   │   ├── database/  # データベース操作
+│   │   │   ├── connection.server.ts # SQLite接続管理
+│   │   │   ├── base-repository.ts   # ベースリポジトリ
+│   │   │   ├── *-repository.ts      # 各エンティティリポジトリ
+│   │   │   └── db-utils.ts          # DB操作ユーティリティ
+│   │   ├── logger/    # ログシステム
+│   │   │   ├── logger.server.ts     # ログ取得
+│   │   │   └── config.ts            # ログ設定
+│   │   ├── env/       # 環境変数管理
+│   │   │   └── env.ts # 環境変数スキーマ
+│   │   └── types/     # 型定義ライブラリ
+│   │       ├── database.ts    # エンティティ定義 (正定義)
+│   │       └── api-routes.ts  # API型安全性
+│   ├── services/      # ビジネスロジック
+│   │   ├── auth/      # 認証システム
+│   │   ├── sse/       # SSEシステム
+│   │   ├── license/   # ライセンス管理
+│   │   ├── node-health/ # ノードヘルスチェック
+│   │   └── abaqus/    # Abaqus実行制御
+│   ├── helpers/       # ヘルパー関数
+│   │   ├── api-helpers.ts # API処理ヘルパー
+│   │   └── utils.ts       # 共通ユーティリティ
+│   ├── middleware/    # ミドルウェア
+│   │   └── http-logger.ts # HTTPログ
 │   ├── __tests__/     # テストファイル
-│   │   └── sse-schemas.test.ts # SSEスキーマのテスト
 │   └── __examples__/  # 使用例
-│       └── sse-usage.ts # SSE使用例とベストプラクティス
+├── server/            # サーバーサイドライブラリ
+│   ├── controller/    # サーバー制御
+│   └── lib/           # サーバーライブラリ
+│       ├── remote-pwsh/ # リモートPowerShell実行ライブラリ
+│       │   ├── executor.ts    # メイン実行エンジン
+│       │   ├── types.ts       # TypeScript型定義
+│       │   ├── events.ts      # イベント管理システム
+│       │   ├── process.ts     # プロセス制御
+│       │   └── node-executor.ts # ノード実行ユーティリティ
+│       └── scheduler/ # スケジューラーシステム
 ├── hooks/             # Reactカスタムフック
 │   └── useSSE.ts      # SSE接続管理フック
 ├── routes/            # ファイルベースルーティング
@@ -395,7 +417,7 @@ app/
 ## リモート実行システム
 
 ### 既存remote-pwshライブラリ ✅ 実装済み
-- **場所**: `/app/app/lib/remote-pwsh/`
+- **場所**: `/app/app/server/lib/remote-pwsh/`
 - **機能**: 
   - SSH接続によるリモートPowerShell実行
   - イベントベースの非同期処理

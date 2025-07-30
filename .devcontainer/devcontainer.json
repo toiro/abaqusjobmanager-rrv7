@@ -9,8 +9,10 @@
   "features": {
     // コンテナでNode.jsをインストールしていない場合は、併せてインストールする
     // "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/va-h/devcontainers-features/uv:1.1.4": {}
   },
+  "postCreateCommand": "nohup uvx --from git+https://github.com/oraios/serena serena-mcp-server --project /app > /dev/null 2>&1 &",
   "customizations": {
       "vscode": {
           "extensions": [

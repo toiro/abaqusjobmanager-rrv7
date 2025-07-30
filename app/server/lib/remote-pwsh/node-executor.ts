@@ -4,7 +4,7 @@
  */
 
 import { createRemotePwshExecutor } from "./executor";
-import type { Node, PersistedNode } from "~/lib/core/types/database";
+import type { Node, PersistedNode } from "~/shared/core/types/database";
 // RemotePwshExecutor 型は executor.ts から ReturnType で推論
 
 /**

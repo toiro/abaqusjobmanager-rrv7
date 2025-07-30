@@ -1,4 +1,4 @@
-import { AdminLayout } from "~/components/layout/AdminLayout";
+import { AdminLayout } from "~/client/components/layout/AdminLayout";
 import {
 	Button,
 	Badge,
@@ -10,20 +10,20 @@ import {
 	TableRow,
 	SuccessMessage,
 	ErrorMessage,
-} from "~/components/ui";
-import type { Node } from "~/lib/core/types/database";
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/lib/messages";
-import { NewNodeModal, EditNodeModal } from "~/components/nodes/NodeModal";
-import { DeleteNodeDialog } from "~/components/nodes/DeleteNodeDialog";
+} from "~/client/components/ui";
+import type { Node } from "~/shared/core/types/database";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/client/constants/messages";
+import { NewNodeModal, EditNodeModal } from "~/client/components/nodes/NodeModal";
+import { DeleteNodeDialog } from "~/client/components/nodes/DeleteNodeDialog";
 import { useState, useEffect } from "react";
 import { Form } from "react-router";
-import { useNodeSSE } from "~/hooks/useSSE";
-import { EVENT_TYPES } from "~/lib/services/sse/sse-schemas";
+import { useNodeSSE } from "~/client/hooks/useSSE";
+import { EVENT_TYPES } from "~/server/services/sse/sse-schemas";
 import type { Route } from "./+types/admin.nodes";
 
 export async function loader() {
 	// Auth is handled by parent route (admin.tsx)
-	const { nodeRepository } = await import("~/lib/core/database/index.server");
+	const { nodeRepository } = await import("~/shared/core/database/index.server");
 	const nodes = nodeRepository.findAllNodes();
 	return { nodes };
 }
@@ -35,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "create-node") {
 		try {
 			const { nodeRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const nodeData = {
@@ -98,7 +98,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "update-status") {
 		try {
 			const { nodeRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const nodeId = Number(formData.get("nodeId"));
@@ -121,7 +121,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "toggle-active") {
 		try {
 			const { nodeRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const nodeId = Number(formData.get("nodeId"));
@@ -145,7 +145,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "edit-node") {
 		try {
 			const { nodeRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const nodeId = Number(formData.get("node_id"));
@@ -204,7 +204,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "delete-node") {
 		try {
 			const { nodeRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const nodeId = Number(formData.get("node_id"));
@@ -218,7 +218,7 @@ export async function action({ request }: Route.ActionArgs) {
 	if (intent === "health-check") {
 		try {
 			const { nodeRepository } = await import(
-				"~/lib/core/database/index.server"
+				"~/shared/core/database/index.server"
 			);
 
 			const nodeId = Number(formData.get("node_id"));
@@ -229,7 +229,7 @@ export async function action({ request }: Route.ActionArgs) {
 			}
 
 			// TODO: Implement health check integration with new scheduler system
-			const { getLogger } = await import("~/lib/core/logger/logger.server");
+			const { getLogger } = await import("~/shared/core/logger/logger.server");
 			const logger = getLogger();
 
 			logger.info(
