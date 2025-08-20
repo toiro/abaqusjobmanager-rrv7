@@ -19,6 +19,7 @@ import {
 	emitFileUpdated,
 	emitFileDeleted,
 } from "../../../server/services/sse/sse.server";
+import type { FileRecordId } from "../../../domain/value-objects/entity-ids";
 import type { FileEventData } from "../../../server/services/sse/sse-schemas";
 
 /**
@@ -35,7 +36,7 @@ export class FileRepository extends BaseRepository<
 	PersistedFileRecord,
 	CreateFileRecord,
 	UpdateFileRecord,
-	number
+	FileRecordId
 > {
 	protected readonly tableName = "files";
 	protected readonly entitySchema = PersistedFileRecordSchema;
@@ -49,17 +50,17 @@ export class FileRepository extends BaseRepository<
 	/**
 	 * Number IDの場合はlastInsertRowidを返す
 	 */
-	protected getIdFromCreateResult(result: any, data: CreateFileRecord): number {
-		return result.lastInsertRowid as number;
+	protected getIdFromCreateResult(result: any, data: CreateFileRecord): FileRecordId {
+		return result.lastInsertRowid as FileRecordId;
 	}
 
 	// === Public API Methods ===
 
-	createFile(data: CreateFileRecord): number {
+	createFile(data: CreateFileRecord): FileRecordId {
 		return this.create(data);
 	}
 
-	findFileById(id: number): PersistedFileRecord | null {
+	findFileById(id: FileRecordId): PersistedFileRecord | null {
 		return this.findById(id);
 	}
 
@@ -71,7 +72,7 @@ export class FileRepository extends BaseRepository<
 		return this.update(data);
 	}
 
-	deleteFile(id: number): boolean {
+	deleteFile(id: FileRecordId): boolean {
 		return this.delete(id);
 	}
 
@@ -190,26 +191,26 @@ export class FileRepository extends BaseRepository<
 
 	// === Hook Method Implementations ===
 
-	protected afterCreate(id: number, _data: CreateFileRecord): void {
+	protected afterCreate(id: FileRecordId, _data: CreateFileRecord): void {
 		const createdFile = this.findFileById(id);
 		if (createdFile) {
 			emitFileCreated(this.fileToEventData(createdFile));
 		}
 	}
 
-	protected afterUpdate(id: number, _data: UpdateFileRecord): void {
+	protected afterUpdate(id: FileRecordId, _data: UpdateFileRecord): void {
 		const updatedFile = this.findFileById(id);
 		if (updatedFile) {
 			emitFileUpdated(this.fileToEventData(updatedFile));
 		}
 	}
 
-	protected beforeDelete(id: number): PersistedFileRecord | null {
+	protected beforeDelete(id: FileRecordId): PersistedFileRecord | null {
 		return this.findFileById(id);
 	}
 
 	protected afterDelete(
-		_id: number,
+		_id: FileRecordId,
 		deletedFile?: PersistedFileRecord | null,
 	): void {
 		if (deletedFile) {

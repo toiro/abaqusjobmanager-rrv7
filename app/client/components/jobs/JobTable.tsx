@@ -9,11 +9,18 @@ import {
 	TableRow,
 } from "~/client/components/ui";
 import { JobStatusConfig, JobStatusRules } from "./shared/JobStatusUtils";
-import { TABLE_HEADERS, INFO_MESSAGES, BUTTONS } from "~/client/constants/messages";
+import {
+	TABLE_HEADERS,
+	INFO_MESSAGES,
+	BUTTONS,
+} from "~/client/constants/messages";
 import type { Job } from "~/shared/core/types/database";
-import { calculateLicenseTokens } from "~/server/services/license/license-calculator";
+import { LicenseCalculation } from "~/domain/services/license-calculation";
 import { useJobTableData } from "./shared/useJobTableData";
-import { formatISOToReadable, formatJobIdWithPrefix } from "~/client/utils/formatting";
+import {
+	formatISOToReadable,
+	formatJobIdWithPrefix,
+} from "~/client/utils/formatting";
 import {
 	getConnectionDotColor,
 	getConnectionStatusText,
@@ -65,6 +72,7 @@ export function JobTable({
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
+						aria-label="No jobs available"
 					>
 						<path
 							strokeLinecap="round"
@@ -136,6 +144,7 @@ export function JobTable({
 										fill="none"
 										stroke="currentColor"
 										viewBox="0 0 24 24"
+										aria-label="User icon"
 									>
 										<path
 											strokeLinecap="round"
@@ -154,6 +163,7 @@ export function JobTable({
 										fill="none"
 										stroke="currentColor"
 										viewBox="0 0 24 24"
+										aria-label="User icon"
 									>
 										<path
 											strokeLinecap="round"
@@ -163,7 +173,7 @@ export function JobTable({
 										/>
 									</svg>
 									<span className="text-sm">
-										{calculateLicenseTokens(job.cpu_cores)}
+										{LicenseCalculation.calculateTokens(job.cpu_cores)}
 									</span>
 								</div>
 							</TableCell>

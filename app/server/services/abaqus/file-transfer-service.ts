@@ -140,7 +140,8 @@ async function performTransfer(
 	} catch (error) {
 		const endTime = Date.now();
 
-		logger.error("PowerShell execution error", "FileTransferService", {
+		logger.error("PowerShell execution error", {
+			context: "FileTransferService",
 			error: error instanceof Error ? error.message : "Unknown error",
 		});
 

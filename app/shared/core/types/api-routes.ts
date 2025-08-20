@@ -2,7 +2,7 @@
  * Type-safe API Routes with enhanced validation and error handling
  */
 
-import { z } from "zod";
+import type { z } from "zod";
 // Note: Using generic route handler interface instead of specific RouteConfig import
 import { getLogger } from "../logger/logger.server";
 
@@ -114,7 +114,10 @@ export async function validateFormData<T>(
 			return createErrorResponse("Validation failed", result.error.flatten());
 		}
 	} catch (error) {
-		getLogger().error("Failed to validate form data", "Routes", error);
+		getLogger().error("Failed to validate form data", {
+			context: "Routes",
+			error,
+		});
 		return createErrorResponse(
 			"Failed to parse form data",
 			error instanceof Error ? error.message : "Unknown error",
@@ -137,7 +140,10 @@ export async function validateJsonBody<T>(
 			return createErrorResponse("Validation failed", result.error.flatten());
 		}
 	} catch (error) {
-		getLogger().error("Failed to validate JSON body", "Routes", error);
+		getLogger().error("Failed to validate JSON body", {
+			context: "Routes",
+			error,
+		});
 		return createErrorResponse(
 			"Failed to parse JSON body",
 			error instanceof Error ? error.message : "Unknown error",
@@ -182,7 +188,10 @@ export function validateSearchParams<T>(
 			);
 		}
 	} catch (error) {
-		getLogger().error("Failed to validate search params", "Routes", error);
+		getLogger().error("Failed to validate search params", {
+			context: "Routes",
+			error,
+		});
 		return createErrorResponse(
 			"Failed to parse query parameters",
 			error instanceof Error ? error.message : "Unknown error",
@@ -237,7 +246,8 @@ export class TypedApiResponse {
 		message = "Internal server error",
 		details?: unknown,
 	): Response {
-		getLogger().error("Server error in API response", "Routes", {
+		getLogger().error("Server error in API response", {
+			context: "Routes",
 			message,
 			details,
 		});

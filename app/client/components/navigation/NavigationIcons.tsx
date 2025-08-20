@@ -10,6 +10,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="Jobs"
 		>
 			<path
 				strokeLinecap="round"
@@ -26,6 +27,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="Admin"
 		>
 			<path
 				strokeLinecap="round"
@@ -48,6 +50,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="Test"
 		>
 			<path
 				strokeLinecap="round"
@@ -64,6 +67,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="Back"
 		>
 			<path
 				strokeLinecap="round"
@@ -80,6 +84,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="Database"
 		>
 			<path
 				strokeLinecap="round"
@@ -96,6 +101,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="UI"
 		>
 			<path
 				strokeLinecap="round"
@@ -112,6 +118,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="API"
 		>
 			<path
 				strokeLinecap="round"
@@ -128,6 +135,7 @@ export const NavigationIcons = {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-label="SSE"
 		>
 			<path
 				strokeLinecap="round"

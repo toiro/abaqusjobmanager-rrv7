@@ -3,13 +3,13 @@
  * SQLite JSON機能を活用した型安全な設定管理システム
  */
 
+import { getLogger } from "../logger/logger.server";
 import {
+	type MainSettings,
+	type SettingKey,
 	settingsSchemas,
-	MainSettings,
-	SettingKey,
 } from "../types/app-settings";
 import { getDatabase } from "./connection.server";
-import { getLogger } from "../logger/logger.server";
 
 const logger = getLogger();
 

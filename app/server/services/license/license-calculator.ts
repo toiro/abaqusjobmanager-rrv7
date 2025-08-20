@@ -2,8 +2,7 @@
  * Abaqus License Token Calculation Utility
  */
 
-import { JobActionDialog } from "~/shared/core/types/database";
-import { type Job } from "~/shared/core/types/database";
+import type { Job } from "~/shared/core/types/database";
 
 /**
  * License tokens required for single core execution

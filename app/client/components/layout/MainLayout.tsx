@@ -3,9 +3,10 @@
  * Prevents hydration mismatches by handling client-side localStorage safely
  */
 
-import { ReactNode, useState, useEffect } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { TopNavigation } from "./TopNavigation";
 import { SystemStatusBar } from "~/client/components/ui/SystemStatusBar";
+
 import type { User } from "~/shared/core/types/database";
 
 interface MainLayoutProps {

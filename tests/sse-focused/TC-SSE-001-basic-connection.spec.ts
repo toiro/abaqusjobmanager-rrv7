@@ -24,7 +24,7 @@ test.describe('TC-SSE-001: Basic SSE Connection (Simplified)', () => {
   
   test('SSE events endpoint responds correctly', async ({ page }) => {
     // 1. SSEエンドポイントに短時間接続してヘッダーを確認
-    await page.goto('/test/sse');
+    await page.goto('/test.sse');
     
     // 2. JavaScriptでSSE接続をテスト
     const sseResult = await page.evaluate(() => {

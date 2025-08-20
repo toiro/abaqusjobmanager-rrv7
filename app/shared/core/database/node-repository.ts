@@ -21,6 +21,7 @@ import {
 	emitNodeDeleted,
 	emitNodeStatusChanged,
 } from "../../../server/services/sse/sse.server";
+import type { NodeId } from "../../../domain/value-objects/entity-ids";
 import type { NodeEventData } from "../../../server/services/sse/sse-schemas";
 import { getLogger } from "../logger/logger.server";
 import { executeQuery } from "./db-utils";
@@ -32,7 +33,7 @@ export class NodeRepository extends BaseRepository<
 	PersistedNode,
 	CreateNode,
 	UpdateNode,
-	number
+	NodeId
 > {
 	protected readonly tableName = "nodes";
 	protected readonly entitySchema = PersistedNodeSchema;
@@ -42,17 +43,17 @@ export class NodeRepository extends BaseRepository<
 	/**
 	 * Number IDの場合はlastInsertRowidを返す
 	 */
-	protected getIdFromCreateResult(result: any, data: CreateNode): number {
-		return result.lastInsertRowid as number;
+	protected getIdFromCreateResult(result: any, data: CreateNode): NodeId {
+		return result.lastInsertRowid as NodeId;
 	}
 
 	// === Public API Methods ===
 
-	createNode(data: CreateNode): number {
+	createNode(data: CreateNode): NodeId {
 		return this.create(data);
 	}
 
-	findNodeById(id: number): PersistedNode | null {
+	findNodeById(id: NodeId): PersistedNode | null {
 		return this.findById(id);
 	}
 
@@ -64,7 +65,7 @@ export class NodeRepository extends BaseRepository<
 		return this.update(data);
 	}
 
-	deleteNode(id: number): boolean {
+	deleteNode(id: NodeId): boolean {
 		return this.delete(id);
 	}
 
@@ -87,7 +88,7 @@ export class NodeRepository extends BaseRepository<
 		return results.length > 0 ? results[0] : null;
 	}
 
-	updateNodeStatus(id: number, status: PersistedNode["status"]): boolean {
+	updateNodeStatus(id: NodeId, status: PersistedNode["status"]): boolean {
 		try {
 			// Get current node for comparison and SSE event
 			const currentNode = this.findNodeById(id);
@@ -126,7 +127,7 @@ export class NodeRepository extends BaseRepository<
 		}
 	}
 
-	activateNode(id: number): boolean {
+	activateNode(id: NodeId): boolean {
 		const sql = `
       UPDATE nodes 
       SET is_active = 1, updated_at = CURRENT_TIMESTAMP 
@@ -135,7 +136,7 @@ export class NodeRepository extends BaseRepository<
 		return this.executeStatusUpdate(sql, [id], "activate");
 	}
 
-	deactivateNode(id: number): boolean {
+	deactivateNode(id: NodeId): boolean {
 		const sql = `
       UPDATE nodes 
       SET is_active = 0, updated_at = CURRENT_TIMESTAMP 
@@ -146,25 +147,25 @@ export class NodeRepository extends BaseRepository<
 
 	// === Hook Method Implementations ===
 
-	protected afterCreate(id: number, _data: CreateNode): void {
+	protected afterCreate(id: NodeId, _data: CreateNode): void {
 		const createdNode = this.findNodeById(id);
 		if (createdNode) {
 			emitNodeCreated(this.nodeToEventData(createdNode));
 		}
 	}
 
-	protected afterUpdate(id: number, _data: UpdateNode): void {
+	protected afterUpdate(id: NodeId, _data: UpdateNode): void {
 		const updatedNode = this.findNodeById(id);
 		if (updatedNode) {
 			emitNodeUpdated(this.nodeToEventData(updatedNode));
 		}
 	}
 
-	protected beforeDelete(id: number): PersistedNode | null {
+	protected beforeDelete(id: NodeId): PersistedNode | null {
 		return this.findNodeById(id);
 	}
 
-	protected afterDelete(_id: number, deletedNode?: PersistedNode | null): void {
+	protected afterDelete(_id: NodeId, deletedNode?: PersistedNode | null): void {
 		if (deletedNode) {
 			emitNodeDeleted(this.nodeToEventData(deletedNode));
 		}
@@ -224,7 +225,7 @@ export class NodeRepository extends BaseRepository<
 	}
 
 	private logStatusChange(
-		id: number,
+		id: NodeId,
 		currentNode: PersistedNode | null,
 		previousStatus: string,
 		newStatus: string,

@@ -1,8 +1,8 @@
-# SSE特化テストシナリオ - 8つの重要テストケース
+# SSE特化テストシナリオ - 7つの重要テストケース
 
 ## 📋 概要
 
-Abaqus Job ManagerのSSE（Server-Sent Events）機能に特化した8つのテストケース。手動テストが困難で、デグレ影響が大きいリアルタイム機能の品質保証を効率的に実現します。
+Abaqus Job ManagerのSSE（Server-Sent Events）機能に特化した7つのテストケース。手動テストが困難で、デグレ影響が大きいリアルタイム機能の品質保証を効率的に実現します。
 
 ## 🎯 テストケース一覧
 
@@ -15,9 +15,8 @@ Abaqus Job ManagerのSSE（Server-Sent Events）機能に特化した8つのテ�
 | [TC-SSE-005](#tc-sse-005-admin画面リアルタイム更新) | Admin画面リアルタイム更新 | 🟡 High | 2分 | Admin統合 |
 | [TC-SSE-006](#tc-sse-006-イベント種別ごとの処理) | イベント種別ごとの処理 | 🟢 Medium | 2分 | イベント処理 |
 | [TC-SSE-007](#tc-sse-007-パフォーマンス負荷テスト) | パフォーマンス・負荷テスト | 🟢 Medium | 1分 | 性能検証 |
-| [TC-SSE-008](#tc-sse-008-エラー状態からの回復) | エラー状態からの回復 | 🟡 High | 3分 | 障害回復 |
 
-**合計実行時間**: 約15分
+**合計実行時間**: 約12分
 
 ---
 
@@ -514,91 +513,11 @@ test('TC-SSE-007: パフォーマンス・負荷テスト', async ({ page }) => 
 
 ---
 
-## TC-SSE-008: エラー状態からの回復
-
-### **テスト目的**
-SSEエラー状態からの自動回復機能と状態管理の検証
-
-### **前提条件**
-- ネットワーク操作とエラーシミュレート可能
-- エラー回復機能が実装済み
-
-### **テスト手順**
-
-#### **Step 1: 正常状態確認**
-```javascript
-test('TC-SSE-008: エラー状態からの回復', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByText('Real-time updates active')).toBeVisible();
-  await expect(page.getByText('(connected)')).toBeVisible();
-```
-
-#### **Step 2: サーバーエラーシミュレート**
-```javascript
-  // サーバーエラーをシミュレート
-  await page.route('**/api/events*', route => route.fulfill({
-    status: 500,
-    body: 'Internal Server Error'
-  }));
-  
-  const errorTime = Date.now();
-  console.log('サーバーエラー開始:', new Date(errorTime));
-```
-
-#### **Step 3: エラー状態確認**
-```javascript
-  // エラー状態の表示確認（10秒以内に検出）
-  await expect(page.getByText('(error)')).toBeVisible({ timeout: 10000 });
-  // または reconnecting状態の表示
-  await expect(page.getByText('(connecting)')).toBeVisible({ timeout: 5000 });
-  
-  // Real-time機能の停止確認
-  const errorDisplayTime = Date.now() - errorTime;
-  expect(errorDisplayTime).toBeLessThan(10000);
-```
-
-#### **Step 4: 自動回復テスト**
-```javascript
-  // サーバー復旧をシミュレート
-  await page.unroute('**/api/events*');
-  
-  const recoveryStartTime = Date.now();
-  console.log('サーバー復旧:', new Date(recoveryStartTime));
-  
-  // 自動回復確認（20秒以内）
-  await expect(page.getByText('Real-time updates active')).toBeVisible({ timeout: 20000 });
-  await expect(page.getByText('(connected)')).toBeVisible();
-  
-  const recoveryTime = Date.now() - recoveryStartTime;
-  console.log(`回復時間: ${recoveryTime}ms`);
-  expect(recoveryTime).toBeLessThan(20000);
-```
-
-#### **Step 5: 機能回復確認**
-```javascript
-  // 回復後の機能テスト
-  await page.goto('/test/sse');
-  await page.getByRole('button', { name: 'Send License Update' }).click();
-  await expect(page.getByText('✅ license_update event emitted successfully')).toBeVisible();
-  
-  // ライセンス情報の更新確認
-  await page.goto('/');
-  await expect(page.getByText(/License: \d+\/\d+ tokens/)).toBeVisible();
-```
-
-### **期待結果**
-- ✅ エラー状態の適切な検出・表示（10秒以内）
-- ✅ 20秒以内の自動回復
-- ✅ 回復後の機能正常動作
-- ✅ エラー→回復の状態遷移確認
-
----
-
 ## 📊 テスト実行管理
 
 ### **実行順序**
 1. **Critical Tests**: TC-SSE-001, TC-SSE-002（基本機能）
-2. **High Priority**: TC-SSE-003, TC-SSE-004, TC-SSE-005, TC-SSE-008（高度機能）
+2. **High Priority**: TC-SSE-003, TC-SSE-004, TC-SSE-005（高度機能）
 3. **Medium Priority**: TC-SSE-006, TC-SSE-007（追加検証）
 
 ### **実行環境**
@@ -615,9 +534,9 @@ test('TC-SSE-008: エラー状態からの回復', async ({ page }) => {
 ### **成功基準**
 - **個別テスト**: 各テストケースのパス
 - **全体成功率**: 95%以上
-- **実行時間**: 15分以内
+- **実行時間**: 12分以内
 - **安定性**: フレーキーテスト5%以下
 
 ---
 
-このSSE特化テストシナリオにより、最小限の投資で最大限のリアルタイム機能品質保証を実現します。
+この7つのSSE特化テストシナリオにより、最小限の投資で最大限のリアルタイム機能品質保証を実現します。

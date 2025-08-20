@@ -13,17 +13,22 @@ import {
 } from "~/client/components/ui";
 import type { Node } from "~/shared/core/types/database";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "~/client/constants/messages";
-import { NewNodeModal, EditNodeModal } from "~/client/components/nodes/NodeModal";
-import { DeleteNodeDialog } from "~/client/components/nodes/DeleteNodeDialog";
 import { useState, useEffect } from "react";
 import { Form } from "react-router";
 import { useNodeSSE } from "~/client/hooks/useSSE";
 import { EVENT_TYPES } from "~/server/services/sse/sse-schemas";
 import type { Route } from "./+types/admin.nodes";
+import {
+	NewNodeModal,
+	EditNodeModal,
+	DeleteNodeDialog,
+} from "~/client/components/dialog";
 
 export async function loader() {
 	// Auth is handled by parent route (admin.tsx)
-	const { nodeRepository } = await import("~/shared/core/database/index.server");
+	const { nodeRepository } = await import(
+		"~/shared/core/database/index.server"
+	);
 	const nodes = nodeRepository.findAllNodes();
 	return { nodes };
 }
@@ -147,8 +152,9 @@ export async function action({ request }: Route.ActionArgs) {
 			const { nodeRepository } = await import(
 				"~/shared/core/database/index.server"
 			);
+			const { NodeId } = await import("~/domain/value-objects/entity-ids");
 
-			const nodeId = Number(formData.get("node_id"));
+			const nodeId = NodeId(Number(formData.get("node_id")));
 			const nodeData = {
 				name: formData.get("name") as string,
 				hostname: formData.get("hostname") as string,
@@ -206,8 +212,9 @@ export async function action({ request }: Route.ActionArgs) {
 			const { nodeRepository } = await import(
 				"~/shared/core/database/index.server"
 			);
+			const { NodeId } = await import("~/domain/value-objects/entity-ids");
 
-			const nodeId = Number(formData.get("node_id"));
+			const nodeId = NodeId(Number(formData.get("node_id")));
 			nodeRepository.deleteNode(nodeId);
 			return { success: "Node deleted successfully", intent: "delete-node" };
 		} catch (error) {
@@ -220,8 +227,9 @@ export async function action({ request }: Route.ActionArgs) {
 			const { nodeRepository } = await import(
 				"~/shared/core/database/index.server"
 			);
+			const { NodeId } = await import("~/domain/value-objects/entity-ids");
 
-			const nodeId = Number(formData.get("node_id"));
+			const nodeId = NodeId(Number(formData.get("node_id")));
 			const node = nodeRepository.findNodeById(nodeId);
 
 			if (!node) {

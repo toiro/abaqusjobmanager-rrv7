@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import type { Job } from "~/shared/core/types/database";
 import { useJobSSE } from "~/client/hooks/useSSE";
-import type { SSEEvent } from "~/server/services/sse/sse-schemas";
+import type { JobSSEEvent } from "~/server/services/sse/sse-schemas";
 
 interface UseJobTableDataOptions {
 	enableRealTimeUpdates?: boolean;
@@ -41,7 +41,7 @@ export function useJobTableData(
 
 	// SSE connection for real-time job updates (only on client-side)
 	const { connectionState } = useJobSSE(
-		(event: SSEEvent) => {
+		(event: JobSSEEvent) => {
 			if (!enableRealTimeUpdates || !isMounted) return;
 
 			// Handle job-specific events

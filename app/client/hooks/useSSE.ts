@@ -3,18 +3,37 @@
  * Prevents hydration mismatches by ensuring SSE connections only occur on client-side
  */
 
-import { useEffect, useCallback, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 // Development-only debug helpers
 const isDev =
 	typeof window !== "undefined" && window.location.hostname === "localhost";
-const debugLog = (message: string, data?: any) => {
+const debugLog = (message: string, data?: unknown) => {
 	if (isDev) console.debug(`[SSE Debug] ${message}`, data || "");
 };
+
 import {
-	validateSSEEvent,
 	SSE_CHANNELS,
-	type SSEEvent,
+	validateSSEEvent,
+	type ChannelEventMap,
+	type TypedSSEEvent,
+	type JobSSEEvent,
+	type FileSSEEvent,
+	type NodeSSEEvent,
+	type UserSSEEvent,
+	type SystemSSEEvent,
 } from "~/server/services/sse/sse-schemas";
+
+/**
+ * Client-side SSEEvent interface for useSSE hook compatibility
+ * This provides backward compatibility for the useSSE hook
+ */
+export interface SSEEvent<T = unknown> {
+	type: string;
+	data?: T;
+	timestamp: string;
+	channel: string;
+}
 
 export interface UseSSEOptions<T = unknown> {
 	onConnect?: () => void;
@@ -284,7 +303,7 @@ export function useSSE<T = unknown>(
 
 			debugLog(`SSE cleanup completed for useSSE:${channel}`);
 		};
-	}, [isMounted, channel]); // Remove handler dependencies to prevent reconnection loops
+	}, [isMounted, channel, autoReconnect, maxReconnectAttempts, reconnectDelay]); // Remove handler dependencies to prevent reconnection loops
 
 	return {
 		isConnected,
@@ -299,37 +318,53 @@ export function useSSE<T = unknown>(
 /**
  * Specialized hooks for common channels with hydration safety
  */
+/**
+ * Type-safe useSSE hook using Channel-Event mapping
+ * Provides complete type safety for event data based on channel and event type
+ */
+export function useTypedSSE<TChannel extends keyof ChannelEventMap>(
+	channel: TChannel,
+	onEvent: (event: TypedSSEEvent<TChannel, keyof ChannelEventMap[TChannel]>) => void,
+	options?: UseSSEOptions
+): UseSSEResult<TypedSSEEvent<TChannel, keyof ChannelEventMap[TChannel]>> {
+	return useSSE(
+		channel as string,
+		onEvent as (event: SSEEvent<unknown>) => void,
+		options
+	) as UseSSEResult<TypedSSEEvent<TChannel, keyof ChannelEventMap[TChannel]>>;
+}
+
 export function useJobSSE(
-	onEvent: (event: SSEEvent) => void,
+	onEvent: (event: JobSSEEvent) => void,
 	options?: UseSSEOptions,
 ) {
-	return useSSE(SSE_CHANNELS.JOBS, onEvent, options);
+	return useTypedSSE('jobs', onEvent, options);
 }
 
 export function useFileSSE(
-	onEvent: (event: SSEEvent) => void,
+	onEvent: (event: FileSSEEvent) => void,
 	options?: UseSSEOptions,
 ) {
-	return useSSE(SSE_CHANNELS.FILES, onEvent, options);
+	return useTypedSSE('files', onEvent, options);
 }
 
 export function useNodeSSE(
-	onEvent: (event: SSEEvent) => void,
+	onEvent: (event: NodeSSEEvent) => void,
 	options?: UseSSEOptions,
 ) {
-	return useSSE(SSE_CHANNELS.NODES, onEvent, options);
+	return useTypedSSE('nodes', onEvent, options);
 }
 
 export function useUserSSE(
-	onEvent: (event: SSEEvent) => void,
+	onEvent: (event: UserSSEEvent) => void,
 	options?: UseSSEOptions,
 ) {
-	return useSSE(SSE_CHANNELS.USERS, onEvent, options);
+	return useTypedSSE('users', onEvent, options);
 }
 
 export function useSystemSSE(
-	onEvent: (event: SSEEvent) => void,
+	onEvent: (event: SystemSSEEvent) => void,
 	options?: UseSSEOptions,
 ) {
-	return useSSE(SSE_CHANNELS.SYSTEM, onEvent, options);
+	return useTypedSSE('system', onEvent, options);
 }

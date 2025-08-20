@@ -2,6 +2,7 @@ import { MainLayout } from "~/client/components/layout/MainLayout";
 import { Button } from "~/client/components/ui";
 import { JobTable } from "~/client/components/jobs/JobTable";
 import type { Job } from "~/shared/core/types/database";
+import { JOB_PRIORITIES, type JobPriority } from "~/domain/value-objects/job-priority";
 import {
 	PAGE_TITLES,
 	BUTTONS,
@@ -11,9 +12,6 @@ import {
 } from "~/client/constants/messages";
 import type { Route } from "./+types/_index";
 import { useState } from "react";
-import { NewJobModal, EditJobModal } from "~/client/components/jobs/JobModal";
-import { DeleteJobDialog } from "~/client/components/jobs/DeleteJobDialog";
-import { CancelJobDialog } from "~/client/components/jobs/CancelJobDialog";
 import { env } from "~/shared/core/env";
 import {
 	success,
@@ -25,6 +23,12 @@ import {
 	getFormNumber,
 	ValidationError,
 } from "~/shared/utils/api-helpers";
+import {
+	NewJobModal,
+	EditJobModal,
+	DeleteJobDialog,
+	CancelJobDialog,
+} from "~/client/components/dialog";
 
 // Simple loader - no complex type abstractions
 export async function loader() {
@@ -64,8 +68,7 @@ function validateJobData(formData: FormData) {
 		throw new ValidationError(VALIDATION_MESSAGES.INVALID_CPU_CORES);
 	}
 
-	const validPriorities = ["low", "normal", "high", "urgent"];
-	if (!validPriorities.includes(priority)) {
+	if (!JOB_PRIORITIES.includes(priority as JobPriority)) {
 		throw new ValidationError(`Invalid priority: ${priority}`);
 	}
 
@@ -74,7 +77,7 @@ function validateJobData(formData: FormData) {
 		user_id,
 		node_id,
 		cpu_cores,
-		priority: priority as "low" | "normal" | "high" | "urgent",
+		priority: priority as JobPriority,
 	};
 }
 
@@ -95,6 +98,9 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
 	// サーバー専用の操作をインポート
 	const { jobRepository, fileRepository } = await import(
 		"~/shared/core/database/index.server"
+	);
+	const { JobId, NodeId, UserId, FileRecordId } = await import(
+		"~/domain/value-objects/entity-ids"
 	);
 	const { getLogger } = await import("~/shared/core/logger/logger.server");
 	const { emitFileCreated } = await import("~/server/services/sse/sse.server");
@@ -154,9 +160,9 @@ async function handleCreateJob(formData: FormData): Promise<Response> {
 	const jobId = jobRepository.createJob({
 		name: jobData.name,
 		status: "waiting" as const,
-		file_id: fileId,
-		user_id: jobData.user_id,
-		node_id: jobData.node_id,
+		file_id: FileRecordId(fileId),
+		user_id: UserId(jobData.user_id),
+		node_id: NodeId(jobData.node_id),
 		cpu_cores: jobData.cpu_cores,
 		priority: jobData.priority,
 	});
@@ -175,8 +181,9 @@ async function handleEditJob(formData: FormData): Promise<Response> {
 	// サーバー専用の操作をインポート
 	const { jobRepository } = await import("~/shared/core/database/index.server");
 	const { getLogger } = await import("~/shared/core/logger/logger.server");
+	const { JobId, NodeId, UserId } = await import("~/domain/value-objects/entity-ids");
 
-	const job_id = getFormNumber(formData, "job_id");
+	const job_id = JobId(getFormNumber(formData, "job_id"));
 	const jobData = validateJobData(formData);
 
 	const existingJob = jobRepository.findJobById(job_id);
@@ -189,8 +196,8 @@ async function handleEditJob(formData: FormData): Promise<Response> {
 	const updateResult = jobRepository.updateJob({
 		id: job_id,
 		name: jobData.name,
-		user_id: jobData.user_id,
-		node_id: jobData.node_id,
+		user_id: UserId(jobData.user_id),
+		node_id: NodeId(jobData.node_id),
 		cpu_cores: jobData.cpu_cores,
 		priority: jobData.priority,
 	});

@@ -3,26 +3,26 @@
  * Martin Fowler Template Method パターンの具体実装
  */
 
-import { BaseRepository } from "./base-repository";
-import { selectQuery, safeDbOperation } from "./db-utils";
-import {
-	UserSchema,
-	CreateUserSchema,
-	PersistedUserSchema,
-	UpdateUserSchema,
-	type User,
-	type CreateUser,
-	type PersistedUser,
-	type UpdateUser,
-} from "../types/database";
+import type { UserId } from "../../../domain/value-objects/entity-ids";
 import {
 	emitUserCreated,
-	emitUserUpdated,
 	emitUserDeleted,
 	emitUserStatusChanged,
+	emitUserUpdated,
 } from "../../../server/services/sse/sse.server";
 import type { UserEventData } from "../../../server/services/sse/sse-schemas";
-import { executeQuery } from "./db-utils";
+import {
+	type CreateUser,
+	CreateUserSchema,
+	type PersistedUser,
+	PersistedUserSchema,
+	type UpdateUser,
+	UpdateUserSchema,
+	type User,
+	UserSchema,
+} from "../types/database";
+import { BaseRepository } from "./base-repository";
+import { executeQuery, safeDbOperation, selectQuery } from "./db-utils";
 
 /**
  * UserRepository - Template Method Pattern 適用
@@ -31,7 +31,7 @@ export class UserRepository extends BaseRepository<
 	PersistedUser,
 	CreateUser,
 	Omit<UpdateUser, "id">,
-	string
+	UserId
 > {
 	protected readonly tableName = "users";
 	protected readonly entitySchema = PersistedUserSchema;
@@ -44,17 +44,17 @@ export class UserRepository extends BaseRepository<
 	/**
 	 * String IDの場合は提供されたIDを返す
 	 */
-	protected getIdFromCreateResult(result: any, data: CreateUser): string {
-		return data.id;
+	protected getIdFromCreateResult(result: any, data: CreateUser): UserId {
+		return data.id as UserId;
 	}
 
 	// === Public API Methods ===
 
-	createUser(data: CreateUser): string {
+	createUser(data: CreateUser): UserId {
 		return this.create(data);
 	}
 
-	findUserById(id: string): PersistedUser | null {
+	findUserById(id: UserId): PersistedUser | null {
 		return this.findById(id);
 	}
 
@@ -67,7 +67,7 @@ export class UserRepository extends BaseRepository<
 		return this.update({ ...updateData, id });
 	}
 
-	deleteUser(id: string): boolean {
+	deleteUser(id: UserId): boolean {
 		return this.delete(id);
 	}
 
@@ -84,7 +84,7 @@ export class UserRepository extends BaseRepository<
 		) as PersistedUser[];
 	}
 
-	activateUser(id: string): boolean {
+	activateUser(id: UserId): boolean {
 		const sql = `
       UPDATE users 
       SET is_active = 1, updated_at = CURRENT_TIMESTAMP 
@@ -93,7 +93,7 @@ export class UserRepository extends BaseRepository<
 		return this.executeStatusUpdate(sql, [id], "activate");
 	}
 
-	deactivateUser(id: string): boolean {
+	deactivateUser(id: UserId): boolean {
 		const sql = `
       UPDATE users 
       SET is_active = 0, updated_at = CURRENT_TIMESTAMP 
@@ -102,7 +102,7 @@ export class UserRepository extends BaseRepository<
 		return this.executeStatusUpdate(sql, [id], "deactivate");
 	}
 
-	getCurrentJobCount(userId: string): number {
+	getCurrentJobCount(userId: UserId): number {
 		try {
 			const { selectQuery } = require("./db-utils");
 			const result = selectQuery(
@@ -122,7 +122,7 @@ export class UserRepository extends BaseRepository<
 		}
 	}
 
-	canCreateJob(userId: string): boolean {
+	canCreateJob(userId: UserId): boolean {
 		try {
 			const user = this.findUserById(userId);
 			if (!user || !user.is_active) {
@@ -140,25 +140,25 @@ export class UserRepository extends BaseRepository<
 
 	// === Hook Method Implementations ===
 
-	protected afterCreate(id: string, _data: CreateUser): void {
+	protected afterCreate(id: UserId, _data: CreateUser): void {
 		const createdUser = this.findUserById(id);
 		if (createdUser) {
 			emitUserCreated(this.userToEventData(createdUser));
 		}
 	}
 
-	protected afterUpdate(id: string, _data: Omit<UpdateUser, "id">): void {
+	protected afterUpdate(id: UserId, _data: Omit<UpdateUser, "id">): void {
 		const updatedUser = this.findUserById(id);
 		if (updatedUser) {
 			emitUserUpdated(this.userToEventData(updatedUser));
 		}
 	}
 
-	protected beforeDelete(id: string): PersistedUser | null {
+	protected beforeDelete(id: UserId): PersistedUser | null {
 		return this.findUserById(id);
 	}
 
-	protected afterDelete(_id: string, deletedUser: PersistedUser | null): void {
+	protected afterDelete(_id: UserId, deletedUser: PersistedUser | null): void {
 		if (deletedUser) {
 			emitUserDeleted(this.userToEventData(deletedUser));
 		}

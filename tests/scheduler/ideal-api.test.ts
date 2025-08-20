@@ -3,10 +3,26 @@
  * 
  * テストファーストでSchedulerの理想的なAPIを定義
  * Red → Green → Refactor の最初のステップ
+ * LogTape統合後のテスト
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { IntervalScheduler } from '../../app/server/lib/scheduler/interval-scheduler.server';
+
+// LogTape統一ログシステムのモック
+const mockLogger = {
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {}),
+};
+
+const mockGetLogger = mock(() => mockLogger);
+
+// モジュールモック
+mock.module('~/shared/core/logger/logger.server', () => ({
+  getLogger: mockGetLogger,
+}));
 
 describe('IdealSchedulerAPI', () => {
   let scheduler: IntervalScheduler;
@@ -14,6 +30,13 @@ describe('IdealSchedulerAPI', () => {
   let callCount = 0;
 
   beforeEach(() => {
+    // LogTapeモックをリセット
+    mockLogger.info.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.debug.mockClear();
+    mockGetLogger.mockClear();
+    
     callCount = 0;
     mockCallback = async () => {
       callCount++;

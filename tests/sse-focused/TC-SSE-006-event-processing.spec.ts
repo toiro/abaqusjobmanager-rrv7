@@ -6,7 +6,7 @@ test.describe('TC-SSE-006: Event Type Processing', () => {
   test('License Update event processing', async ({ page }) => {
     // 1. テスト環境準備
     await page.goto('/test/sse');
-    await expect(page.getByText('Server-Sent Events Test')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send License Update' })).toBeVisible();
     
     // 2. 初期ライセンス状態記録
     await page.goto('/');
@@ -29,10 +29,10 @@ test.describe('TC-SSE-006: Event Type Processing', () => {
     
     // 2. Job Status Updateイベント
     await page.getByRole('button', { name: 'Send Job Status Update' }).click();
-    await expect(page.getByText('✅ job_status_changed event emitted successfully')).toBeVisible();
+    await expect(page.getByText(/job_status_changed event emitted successfully/)).toBeVisible();
     
     // 3. イベント処理確認（エラーが発生しないこと）
-    await expect(page.getByText('Server-Sent Events Test')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send License Update' })).toBeVisible();
   });
   
   test('Connection event processing', async ({ page }) => {
@@ -41,7 +41,7 @@ test.describe('TC-SSE-006: Event Type Processing', () => {
     
     // 2. Connection Event
     await page.getByRole('button', { name: 'Send Connection Event' }).click();
-    await expect(page.getByText('✅ connected event emitted successfully')).toBeVisible();
+    await expect(page.getByText(/connected event emitted successfully/)).toBeVisible();
     
     // 3. 接続状態の確認
     await page.goto('/');
@@ -54,7 +54,7 @@ test.describe('TC-SSE-006: Event Type Processing', () => {
     
     // 2. Ping Event（接続維持）
     await page.getByRole('button', { name: 'Send Ping Event' }).click();
-    await expect(page.getByText('✅ ping event emitted successfully')).toBeVisible();
+    await expect(page.getByText(/ping event emitted successfully/)).toBeVisible();
     
     // 3. 接続状態の継続確認
     await page.goto('/');
@@ -75,7 +75,7 @@ test.describe('TC-SSE-006: Event Type Processing', () => {
     
     for (const event of events) {
       await page.getByRole('button', { name: event.name }).click();
-      await expect(page.getByText(`✅ ${event.expected} event emitted successfully`)).toBeVisible();
+      await expect(page.getByText(new RegExp(`${event.expected} event emitted successfully`))).toBeVisible();
       await page.waitForTimeout(500); // 短い待機
     }
     

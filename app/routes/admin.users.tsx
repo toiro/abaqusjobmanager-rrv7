@@ -1,27 +1,32 @@
+import { useState } from "react";
+import { Form } from "react-router";
+import {
+	DeleteUserDialog,
+	EditUserModal,
+	NewUserModal,
+} from "~/client/components/dialog";
 import { AdminLayout } from "~/client/components/layout/AdminLayout";
 import {
-	Button,
 	Badge,
+	Button,
+	ErrorMessage,
+	SuccessMessage,
 	Table,
 	TableBody,
 	TableCell,
 	TableHead,
 	TableHeader,
 	TableRow,
-	SuccessMessage,
-	ErrorMessage,
 } from "~/client/components/ui";
-import type { User } from "~/shared/core/types/database";
 import { ERROR_MESSAGES } from "~/client/constants/messages";
-import { NewUserModal, EditUserModal } from "~/client/components/users/UserModal";
-import { DeleteUserDialog } from "~/client/components/users/DeleteUserDialog";
-import { useState } from "react";
-import { Form } from "react-router";
+import type { User } from "~/shared/core/types/database";
 import type { Route } from "./+types/admin.users";
 
 export async function loader() {
 	// Auth is handled by parent route (admin.tsx)
-	const { userRepository } = await import("~/shared/core/database/index.server");
+	const { userRepository } = await import(
+		"~/shared/core/database/index.server"
+	);
 	const users = userRepository.findAllUsers();
 	return { users };
 }
@@ -67,7 +72,9 @@ export async function action({ request }: Route.ActionArgs) {
 
 	if (intent === "edit-user") {
 		try {
-			const { updateUser } = await import("~/shared/core/database/index.server");
+			const { updateUser } = await import(
+				"~/shared/core/database/index.server"
+			);
 
 			const userId = formData.get("user_id") as string;
 			const userData = {
@@ -99,7 +106,9 @@ export async function action({ request }: Route.ActionArgs) {
 
 	if (intent === "delete-user") {
 		try {
-			const { deleteUser } = await import("~/shared/core/database/index.server");
+			const { deleteUser } = await import(
+				"~/shared/core/database/index.server"
+			);
 
 			const userId = formData.get("user_id") as string;
 			deleteUser(userId);
@@ -111,7 +120,9 @@ export async function action({ request }: Route.ActionArgs) {
 
 	if (intent === "toggle-active") {
 		try {
-			const { updateUser } = await import("~/shared/core/database/index.server");
+			const { updateUser } = await import(
+				"~/shared/core/database/index.server"
+			);
 
 			const userId = formData.get("userId") as string;
 			const isActive = formData.get("isActive") === "true";

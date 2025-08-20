@@ -13,6 +13,7 @@ import {
 	logDbSuccess,
 	safeDbOperation,
 } from "./db-utils";
+import type { EntityId } from "../../../domain/value-objects/entity-ids";
 
 /**
  * 基底リポジトリクラス - Template Method パターン
@@ -22,7 +23,7 @@ export abstract class BaseRepository<
 	TEntity,
 	TCreateInput,
 	TUpdateInput,
-	TId = number,
+	TId extends EntityId = EntityId,
 > {
 	protected abstract readonly tableName: string;
 

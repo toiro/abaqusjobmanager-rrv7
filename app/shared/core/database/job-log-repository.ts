@@ -12,6 +12,7 @@ import {
 	type CreateJobLog,
 	type PersistedJobLog,
 } from "../types/database";
+import type { JobLogId, JobId } from "../../../domain/value-objects/entity-ids";
 import { executeQuery, selectQuery, safeDbOperation } from "./db-utils";
 
 // JobLog doesn't have updates, so we use CreateJobLog as UpdateJobLog
@@ -25,7 +26,7 @@ export class JobLogRepository extends BaseRepository<
 	PersistedJobLog,
 	CreateJobLog,
 	UpdateJobLogInput,
-	number
+	JobLogId
 > {
 	protected readonly tableName = "job_logs";
 	protected readonly entitySchema = PersistedJobLogSchema;
@@ -38,17 +39,17 @@ export class JobLogRepository extends BaseRepository<
 	/**
 	 * Number IDの場合はlastInsertRowidを返す
 	 */
-	protected getIdFromCreateResult(result: any, data: CreateJobLog): number {
-		return result.lastInsertRowid as number;
+	protected getIdFromCreateResult(result: any, data: CreateJobLog): JobLogId {
+		return result.lastInsertRowid as JobLogId;
 	}
 
 	// === Public API Methods ===
 
-	createJobLog(data: CreateJobLog): number {
+	createJobLog(data: CreateJobLog): JobLogId {
 		return this.create(data);
 	}
 
-	findJobLogById(id: number): PersistedJobLog | null {
+	findJobLogById(id: JobLogId): PersistedJobLog | null {
 		return this.findById(id);
 	}
 

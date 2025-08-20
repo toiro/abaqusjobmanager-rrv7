@@ -14,6 +14,7 @@ import {
 	type PersistedJob,
 	type UpdateJob,
 } from "../types/database";
+import type { JobId, NodeId, UserId } from "../../../domain/value-objects/entity-ids";
 import {
 	emitJobCreated,
 	emitJobUpdated,
@@ -30,7 +31,7 @@ export class JobRepository extends BaseRepository<
 	PersistedJob,
 	CreateJob,
 	UpdateJob,
-	number
+	JobId
 > {
 	protected readonly tableName = "jobs";
 	protected readonly entitySchema = PersistedJobSchema;
@@ -44,17 +45,17 @@ export class JobRepository extends BaseRepository<
 	/**
 	 * Number IDの場合はlastInsertRowidを返す
 	 */
-	protected getIdFromCreateResult(result: any, data: CreateJob): number {
-		return result.lastInsertRowid as number;
+	protected getIdFromCreateResult(result: any, data: CreateJob): JobId {
+		return result.lastInsertRowid as JobId;
 	}
 
 	// === Public API Methods ===
 
-	createJob(data: CreateJob): number {
+	createJob(data: CreateJob): JobId {
 		return this.create(data);
 	}
 
-	findJobById(id: number): PersistedJob | null {
+	findJobById(id: JobId): PersistedJob | null {
 		return this.findById(id);
 	}
 
@@ -66,7 +67,7 @@ export class JobRepository extends BaseRepository<
 		return this.update(data);
 	}
 
-	deleteJob(id: number): boolean {
+	deleteJob(id: JobId): boolean {
 		return this.delete(id);
 	}
 
@@ -84,12 +85,12 @@ export class JobRepository extends BaseRepository<
 		return this.findByCondition(sql, statuses);
 	}
 
-	findJobsByUser(userId: number): PersistedJob[] {
+	findJobsByUser(userId: UserId): PersistedJob[] {
 		const sql = "SELECT * FROM jobs WHERE user_id = ? ORDER BY created_at DESC";
 		return this.findByCondition(sql, [userId]);
 	}
 
-	findJobsByNode(nodeId: number): PersistedJob[] {
+	findJobsByNode(nodeId: NodeId): PersistedJob[] {
 		const sql = "SELECT * FROM jobs WHERE node_id = ? ORDER BY created_at DESC";
 		return this.findByCondition(sql, [nodeId]);
 	}
@@ -107,7 +108,7 @@ export class JobRepository extends BaseRepository<
 	}
 
 	updateJobStatus(
-		id: number,
+		id: JobId,
 		status: Job["status"],
 		errorMessage?: string,
 	): boolean {
@@ -150,7 +151,7 @@ export class JobRepository extends BaseRepository<
 		}
 	}
 
-	updateStartTime(id: number, startTime: string): boolean {
+	updateStartTime(id: JobId, startTime: string): boolean {
 		try {
 			const sql = `
         UPDATE jobs 
@@ -177,7 +178,7 @@ export class JobRepository extends BaseRepository<
 		}
 	}
 
-	updateEndTime(id: number, endTime: string): boolean {
+	updateEndTime(id: JobId, endTime: string): boolean {
 		try {
 			const sql = `
         UPDATE jobs 
@@ -206,7 +207,7 @@ export class JobRepository extends BaseRepository<
 
 	// === Hook Method Implementations ===
 
-	protected afterCreate(id: number, _data: CreateJob): void {
+	protected afterCreate(id: JobId, _data: CreateJob): void {
 		const createdJob = this.findJobById(id);
 		if (createdJob) {
 			emitJobCreated(this.jobToEventData(createdJob));
@@ -216,18 +217,18 @@ export class JobRepository extends BaseRepository<
 		}
 	}
 
-	protected afterUpdate(id: number, _data: UpdateJob): void {
+	protected afterUpdate(id: JobId, _data: UpdateJob): void {
 		const updatedJob = this.findJobById(id);
 		if (updatedJob) {
 			emitJobUpdated(this.jobToEventData(updatedJob));
 		}
 	}
 
-	protected beforeDelete(id: number): PersistedJob | null {
+	protected beforeDelete(id: JobId): PersistedJob | null {
 		return this.findJobById(id);
 	}
 
-	protected afterDelete(_id: number, deletedJob?: PersistedJob | null): void {
+	protected afterDelete(_id: JobId, deletedJob?: PersistedJob | null): void {
 		if (deletedJob) {
 			emitJobDeleted(this.jobToEventData(deletedJob));
 		}
@@ -273,7 +274,7 @@ export class JobRepository extends BaseRepository<
 		};
 	}
 
-	private async triggerLicenseUpdate(jobId: number): Promise<void> {
+	private async triggerLicenseUpdate(jobId: JobId): Promise<void> {
 		try {
 			const { onJobCreated } = await import(
 				"../../../server/services/license/license-usage-service.server"
@@ -282,7 +283,8 @@ export class JobRepository extends BaseRepository<
 		} catch (error) {
 			// License update is not critical, just log
 			const { getLogger } = await import("../logger/logger.server");
-			getLogger().warn("Failed to trigger license update", "JobRepository", {
+			getLogger().warn("Failed to trigger license update", {
+				context: "JobRepository",
 				jobId,
 			});
 		}

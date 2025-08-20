@@ -1,18 +1,37 @@
 /**
  * Scheduler Logging テスト
  * 
- * 構造化ログ出力機能をテストファーストで設計
+ * LogTape統合後の構造化ログ出力機能をテスト
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { IntervalScheduler } from '../../app/server/lib/scheduler/interval-scheduler.server';
+
+// LogTape統一ログシステムのモック
+const mockLogger = {
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {}),
+};
+
+const mockGetLogger = mock(() => mockLogger);
+
+// モジュールモック
+mock.module('~/shared/core/logger/logger.server', () => ({
+  getLogger: mockGetLogger,
+}));
 
 describe('SchedulerLogging', () => {
   let scheduler: IntervalScheduler;
-  let logOutput: Array<{ level: string, message: string, context: string, data?: any }>;
 
   beforeEach(() => {
-    logOutput = [];
+    // モックをリセット
+    mockLogger.info.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.debug.mockClear();
+    mockGetLogger.mockClear();
   });
 
   afterEach(async () => {
@@ -21,91 +40,51 @@ describe('SchedulerLogging', () => {
     }
   });
 
-  test('スケジューラーにロガーを設定できる', () => {
+  test('スケジューラー作成時にLogTapeロガーが初期化される', () => {
     scheduler = new IntervalScheduler('test', 100);
     
-    const mockLogger = {
-      info: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'info', message, context, data });
-      },
-      warn: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'warn', message, context, data });
-      },
-      error: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'error', message, context, data });
-      }
-    };
-    
-    expect(typeof scheduler.setLogger).toBe('function');
-    scheduler.setLogger(mockLogger);
+    // getLogger()が呼び出されることを確認
+    expect(mockGetLogger).toHaveBeenCalled();
   });
 
   test('スケジューラー開始時にログが出力される', () => {
     scheduler = new IntervalScheduler('test-scheduler', 100);
-    
-    const mockLogger = {
-      info: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'info', message, context, data });
-      },
-      warn: () => {},
-      error: () => {}
-    };
-    
-    scheduler.setLogger(mockLogger);
     scheduler.onTick(async () => {});
     
     scheduler.start();
     
-    expect(logOutput).toContainEqual({
-      level: 'info',
-      message: expect.stringContaining('started'),
-      context: 'Scheduler',
-      data: expect.objectContaining({
+    // LogTape標準形式でのログ呼び出しを確認
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      "Scheduler started",
+      expect.objectContaining({
+        context: "IntervalScheduler",
         schedulerName: 'test-scheduler',
         intervalMs: 100
       })
-    });
+    );
   });
 
   test('スケジューラー停止時にログが出力される', async () => {
     scheduler = new IntervalScheduler('test-scheduler', 100);
-    
-    const mockLogger = {
-      info: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'info', message, context, data });
-      },
-      warn: () => {},
-      error: () => {}
-    };
-    
-    scheduler.setLogger(mockLogger);
     scheduler.onTick(async () => {});
     
     scheduler.start();
     await scheduler.stop();
     
-    expect(logOutput).toContainEqual({
-      level: 'info',
-      message: expect.stringContaining('stopped'),
-      context: 'Scheduler',
-      data: expect.objectContaining({
-        schedulerName: 'test-scheduler'
+    // 停止ログの確認
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      "Scheduler stopped",
+      expect.objectContaining({
+        context: "IntervalScheduler",
+        schedulerName: 'test-scheduler',
+        stats: expect.any(Object)
       })
-    });
+    );
   });
 
   test('タスク実行エラー時にエラーログが出力される', async () => {
     scheduler = new IntervalScheduler('test-scheduler', 50);
     
-    const mockLogger = {
-      info: () => {},
-      warn: () => {},
-      error: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'error', message, context, data });
-      }
-    };
-    
-    scheduler.setLogger(mockLogger);
     scheduler.onTick(async () => {
       throw new Error('Test task error');
     });
@@ -117,29 +96,20 @@ describe('SchedulerLogging', () => {
     
     await scheduler.stop();
     
-    expect(logOutput).toContainEqual({
-      level: 'error',
-      message: expect.stringContaining('Task execution failed'),
-      context: 'Scheduler',
-      data: expect.objectContaining({
+    // エラーログの確認
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      "Task execution failed",
+      expect.objectContaining({
+        context: "IntervalScheduler",
         schedulerName: 'test-scheduler',
-        error: expect.stringContaining('Test task error')
+        error: expect.stringContaining('Test task error'),
+        stats: expect.any(Object)
       })
-    });
+    );
   });
 
   test('統計情報が定期的にログ出力される', async () => {
     scheduler = new IntervalScheduler('test-scheduler', 50);
-    
-    const mockLogger = {
-      info: (message: string, context: string, data?: any) => {
-        logOutput.push({ level: 'info', message, context, data });
-      },
-      warn: () => {},
-      error: () => {}
-    };
-    
-    scheduler.setLogger(mockLogger);
     scheduler.onTick(async () => {});
     
     // 統計ログ有効化
@@ -152,10 +122,16 @@ describe('SchedulerLogging', () => {
     
     await scheduler.stop();
     
-    expect(logOutput.some(log => 
-      log.level === 'info' && 
-      log.message.includes('Statistics') &&
-      log.data?.totalExecutions !== undefined
-    )).toBe(true);
+    // 統計ログの確認
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      "Scheduler statistics",
+      expect.objectContaining({
+        context: "IntervalScheduler",
+        schedulerName: 'test-scheduler',
+        totalExecutions: expect.any(Number),
+        successfulExecutions: expect.any(Number),
+        failedExecutions: expect.any(Number)
+      })
+    );
   });
 });

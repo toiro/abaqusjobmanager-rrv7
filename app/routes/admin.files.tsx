@@ -23,9 +23,9 @@ import {
 	getFormNumber,
 } from "~/shared/utils/api-helpers";
 import { useState, useEffect } from "react";
-import { DeleteFileDialog } from "~/client/components/files/DeleteFileDialog";
 import { useFileSSE, useJobSSE } from "~/client/hooks/useSSE";
 import { EVENT_TYPES } from "~/server/services/sse/sse-schemas";
+import { DeleteFileDialog } from "~/client/components/dialog";
 
 // Simple loader
 export async function loader() {
@@ -123,26 +123,24 @@ export default function FilesAdmin({
 	const fileSSEResult = useFileSSE((event) => {
 		if (!event.data) return;
 
-		const eventData = event.data as any;
-
 		switch (event.type) {
-			case EVENT_TYPES.FILE_CREATED:
+			case 'file_created':
 				// For new files, we might need to reload the full file list
 				// For now, we'll just reload the page to get the new file
 				window.location.reload();
 				break;
 
-			case EVENT_TYPES.FILE_UPDATED:
-				if (eventData.fileId) {
+			case 'file_updated':
+				if (event.data?.fileId) {
 					setFiles((prevFiles) =>
 						prevFiles.map((file) =>
-							file.id === eventData.fileId
+							file.id === event.data!.fileId
 								? {
 										...file,
-										original_name: eventData.fileName || file.original_name,
-										file_size: eventData.fileSize || file.file_size,
-										mime_type: eventData.mimeType || file.mime_type,
-										uploaded_by: eventData.uploadedBy || file.uploaded_by,
+										original_name: event.data!.fileName || file.original_name,
+										file_size: event.data!.fileSize || file.file_size,
+										mime_type: event.data!.mimeType || file.mime_type,
+										uploaded_by: event.data!.uploadedBy || file.uploaded_by,
 									}
 								: file,
 						),
@@ -150,10 +148,10 @@ export default function FilesAdmin({
 				}
 				break;
 
-			case EVENT_TYPES.FILE_DELETED:
-				if (eventData.fileId) {
+			case 'file_deleted':
+				if (event.data?.fileId) {
 					setFiles((prevFiles) =>
-						prevFiles.filter((file) => file.id !== eventData.fileId),
+						prevFiles.filter((file) => file.id !== event.data!.fileId),
 					);
 				}
 				break;
@@ -164,16 +162,14 @@ export default function FilesAdmin({
 	const jobSSEResult = useJobSSE((event) => {
 		if (!event.data) return;
 
-		const eventData = event.data as any;
-
 		switch (event.type) {
-			case EVENT_TYPES.JOB_STATUS_CHANGED:
-			case EVENT_TYPES.JOB_UPDATED:
-				if (eventData.jobId) {
+			case 'job_status_changed':
+			case 'job_updated':
+				if (event.data?.jobId) {
 					setFiles((prevFiles) =>
 						prevFiles.map((file) => {
 							if (
-								file.referencingJob?.jobId === eventData.jobId &&
+								file.referencingJob?.jobId === event.data!.jobId &&
 								file.referencingJob
 							) {
 								return {
@@ -181,16 +177,13 @@ export default function FilesAdmin({
 									referencingJob: {
 										jobId: file.referencingJob.jobId,
 										jobName:
-											eventData.name ||
-											eventData.jobName ||
+											event.data!.jobName ||
 											file.referencingJob.jobName,
 										jobStatus:
-											eventData.status ||
-											eventData.jobStatus ||
+											event.data!.status ||
 											file.referencingJob.jobStatus,
 										jobOwner:
-											eventData.owner ||
-											eventData.jobOwner ||
+											event.data!.userId ||
 											file.referencingJob.jobOwner,
 										createdAt: file.referencingJob.createdAt,
 									},
@@ -202,11 +195,11 @@ export default function FilesAdmin({
 				}
 				break;
 
-			case EVENT_TYPES.JOB_DELETED:
-				if (eventData.jobId) {
+			case 'job_deleted':
+				if (event.data?.jobId) {
 					setFiles((prevFiles) =>
 						prevFiles.map((file) =>
-							file.referencingJob?.jobId === eventData.jobId
+							file.referencingJob?.jobId === event.data!.jobId
 								? {
 										...file,
 										referencingJob: null,
@@ -217,22 +210,20 @@ export default function FilesAdmin({
 				}
 				break;
 
-			case EVENT_TYPES.JOB_CREATED:
+			case 'job_created':
 				// If a new job references a file, we should update the file's job references
-				if (eventData.fileId) {
+				if (event.data?.fileId) {
 					setFiles((prevFiles) =>
 						prevFiles.map((file) =>
-							file.id === eventData.fileId
+							file.id === event.data!.fileId
 								? {
 										...file,
 										referencingJob: {
-											jobId: eventData.jobId,
-											jobName: eventData.name || eventData.jobName,
-											jobStatus:
-												eventData.status || eventData.jobStatus || "pending",
-											jobOwner: eventData.owner || eventData.jobOwner,
-											createdAt:
-												eventData.createdAt || new Date().toISOString(),
+											jobId: event.data!.jobId || 0,
+											jobName: event.data!.jobName || '',
+											jobStatus: event.data!.status || "pending",
+											jobOwner: event.data!.userId || '',
+											createdAt: new Date().toISOString(),
 										},
 									}
 								: file,

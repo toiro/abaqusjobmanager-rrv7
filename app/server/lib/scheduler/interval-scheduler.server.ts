@@ -5,17 +5,14 @@
  * 必要最小限の機能のみ提供
  */
 
+import { getLogger } from "~/shared/core/logger/logger.server";
+import type { Logger } from "@logtape/logtape";
+
 interface SchedulerStats {
 	totalExecutions: number;
 	successfulExecutions: number;
 	failedExecutions: number;
 	lastExecutionTime?: Date;
-}
-
-interface Logger {
-	info(message: string, context: string, data?: any): void;
-	warn(message: string, context: string, data?: any): void;
-	error(message: string, context: string, data?: any): void;
 }
 
 export class IntervalScheduler {
@@ -25,7 +22,7 @@ export class IntervalScheduler {
 	private running = false;
 	private stats: SchedulerStats;
 	private shutdownHandlersInstalled = false;
-	private logger?: Logger;
+	private logger: Logger;
 	private statsLoggingInterval?: Timer;
 
 	constructor(
@@ -47,6 +44,9 @@ export class IntervalScheduler {
 			successfulExecutions: 0,
 			failedExecutions: 0,
 		};
+
+		// LogTape統一ログシステム初期化
+		this.logger = getLogger();
 	}
 
 	onTick(callback: () => Promise<void>): void {
@@ -68,7 +68,8 @@ export class IntervalScheduler {
 		}, this.intervalMs);
 
 		// 開始ログ
-		this.logger?.info("Scheduler: Scheduler started", {
+		this.logger.info("Scheduler started", {
+			context: "IntervalScheduler",
 			schedulerName: this.name,
 			intervalMs: this.intervalMs,
 		});
@@ -92,7 +93,8 @@ export class IntervalScheduler {
 		}
 
 		// 停止ログ
-		this.logger?.info("Scheduler: Scheduler stopped", {
+		this.logger.info("Scheduler stopped", {
+			context: "IntervalScheduler",
 			schedulerName: this.name,
 			stats: this.stats,
 		});
@@ -104,10 +106,6 @@ export class IntervalScheduler {
 
 	getStats(): SchedulerStats {
 		return { ...this.stats };
-	}
-
-	setLogger(logger: Logger): void {
-		this.logger = logger;
 	}
 
 	enableGracefulShutdown(): void {
@@ -131,7 +129,8 @@ export class IntervalScheduler {
 		}
 
 		this.statsLoggingInterval = setInterval(() => {
-			this.logger?.info("Scheduler: Scheduler Statistics", {
+			this.logger.info("Scheduler statistics", {
+				context: "IntervalScheduler",
 				schedulerName: this.name,
 				...this.stats,
 			});
@@ -153,7 +152,8 @@ export class IntervalScheduler {
 			this.stats.failedExecutions++;
 
 			// エラーログ出力
-			this.logger?.error("Scheduler: Task execution failed", {
+			this.logger.error("Task execution failed", {
+				context: "IntervalScheduler",
 				schedulerName: this.name,
 				error: error instanceof Error ? error.message : String(error),
 				stats: this.stats,

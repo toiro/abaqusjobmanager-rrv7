@@ -15,7 +15,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { AbaqusJobExecutor, type JobExecutionHooks, type JobExecutionResult } from '../../app/server/services/abaqus';
+import { AbaqusExecutionResult, AbaqusJobExecutor, type JobExecutionHooks, type JobExecutionResult } from '../../app/server/services/abaqus';
 import type { PersistedJob, PersistedNode, PersistedFileRecord } from '../../app/shared/core/types/database';
 import { join } from 'path';
 import { existsSync, mkdirSync, copyFileSync, rmSync } from 'fs';
@@ -158,7 +158,7 @@ describe('Real Abaqus Execution Integration Tests', () => {
         onAbaqusProgress: (progress) => {
           console.log(`📊 Abaqus progress: ${progress.percentage}%`);
         },
-        onAbaqusComplete: (result) => {
+        onAbaqusFinished: (result: AbaqusExecutionResult) => {
           console.log(`🎯 Abaqus execution completed:`, {
             success: result.success,
             executionTime: result.executionTimeMs,

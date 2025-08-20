@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { useSystemSSE } from "~/client/hooks/useSSE";
 import type {
-	SSEEvent,
+	SystemSSEEvent,
 	LicenseUsageData,
 } from "~/server/services/sse/sse-schemas";
 import { getLicenseStatusConfig } from "~/client/utils/license-status";
@@ -29,7 +29,7 @@ export function SystemStatusBar({
 
 	// SSE connection for real-time updates
 	const { connectionState, isMounted: sseIsMounted } = useSystemSSE(
-		(event: SSEEvent) => {
+		(event: SystemSSEEvent) => {
 			// Handle system events for license updates
 			if (event.type === "license_usage_updated") {
 				const data = event.data as LicenseUsageData;

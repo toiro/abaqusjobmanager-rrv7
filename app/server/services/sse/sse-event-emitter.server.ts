@@ -5,25 +5,28 @@
 
 import { getLogger } from "../../../shared/core/logger/logger.server";
 import { SSECleanupManager } from "./sse-cleanup-manager";
+import type { AnyTypedSSEEvent } from "./sse-schemas";
 import { SSEStatisticsManager, type SSEStats } from "./sse-statistics";
 
 // Global event emitter for SSE
 class SSEEventEmitter {
-	private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
+	private listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>> =
+		new Map();
 	private cleanupManager = new SSECleanupManager();
 	private statsManager = new SSEStatisticsManager();
 
-	on(event: string, callback: (data: unknown) => void) {
+	on(event: string, callback: (data: AnyTypedSSEEvent) => void) {
 		if (!this.listeners.has(event)) {
 			this.listeners.set(event, new Set());
 		}
+		// biome-ignore lint/style/noNonNullAssertion: checked above
 		this.listeners.get(event)!.add(callback);
 		getLogger().debug(
 			`SSEEventEmitter: SSE listener added for event: ${event}`,
 		);
 	}
 
-	off(event: string, callback: (data: unknown) => void) {
+	off(event: string, callback: (data: AnyTypedSSEEvent) => void) {
 		const success = this.listeners.get(event)?.delete(callback) || false;
 		if (success) {
 			getLogger().debug(
@@ -32,7 +35,7 @@ class SSEEventEmitter {
 		}
 	}
 
-	emit(event: string, data: unknown) {
+	emit(event: string, data: AnyTypedSSEEvent) {
 		const listeners = this.listeners.get(event);
 		if (listeners && listeners.size > 0) {
 			getLogger().debug(
@@ -40,7 +43,7 @@ class SSEEventEmitter {
 			);
 
 			// Keep track of dead listeners to remove them
-			const deadListeners: Array<(data: unknown) => void> = [];
+			const deadListeners: Array<(data: AnyTypedSSEEvent) => void> = [];
 
 			listeners.forEach((callback) => {
 				try {

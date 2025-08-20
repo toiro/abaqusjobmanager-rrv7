@@ -131,19 +131,17 @@ export class SchedulerSystem {
 				// ジョブ実行監視タスクを設定
 				this.jobExecutionScheduler.scheduleJobExecution(async () => {
 					// TODO: 実際のジョブ実行監視処理を実装
-					this.logger.info(
-						"Job execution check executed",
-						"JobExecutionScheduler",
-					);
+					this.logger.info("Job execution check executed", {
+						context: "JobExecutionScheduler",
+					});
 				});
 				this.jobExecutionScheduler.start();
 				this.logger.info("SchedulerSystem: Job Execution Scheduler started");
 			}
 
-			this.logger.info(
-				"All schedulers started successfully",
-				"SchedulerSystem",
-			);
+			this.logger.info("All schedulers started successfully", {
+				context: "SchedulerSystem",
+			});
 		} catch (error) {
 			this.logger.error("SchedulerSystem: Failed to start scheduler system", {
 				error,

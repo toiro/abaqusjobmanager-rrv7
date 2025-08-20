@@ -14,10 +14,10 @@ export {
 
 export type { LicenseConfig } from "./license-config";
 
+// Domain service exports
 export {
-	calculateLicenseTokens,
-	AVAILABLE_CPU_OPTIONS,
-	CPU_LICENSE_MAPPING,
-} from "./license-calculator";
-
-export type { CpuOption } from "./license-calculator";
+	LicenseCalculation,
+	type CpuCoreOption,
+	type CpuLicenseMapping,
+	type JobCpuInfo,
+} from "../../../domain/services/license-calculation";

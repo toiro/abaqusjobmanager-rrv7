@@ -3,7 +3,7 @@
  * Provides consistent layout for test pages with navigation sidebar
  */
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { cn } from "~/shared/utils/utils";
 
@@ -31,6 +31,7 @@ const testNavigationItems: TestNavigationItem[] = [
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
+				aria-label="UI Test"
 			>
 				<path
 					strokeLinecap="round"
@@ -51,6 +52,7 @@ const testNavigationItems: TestNavigationItem[] = [
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
+				aria-label="SSE Test"
 			>
 				<path
 					strokeLinecap="round"
@@ -71,6 +73,7 @@ const testNavigationItems: TestNavigationItem[] = [
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
+				aria-label="API Test"
 			>
 				<path
 					strokeLinecap="round"
@@ -101,6 +104,7 @@ export function TestLayout({ children, title, description }: TestLayoutProps) {
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
+								aria-label="Back to main"
 							>
 								<path
 									strokeLinecap="round"

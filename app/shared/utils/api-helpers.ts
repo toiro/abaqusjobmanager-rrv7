@@ -26,7 +26,8 @@ export function error(
 	details?: unknown,
 	status = 400,
 ): Response {
-	getLogger().error("API error response", "Routes", {
+	getLogger().error("API error response", {
+		context: "Routes",
 		message,
 		details,
 		status,
@@ -43,7 +44,8 @@ export function errorWithIntent(
 	details?: unknown,
 	status = 400,
 ): Response {
-	getLogger().error("API error response with intent", "Routes", {
+	getLogger().error("API error response with intent", {
+		context: "Routes",
 		message,
 		intent,
 		details,
@@ -206,7 +208,8 @@ export function handleApiError(
 	}
 
 	if (error instanceof Error) {
-		getLogger().error(`${context} error`, "Routes", {
+		getLogger().error(`${context} error`, {
+			context: "Routes",
 			error: error.message,
 			stack: error.stack,
 		});
@@ -220,7 +223,7 @@ export function handleApiError(
 			: httpError.serverError(message);
 	}
 
-	getLogger().error(`${context} unknown error`, "Routes", { error });
+	getLogger().error(`${context} unknown error`, { context: "Routes", error });
 	return intent
 		? errorWithIntent("Internal server error", intent, undefined, 500)
 		: httpError.serverError();

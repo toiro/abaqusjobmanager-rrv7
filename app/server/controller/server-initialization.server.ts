@@ -54,7 +54,7 @@ export class ServerInitializationService {
 
 		this.logger.info(
 			"Starting server initialization with environment-based scheduler system",
-			"ServerInitialization",
+			{ context: "ServerInitialization" },
 		);
 
 		try {
@@ -64,21 +64,15 @@ export class ServerInitializationService {
 
 			this.isInitialized = true;
 
-			this.logger.info(
-				"Server initialization completed",
-				"ServerInitialization",
-				{
-					schedulerStatus: this.schedulerSystem.getStatus(),
-				},
-			);
+			this.logger.info("Server initialization completed", {
+				context: "ServerInitialization",
+				schedulerStatus: this.schedulerSystem.getStatus(),
+			});
 		} catch (error) {
-			this.logger.error(
-				"Server initialization failed",
-				"ServerInitialization",
-				{
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			);
+			this.logger.error("Server initialization failed", {
+				context: "ServerInitialization",
+				error: error instanceof Error ? error.message : "Unknown error",
+			});
 			throw error;
 		}
 	}
@@ -99,13 +93,10 @@ export class ServerInitializationService {
 
 			this.logger.info("ServerInitialization: Graceful shutdown completed");
 		} catch (error) {
-			this.logger.error(
-				"Error during graceful shutdown",
-				"ServerInitialization",
-				{
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			);
+			this.logger.error("Error during graceful shutdown", {
+				context: "ServerInitialization",
+				error: error instanceof Error ? error.message : "Unknown error",
+			});
 		} finally {
 			this.isInitialized = false;
 		}
@@ -149,13 +140,10 @@ export async function initializeServer(
 
 	// プロセス終了時のクリーンアップ (Note: SchedulerSystem also handles this)
 	const gracefulShutdown = async (signal: string) => {
-		getLogger().info(
-			"Received shutdown signal, cleaning up...",
-			"ServerInitialization",
-			{
-				signal,
-			},
-		);
+		getLogger().info("Received shutdown signal, cleaning up...", {
+			context: "ServerInitialization",
+			signal,
+		});
 		await service.shutdown();
 	};
 

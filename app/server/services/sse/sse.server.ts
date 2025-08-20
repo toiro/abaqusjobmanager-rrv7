@@ -5,41 +5,38 @@
 
 import { getLogger } from "../../../shared/core/logger/logger.server";
 import { getSSEEventEmitter } from "./sse-event-emitter.server";
-import {
-	type SSEEvent,
-	type JobEventData,
-	type FileEventData,
-	type NodeEventData,
-	type UserEventData,
-	type SystemEventData,
-	EVENT_TYPES,
-	SSE_CHANNELS,
-} from "./sse-schemas";
+import type { AnyTypedSSEEvent, ChannelEventMap, TypedSSEEvent } from "./sse-schemas";
 
 /**
- * Generic SSE event emission
+ * Type-safe SSE event emission using Channel-Event mapping
+ * Ensures compile-time type safety for channel, event type, and data consistency
  */
-export function emitSSE<T = unknown>(
-	channel: string,
-	type: string,
-	data?: T,
+export function emitTypedEvent<
+	TChannel extends keyof ChannelEventMap,
+	TType extends keyof ChannelEventMap[TChannel],
+>(
+	channel: TChannel,
+	type: TType,
+	data?: ChannelEventMap[TChannel][TType],
 ): void {
 	try {
-		const event: SSEEvent<T> = {
+		const event: TypedSSEEvent<TChannel, TType> = {
+			channel,
 			type,
 			data,
 			timestamp: new Date().toISOString(),
-			channel,
 		};
 
-		getSSEEventEmitter().emit(channel, event);
+		getSSEEventEmitter().emit(channel as string, event as AnyTypedSSEEvent);
 
-		getLogger().debug("SSE event emitted", `SSE:${channel}`, {
+		getLogger().debug("Typed SSE event emitted", {
+			channel,
 			type,
-			listenerCount: getSSEEventEmitter().getListenerCount(channel),
+			listenerCount: getSSEEventEmitter().getListenerCount(channel as string),
 		});
 	} catch (error) {
-		getLogger().error("Failed to emit SSE event", `SSE:${channel}`, {
+		getLogger().error("Failed to emit typed SSE event", {
+			channel,
 			type,
 			error: error instanceof Error ? error.message : "Unknown error",
 		});
@@ -49,110 +46,159 @@ export function emitSSE<T = unknown>(
 /**
  * Job Events
  */
-export function emitJobEvent(type: string, data?: JobEventData): void {
-	emitSSE(SSE_CHANNELS.JOBS, type, data);
+export function emitJobEvent<T extends keyof ChannelEventMap["jobs"]>(
+	type: T,
+	data?: ChannelEventMap["jobs"][T],
+): void {
+	emitTypedEvent("jobs", type, data);
 }
 
-export function emitJobCreated(data: JobEventData): void {
-	emitJobEvent(EVENT_TYPES.JOB_CREATED, data);
+export function emitJobCreated(
+	data?: ChannelEventMap["jobs"]["job_created"],
+): void {
+	emitTypedEvent("jobs", "job_created", data);
 }
 
-export function emitJobUpdated(data: JobEventData): void {
-	emitJobEvent(EVENT_TYPES.JOB_UPDATED, data);
+export function emitJobUpdated(
+	data?: ChannelEventMap["jobs"]["job_updated"],
+): void {
+	emitTypedEvent("jobs", "job_updated", data);
 }
 
-export function emitJobDeleted(data: JobEventData): void {
-	emitJobEvent(EVENT_TYPES.JOB_DELETED, data);
+export function emitJobDeleted(
+	data?: ChannelEventMap["jobs"]["job_deleted"],
+): void {
+	emitTypedEvent("jobs", "job_deleted", data);
 }
 
-export function emitJobStatusChanged(data: JobEventData): void {
-	emitJobEvent(EVENT_TYPES.JOB_STATUS_CHANGED, data);
+export function emitJobStatusChanged(
+	data?: ChannelEventMap["jobs"]["job_status_changed"],
+): void {
+	emitTypedEvent("jobs", "job_status_changed", data);
 }
 
 /**
  * File Events
  */
-export function emitFileEvent(type: string, data?: FileEventData): void {
-	emitSSE(SSE_CHANNELS.FILES, type, data);
+export function emitFileEvent<T extends keyof ChannelEventMap["files"]>(
+	type: T,
+	data?: ChannelEventMap["files"][T],
+): void {
+	emitTypedEvent("files", type, data);
 }
 
-export function emitFileCreated(data: FileEventData): void {
-	emitFileEvent(EVENT_TYPES.FILE_CREATED, data);
+export function emitFileCreated(
+	data?: ChannelEventMap["files"]["file_created"],
+): void {
+	emitTypedEvent("files", "file_created", data);
 }
 
-export function emitFileUpdated(data: FileEventData): void {
-	emitFileEvent(EVENT_TYPES.FILE_UPDATED, data);
+export function emitFileUpdated(
+	data?: ChannelEventMap["files"]["file_updated"],
+): void {
+	emitTypedEvent("files", "file_updated", data);
 }
 
-export function emitFileDeleted(data: FileEventData): void {
-	emitFileEvent(EVENT_TYPES.FILE_DELETED, data);
+export function emitFileDeleted(
+	data?: ChannelEventMap["files"]["file_deleted"],
+): void {
+	emitTypedEvent("files", "file_deleted", data);
 }
 
 /**
  * Node Events
  */
-export function emitNodeEvent(type: string, data?: NodeEventData): void {
-	emitSSE(SSE_CHANNELS.NODES, type, data);
+export function emitNodeEvent<T extends keyof ChannelEventMap["nodes"]>(
+	type: T,
+	data?: ChannelEventMap["nodes"][T],
+): void {
+	emitTypedEvent("nodes", type, data);
 }
 
-export function emitNodeCreated(data: NodeEventData): void {
-	emitNodeEvent(EVENT_TYPES.NODE_CREATED, data);
+export function emitNodeCreated(
+	data?: ChannelEventMap["nodes"]["node_created"],
+): void {
+	emitTypedEvent("nodes", "node_created", data);
 }
 
-export function emitNodeUpdated(data: NodeEventData): void {
-	emitNodeEvent(EVENT_TYPES.NODE_UPDATED, data);
+export function emitNodeUpdated(
+	data?: ChannelEventMap["nodes"]["node_updated"],
+): void {
+	emitTypedEvent("nodes", "node_updated", data);
 }
 
-export function emitNodeDeleted(data: NodeEventData): void {
-	emitNodeEvent(EVENT_TYPES.NODE_DELETED, data);
+export function emitNodeDeleted(
+	data?: ChannelEventMap["nodes"]["node_deleted"],
+): void {
+	emitTypedEvent("nodes", "node_deleted", data);
 }
 
-export function emitNodeStatusChanged(data: NodeEventData): void {
-	emitNodeEvent(EVENT_TYPES.NODE_STATUS_CHANGED, data);
+export function emitNodeStatusChanged(
+	data?: ChannelEventMap["nodes"]["node_status_changed"],
+): void {
+	emitTypedEvent("nodes", "node_status_changed", data);
 }
 
 /**
  * User Events
  */
-export function emitUserEvent(type: string, data?: UserEventData): void {
-	emitSSE(SSE_CHANNELS.USERS, type, data);
+export function emitUserEvent<T extends keyof ChannelEventMap["users"]>(
+	type: T,
+	data?: ChannelEventMap["users"][T],
+): void {
+	emitTypedEvent("users", type, data);
 }
 
-export function emitUserCreated(data: UserEventData): void {
-	emitUserEvent(EVENT_TYPES.USER_CREATED, data);
+export function emitUserCreated(
+	data?: ChannelEventMap["users"]["user_created"],
+): void {
+	emitTypedEvent("users", "user_created", data);
 }
 
-export function emitUserUpdated(data: UserEventData): void {
-	emitUserEvent(EVENT_TYPES.USER_UPDATED, data);
+export function emitUserUpdated(
+	data?: ChannelEventMap["users"]["user_updated"],
+): void {
+	emitTypedEvent("users", "user_updated", data);
 }
 
-export function emitUserDeleted(data: UserEventData): void {
-	emitUserEvent(EVENT_TYPES.USER_DELETED, data);
+export function emitUserDeleted(
+	data?: ChannelEventMap["users"]["user_deleted"],
+): void {
+	emitTypedEvent("users", "user_deleted", data);
 }
 
-export function emitUserStatusChanged(data: UserEventData): void {
-	emitUserEvent(EVENT_TYPES.USER_STATUS_CHANGED, data);
+export function emitUserStatusChanged(
+	data?: ChannelEventMap["users"]["user_status_changed"],
+): void {
+	emitTypedEvent("users", "user_status_changed", data);
 }
 
 /**
  * System Events
  */
-export function emitSystemEvent(type: string, data?: SystemEventData): void {
-	emitSSE(SSE_CHANNELS.SYSTEM, type, data);
+export function emitSystemEvent<T extends keyof ChannelEventMap["system"]>(
+	type: T,
+	data?: ChannelEventMap["system"][T],
+): void {
+	emitTypedEvent("system", type, data);
 }
 
-export function emitPing(data?: SystemEventData): void {
-	emitSystemEvent(EVENT_TYPES.PING, data);
+export function emitPing(data?: ChannelEventMap["system"]["ping"]): void {
+	emitTypedEvent("system", "ping", data);
 }
 
-export function emitConnected(data?: SystemEventData): void {
-	emitSystemEvent(EVENT_TYPES.CONNECTED, data);
+export function emitConnected(
+	data?: ChannelEventMap["system"]["connected"],
+): void {
+	emitTypedEvent("system", "connected", data);
 }
 
-export function emitDisconnected(data?: SystemEventData): void {
-	emitSystemEvent(EVENT_TYPES.DISCONNECTED, data);
+export function emitDisconnected(
+	data?: ChannelEventMap["system"]["disconnected"],
+): void {
+	emitTypedEvent("system", "disconnected", data);
 }
 
-export function emitError(data?: SystemEventData): void {
-	emitSystemEvent(EVENT_TYPES.ERROR, data);
+export function emitError(data?: ChannelEventMap["system"]["error"]): void {
+	emitTypedEvent("system", "error", data);
 }

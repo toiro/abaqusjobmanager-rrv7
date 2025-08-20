@@ -1,7 +1,6 @@
-import { Select } from "./select";
-import { type User } from "~/shared/core/types/database";
 import { PLACEHOLDERS, SYSTEM_MESSAGES } from "~/client/constants/messages";
-import { convertUserIdToString } from "~/client/utils/formatting";
+import type { User } from "~/shared/core/types/database";
+import { Select } from "./select";
 
 interface UserSelectorProps {
 	value?: string;
@@ -24,6 +23,7 @@ export function UserSelector({
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
+					aria-label="User"
 				>
 					<path
 						strokeLinecap="round"

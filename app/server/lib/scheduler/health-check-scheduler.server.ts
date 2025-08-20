@@ -6,26 +6,11 @@
  */
 
 import { IntervalScheduler } from "./interval-scheduler.server";
-import { getLogger } from "~/shared/core/logger/logger.server";
 
 export class HealthCheckScheduler extends IntervalScheduler {
 	constructor(intervalMs: number = 30000) {
 		// デフォルト30秒
 		super("health-check", intervalMs);
-
-		// 既存ログシステムとの統合
-		const logger = getLogger();
-		this.setLogger({
-			info: (message: string, context: string, data?: any) => {
-				logger.info(message, context, data);
-			},
-			warn: (message: string, context: string, data?: any) => {
-				logger.warn(message, context, data);
-			},
-			error: (message: string, context: string, data?: any) => {
-				logger.error(message, context, data);
-			},
-		});
 
 		// Graceful shutdown有効化
 		this.enableGracefulShutdown();

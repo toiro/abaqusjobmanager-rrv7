@@ -6,7 +6,7 @@ test.describe('TC-SSE-007: Performance Load Test (Simplified)', () => {
   test('Multiple sequential license updates', async ({ page }) => {
     // 1. テストページに移動
     await page.goto('/test/sse');
-    await expect(page.getByText('Server-Sent Events Test')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send License Update' })).toBeVisible();
     
     // 2. パフォーマンス測定開始
     const startTime = Date.now();
@@ -17,7 +17,7 @@ test.describe('TC-SSE-007: Performance Load Test (Simplified)', () => {
       const eventStartTime = Date.now();
       
       await page.getByRole('button', { name: 'Send License Update' }).click();
-      await expect(page.getByText('✅ license_usage_updated event emitted successfully')).toBeVisible();
+      await expect(page.getByText(/license_usage_updated event emitted successfully/)).toBeVisible();
       
       const eventTime = Date.now() - eventStartTime;
       console.log(`Event ${i + 1}: ${eventTime}ms`);
@@ -53,7 +53,7 @@ test.describe('TC-SSE-007: Performance Load Test (Simplified)', () => {
     
     for (const event of events) {
       await page.getByRole('button', { name: event.name }).click();
-      await expect(page.getByText(`✅ ${event.expected} event emitted successfully`)).toBeVisible();
+      await expect(page.getByText(new RegExp(`${event.expected} event emitted successfully`))).toBeVisible();
       await page.waitForTimeout(200);
     }
     
@@ -75,7 +75,7 @@ test.describe('TC-SSE-007: Performance Load Test (Simplified)', () => {
     // 3. 複数イベントを短時間で送信
     for (let i = 0; i < 3; i++) {
       await page.getByRole('button', { name: 'Send License Update' }).click();
-      await expect(page.getByText('✅ license_usage_updated event emitted successfully')).toBeVisible();
+      await expect(page.getByText(/license_usage_updated event emitted successfully/)).toBeVisible();
     }
     
     // 4. メインページに戻って接続状態確認

@@ -61,8 +61,9 @@ export function createMockAbaqusResult(
 		exitCode: 0,
 		stdout: "Abaqus execution completed successfully",
 		stderr: "",
+		lastStdout: "Abaqus execution completed successfully",
 		executionTimeMs: 5000,
-		outputFiles: ["test_job.odb", "test_job.dat", "test_job.msg"],
+		// outputFiles: ["test_job.odb", "test_job.dat", "test_job.msg"], // Removed from AbaqusExecutionResult
 		...overrides,
 	};
 }

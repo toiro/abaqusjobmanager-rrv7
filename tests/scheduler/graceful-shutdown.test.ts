@@ -2,16 +2,39 @@
  * Graceful Shutdown テスト
  * 
  * プロセス終了時の安全な停止機能をテストファーストで設計
+ * LogTape統合後のテスト
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { IntervalScheduler } from '../../app/server/lib/scheduler/interval-scheduler.server';
+
+// LogTape統一ログシステムのモック
+const mockLogger = {
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {}),
+};
+
+const mockGetLogger = mock(() => mockLogger);
+
+// モジュールモック
+mock.module('~/shared/core/logger/logger.server', () => ({
+  getLogger: mockGetLogger,
+}));
 
 describe('GracefulShutdown', () => {
   let scheduler: IntervalScheduler;
   let originalListeners: any;
 
   beforeEach(() => {
+    // LogTapeモックをリセット
+    mockLogger.info.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.debug.mockClear();
+    mockGetLogger.mockClear();
+    
     // プロセスイベントリスナーのバックアップ
     originalListeners = {
       SIGTERM: process.listeners('SIGTERM'),

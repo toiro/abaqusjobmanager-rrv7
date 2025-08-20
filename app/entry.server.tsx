@@ -3,7 +3,10 @@ import { renderToReadableStream } from "react-dom/server.bun";
 import type { AppLoadContext, EntryContext } from "react-router";
 import { ServerRouter } from "react-router";
 import { env } from "~/shared/core/env";
-import { getLogger, initializeLogger } from "~/shared/core/logger/logger.server";
+import {
+	getLogger,
+	initializeLogger,
+} from "~/shared/core/logger/logger.server";
 
 // Initialize LogTape on server startup
 let loggerInitialized = false;

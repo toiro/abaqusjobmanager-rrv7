@@ -2,17 +2,42 @@
  * 具象Scheduler テスト
  * 
  * Health Check, SSE Cleanup, Job Execution の専用スケジューラー
+ * LogTape統合後のテスト
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { HealthCheckScheduler } from '../../app/server/lib/scheduler/health-check-scheduler.server';
 import { SSECleanupScheduler } from '../../app/server/lib/scheduler/sse-cleanup-scheduler.server';
 import { JobExecutionScheduler } from '../../app/server/lib/scheduler/job-execution-scheduler.server';
+
+// LogTape統一ログシステムのモック
+const mockLogger = {
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {}),
+};
+
+const mockGetLogger = mock(() => mockLogger);
+
+// モジュールモック
+mock.module('~/shared/core/logger/logger.server', () => ({
+  getLogger: mockGetLogger,
+}));
 
 describe('ConcreteSchedulers', () => {
   let healthScheduler: HealthCheckScheduler;
   let sseScheduler: SSECleanupScheduler;
   let jobScheduler: JobExecutionScheduler;
+
+  beforeEach(() => {
+    // LogTapeモックをリセット
+    mockLogger.info.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.debug.mockClear();
+    mockGetLogger.mockClear();
+  });
 
   afterEach(async () => {
     if (healthScheduler?.isRunning()) {

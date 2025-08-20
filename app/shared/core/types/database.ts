@@ -10,24 +10,51 @@
  */
 
 import { z } from "zod";
+import {
+	JOB_PRIORITIES,
+	type JobPriority,
+} from "../../../domain/value-objects/job-priority";
+import {
+	JOB_STATUSES,
+	type JobStatus,
+} from "../../../domain/value-objects/job-status";
+
+// Re-export commonly used types
+export type { JobStatus, JobPriority };
+
+import {
+	FileRecordId as createFileRecordId,
+	JobId as createJobId,
+	JobLogId as createJobLogId,
+	NodeId as createNodeId,
+	UserId as createUserId,
+	FileRecordId,
+	JobId,
+	JobLogId,
+	NodeId,
+	UserId,
+} from "../../../domain/value-objects/entity-ids";
+import {
+	NODE_STATUSES,
+	type NodeStatus,
+} from "../../../domain/value-objects/node-status";
 
 // Schemas for runtime validation
 export const JobSchema = z.object({
-	id: z.number().optional(),
+	id: z
+		.number()
+		.optional()
+		.transform((val) => (val ? createJobId(val) : undefined)),
 	name: z.string().min(1),
-	status: z.enum([
-		"waiting",
-		"starting",
-		"running",
-		"completed",
-		"failed",
-		"missing",
-	]),
-	node_id: z.number(),
-	user_id: z.string(),
+	status: z.enum(JOB_STATUSES),
+	node_id: z.number().transform(createNodeId),
+	user_id: z.string().transform(createUserId),
 	cpu_cores: z.number().min(1),
-	file_id: z.number().optional(), // 1:1
-	priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+	file_id: z
+		.number()
+		.optional()
+		.transform((val) => (val ? createFileRecordId(val) : undefined)), // 1:1
+	priority: z.enum(JOB_PRIORITIES).default("normal"),
 	start_time: z.string().nullable().optional(),
 	end_time: z.string().nullable().optional(),
 	error_message: z.string().nullable().optional(),
@@ -37,7 +64,10 @@ export const JobSchema = z.object({
 });
 
 export const NodeSchema = z.object({
-	id: z.number().optional(),
+	id: z
+		.number()
+		.optional()
+		.transform((val) => (val ? createNodeId(val) : undefined)),
 	name: z.string().min(1),
 	hostname: z.string().min(1),
 	ssh_username: z.string().min(1),
@@ -45,10 +75,7 @@ export const NodeSchema = z.object({
 	license_token_limit: z.number().min(1),
 	cpu_cores_limit: z.number().min(1),
 	abaqus_execution_dir: z.string(),
-	status: z
-		.enum(["available", "unavailable"])
-		.default("unavailable")
-		.optional(),
+	status: z.enum(NODE_STATUSES).default("unavailable").optional(),
 	is_active: z
 		.union([z.boolean(), z.number().int()])
 		.transform((val) => {
@@ -63,7 +90,7 @@ export const NodeSchema = z.object({
 });
 
 export const UserSchema = z.object({
-	id: z.string().min(2),
+	id: z.string().min(2).transform(createUserId),
 	max_concurrent_jobs: z.number().min(1).default(1),
 	is_active: z
 		.union([z.boolean(), z.number().int()])
@@ -79,7 +106,10 @@ export const UserSchema = z.object({
 });
 
 export const FileRecordSchema = z.object({
-	id: z.number().optional(),
+	id: z
+		.number()
+		.optional()
+		.transform((val) => (val ? createFileRecordId(val) : undefined)),
 	original_name: z.string().min(1),
 	stored_name: z.string().min(1),
 	file_path: z.string().min(1),
@@ -92,8 +122,11 @@ export const FileRecordSchema = z.object({
 });
 
 export const JobLogSchema = z.object({
-	id: z.number().optional(),
-	job_id: z.number(),
+	id: z
+		.number()
+		.optional()
+		.transform((val) => (val ? createJobLogId(val) : undefined)),
+	job_id: z.number().transform(createJobId),
 	log_level: z.enum(["info", "warning", "error", "debug"]),
 	message: z.string().min(1),
 	details: z.string().nullable().optional(),

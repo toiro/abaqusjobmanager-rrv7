@@ -3,6 +3,8 @@
  * Handles statistics collection and reporting for SSE events
  */
 
+import type { AnyTypedSSEEvent } from "./sse-schemas";
+
 export interface SSEStats {
 	totalEvents: number;
 	totalListeners: number;
@@ -14,7 +16,7 @@ export class SSEStatisticsManager {
 	 * Generate statistics for SSE event listeners
 	 */
 	generateStats(
-		listeners: Map<string, Set<(data: unknown) => void>>,
+		listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>>,
 	): SSEStats {
 		const stats: SSEStats = {
 			totalEvents: listeners.size,
@@ -35,7 +37,7 @@ export class SSEStatisticsManager {
 	 * Get listener count for a specific event
 	 */
 	getListenerCount(
-		listeners: Map<string, Set<(data: unknown) => void>>,
+		listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>>,
 		event: string,
 	): number {
 		return listeners.get(event)?.size || 0;
@@ -44,7 +46,9 @@ export class SSEStatisticsManager {
 	/**
 	 * Get all event names
 	 */
-	getAllEvents(listeners: Map<string, Set<(data: unknown) => void>>): string[] {
+	getAllEvents(
+		listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>>,
+	): string[] {
 		return Array.from(listeners.keys());
 	}
 }

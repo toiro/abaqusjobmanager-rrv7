@@ -93,6 +93,7 @@ export function NodeSelectionField({
 								className="h-4 w-4 text-yellow-400"
 								fill="currentColor"
 								viewBox="0 0 20 20"
+								aria-label="Warning"
 							>
 								<path
 									fillRule="evenodd"

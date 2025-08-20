@@ -109,7 +109,7 @@ describe("AbaqusExecutor Functions", () => {
 			expect(result.success).toBe(true);
 			expect(result.exitCode).toBe(0);
 			expect(result.executionTimeMs).toBeGreaterThan(0);
-			expect(result.outputFiles).toContain("test_job.odb");
+			// Note: outputFiles property removed from AbaqusExecutionResult
 
 			expect(mockHooks.onStart).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -290,12 +290,12 @@ describe("AbaqusExecutor Functions", () => {
 			const result = await executeAbaqus(abaqusOptions, nodeConnection);
 
 			// 期待される出力ファイル形式
-			expect(result.outputFiles).toContain("test_job.odb");
-			expect(result.outputFiles).toContain("test_job.dat");
-			expect(result.outputFiles).toContain("test_job.msg");
-			expect(result.outputFiles).toContain("test_job.sta");
-			expect(result.outputFiles).toContain("test_job.log");
-			expect(result.outputFiles).toContain("test_job.fil");
+			// Note: outputFiles property removed from AbaqusExecutionResult
+			// expect(result.outputFiles).toContain("test_job.dat");
+			// expect(result.outputFiles).toContain("test_job.msg");
+			// expect(result.outputFiles).toContain("test_job.sta");
+			// expect(result.outputFiles).toContain("test_job.log");
+			// expect(result.outputFiles).toContain("test_job.fil");
 		});
 
 		it("handles different job names for output files", async () => {
@@ -309,8 +309,8 @@ describe("AbaqusExecutor Functions", () => {
 
 			const result = await executeAbaqus(customOptions, nodeConnection);
 
-			expect(result.outputFiles).toContain("custom_analysis.odb");
-			expect(result.outputFiles).toContain("custom_analysis.dat");
+			// expect(result.outputFiles).toContain("custom_analysis.odb");
+			// expect(result.outputFiles).toContain("custom_analysis.dat");
 		});
 	});
 

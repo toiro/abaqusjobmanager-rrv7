@@ -4,6 +4,7 @@
  */
 
 import { getLogger } from "../../../shared/core/logger/logger.server";
+import type { AnyTypedSSEEvent } from "./sse-schemas";
 
 export class SSECleanupManager {
 	private readonly logger = getLogger();
@@ -11,7 +12,9 @@ export class SSECleanupManager {
 	/**
 	 * Perform comprehensive cleanup of SSE listeners
 	 */
-	performFullCleanup(listeners: Map<string, Set<(data: unknown) => void>>): {
+	performFullCleanup(
+		listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>>,
+	): {
 		emptyEventsRemoved: number;
 		totalEventsAfter: number;
 		totalListenersAfter: number;
@@ -33,7 +36,7 @@ export class SSECleanupManager {
 	 * Clean up empty event listener sets
 	 */
 	cleanupEmptyEvents(
-		listeners: Map<string, Set<(data: unknown) => void>>,
+		listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>>,
 	): number {
 		let cleanedCount = 0;
 		for (const [event, eventListeners] of listeners.entries()) {
@@ -59,8 +62,8 @@ export class SSECleanupManager {
 	 */
 	removeDeadListeners(
 		event: string,
-		listeners: Set<(data: unknown) => void>,
-		deadListeners: Array<(data: unknown) => void>,
+		listeners: Set<(data: AnyTypedSSEEvent) => void>,
+		deadListeners: Array<(data: AnyTypedSSEEvent) => void>,
 	): void {
 		deadListeners.forEach((deadListener) => {
 			listeners.delete(deadListener);
@@ -92,7 +95,7 @@ export class SSECleanupManager {
 	 * Calculate total number of listeners across all events
 	 */
 	private calculateTotalListeners(
-		listeners: Map<string, Set<(data: unknown) => void>>,
+		listeners: Map<string, Set<(data: AnyTypedSSEEvent) => void>>,
 	): number {
 		let total = 0;
 		for (const eventListeners of listeners.values()) {

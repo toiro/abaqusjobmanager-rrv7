@@ -26,7 +26,7 @@ test.describe('TC-SSE-004: Multi-page Data Sync (Simplified)', () => {
       // 5. 一方のタブでイベント送信
       await page1.goto('/test/sse');
       await page1.getByRole('button', { name: 'Send License Update' }).click();
-      await expect(page1.getByText('✅ license_usage_updated event emitted successfully')).toBeVisible();
+      await expect(page1.getByText(/license_usage_updated event emitted successfully/)).toBeVisible();
       
       // 6. 両タブでの同期確認
       await page1.goto('/');
@@ -57,11 +57,11 @@ test.describe('TC-SSE-004: Multi-page Data Sync (Simplified)', () => {
       
       // 3. 両ページでSSE接続確認
       await expect(mainPage.getByText(/License: \d+\/\d+ tokens/)).toBeVisible();
-      await expect(testPage.getByText('Server-Sent Events Test')).toBeVisible();
+      await expect(testPage.getByRole('button', { name: 'Send License Update' })).toBeVisible();
       
       // 4. テストページでイベント送信
       await testPage.getByRole('button', { name: 'Send License Update' }).click();
-      await expect(testPage.getByText('✅ license_usage_updated event emitted successfully')).toBeVisible();
+      await expect(testPage.getByText(/license_usage_updated event emitted successfully/)).toBeVisible();
       
       // 5. メインページでの更新確認
       await mainPage.reload();

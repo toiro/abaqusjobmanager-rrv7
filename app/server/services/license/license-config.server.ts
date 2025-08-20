@@ -3,13 +3,13 @@
  * This file will NOT be included in client bundles
  */
 
-import { jobRepository } from "../../../shared/core/database/index.server";
 import {
 	getMainSettings,
 	updateMainSettings,
 } from "~/shared/core/database/settings-operations";
+import { LicenseCalculation } from "../../../domain/services/license-calculation";
+import { jobRepository } from "../../../shared/core/database/index.server";
 import { validateServerName, validateTokenCount } from "./license-validation";
-import { calculateLicenseTokens } from "./license-calculator";
 
 export interface LicenseConfig {
 	serverName: string;
@@ -68,7 +68,7 @@ export function getCurrentLicenseUsage(): number {
 			"running",
 		]);
 		return runningJobs.reduce((total, job) => {
-			return total + calculateLicenseTokens(job.cpu_cores);
+			return total + LicenseCalculation.calculateTokens(job.cpu_cores);
 		}, 0);
 	} catch (error) {
 		throw new Error(
